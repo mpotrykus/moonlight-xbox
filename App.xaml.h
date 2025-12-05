@@ -6,6 +6,8 @@
 #pragma once
 
 #include "App.g.h"
+#include "Converters\MultiplyConverter.h"
+#include "Converters\UniformThicknessConverter.h"
 #include <Pages\HostSelectorPage.xaml.h>
 
 namespace moonlight_xbox_dx

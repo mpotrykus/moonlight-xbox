@@ -1,0 +1,10 @@
+<StackPanel xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:local="using:moonlight_xbox_dx"
+            Padding="2" Spacing="12" Width="360" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+    <Button x:Name="ResumeButton" Content="Resume App" HorizontalAlignment="Stretch" FontSize="18"/>
+    <Button x:Name="CloseButton" Content="Close App" HorizontalAlignment="Stretch" FontSize="18"/>
+    <Button x:Name="CloseAndStartButton" Content="Close current and start app" HorizontalAlignment="Stretch" FontSize="18"/>
+
+</StackPanel>

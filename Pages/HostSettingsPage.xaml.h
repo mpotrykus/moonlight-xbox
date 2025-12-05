@@ -100,6 +100,12 @@ namespace moonlight_xbox_dx
 		void BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void DisplayTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void AudioTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void StreamTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void DisplayTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void AudioTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void StreamTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
