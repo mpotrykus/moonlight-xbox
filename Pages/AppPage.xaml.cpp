@@ -201,9 +201,6 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                             try { sw = svRef->ScrollableWidth; } catch(...) { sw = 0.0; }
                             Utils::Logf("CenterSelectedItem: polling attempt=%d sv.ScrollableWidth=%.2f\n", attempt, sw);
                             if (attempt > maxAttempts) { try { timer->Stop(); } catch(...) {} return; }
-                            // poll ScrollableWidth until it becomes available
-                            // poll ScrollableWidth until it becomes available
-                            // Minimal diagnostics: check items panel widths and presence of RenderTransform/Visual
                             try {
                                 double itemsPanelActualW = -1.0;
                                 double itemsPanelRootActualW = -1.0;
