@@ -37,7 +37,9 @@
         <local:TabsLayout x:Name="rightTabs" Grid.Row="1">
             <local:TabsLayout.LeftContent>
                 <Grid>
-                    <!-- Three named panels: Display, Audio, Stream. We'll toggle Visibility in code-behind. -->
+                    
+                    <!-- Display -->
+                    
                     <StackPanel x:Name="DisplayPanel" Visibility="Visible">
                         <Grid Margin="0,4,0,4">
                             <Grid.ColumnDefinitions>
@@ -84,6 +86,8 @@
                         <TextBlock Name="HDR4KNote" Visibility="Collapsed" Margin="0,0,0,0">HDR requires Xbox system resolution set to 4K.</TextBlock>
                     </StackPanel>
 
+                    <!-- Audio -->
+                    
                     <StackPanel x:Name="AudioPanel" Visibility="Collapsed">
                         <Grid Margin="0,4,0,4">
                             <Grid.ColumnDefinitions>
@@ -96,13 +100,15 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Audio Configuration" VerticalAlignment="Center" Margin="0,4,0,4" />
-                            <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" Margin="0,4,0,4" />
+                            <ComboBox Grid.Row="0" Grid.Column="1" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" Margin="0,4,0,4" />
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Play Audio on Host PC" VerticalAlignment="Center" Margin="0,4,0,4" />
                             <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}" Margin="0,4,0,4" />
                         </Grid>
                     </StackPanel>
 
+                    <!-- Stream -->
+                    
                     <StackPanel x:Name="StreamPanel" Visibility="Collapsed">
                         <Grid Margin="0,4,0,4">
                             <Grid.ColumnDefinitions>
@@ -128,6 +134,8 @@
                 </Grid>
             </local:TabsLayout.LeftContent>
 
+            <!-- Tabs -->
+
             <local:TabsLayout.TabsContent>
                 <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                     <Grid.RowDefinitions>
@@ -139,9 +147,9 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DisplayPanel" Content="Display" HorizontalAlignment="Stretch" />
-                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="AudioPanel" Content="Audio" HorizontalAlignment="Stretch" />
-                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" Content="Stream" HorizontalAlignment="Stretch" />
+                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DisplayPanel" x:Name="DisplayTab" Content="Display" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind ResolutionSelector}" />
+                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="AudioPanel" x:Name="AudioTab" Content="Audio" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind AudioConfigs}" />
+                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" x:Name="StreamTab" Content="Stream" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind AutoStartSelector}" />
                 </Grid>
             </local:TabsLayout.TabsContent>
         </local:TabsLayout>

@@ -183,65 +183,48 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                     auto svRef = sv;
                     auto containerRef = container;
                     auto lvRef = lv;
-                    const int maxAttempts = 1;
-                    const int delayMs = 100;
-                    auto attemptPtr = std::make_shared<int>(0);
-                    // shared flag to indicate success so other ticks can bail out immediately
-                    auto successPtr = std::make_shared<bool>(false);
-                    auto timer = ref new Windows::UI::Xaml::DispatcherTimer();
-                    timer->Interval = Windows::Foundation::TimeSpan{ (int64_t)delayMs * 10000LL };
-                    timer->Tick += ref new EventHandler<Object^>([weakThis, timer, attemptPtr, maxAttempts, svRef, containerRef, itemRef, desired, immediate, lvRef, successPtr](Object^, Object^) {
+                    try {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) { return; }
+                        double sw = 0.0;
+                        try { sw = svRef->ScrollableWidth; } catch(...) { sw = 0.0; }
+                        Utils::Logf("CenterSelectedItem: polling sv.ScrollableWidth=%.2f\n", sw);
                         try {
-                            auto that = weakThis.Resolve<AppPage>();
-                            if (that == nullptr) { try { timer->Stop(); } catch(...) {} return; }
-                            // If another tick already succeeded, stop quickly
-                            if (*successPtr) { try { timer->Stop(); } catch(...) {} return; }
-                            int attempt = (*attemptPtr)++;
-                            double sw = 0.0;
-                            try { sw = svRef->ScrollableWidth; } catch(...) { sw = 0.0; }
-                            Utils::Logf("CenterSelectedItem: polling attempt=%d sv.ScrollableWidth=%.2f\n", attempt, sw);
-                            if (attempt > maxAttempts) { try { timer->Stop(); } catch(...) {} return; }
+                            double itemsPanelActualW = -1.0;
+                            double itemsPanelRootActualW = -1.0;
+                            bool hasItemsPanel = false;
+                            try { hasItemsPanel = (that->m_itemsPanel != nullptr); } catch(...) { hasItemsPanel = false; }
+                            try { if (that->m_itemsPanel != nullptr) itemsPanelActualW = that->m_itemsPanel->ActualWidth; } catch(...) { itemsPanelActualW = -2.0; }
+                            try { if (lvRef != nullptr && lvRef->ItemsPanelRoot != nullptr) itemsPanelRootActualW = lvRef->ItemsPanelRoot->ActualWidth; } catch(...) { itemsPanelRootActualW = -2.0; }
                             try {
-                                double itemsPanelActualW = -1.0;
-                                double itemsPanelRootActualW = -1.0;
-                                bool hasItemsPanel = false;
-                                try { hasItemsPanel = (that->m_itemsPanel != nullptr); } catch(...) { hasItemsPanel = false; }
-                                try { if (that->m_itemsPanel != nullptr) itemsPanelActualW = that->m_itemsPanel->ActualWidth; } catch(...) { itemsPanelActualW = -2.0; }
-                                try { if (lvRef != nullptr && lvRef->ItemsPanelRoot != nullptr) itemsPanelRootActualW = lvRef->ItemsPanelRoot->ActualWidth; } catch(...) { itemsPanelRootActualW = -2.0; }
-                                try {
-                                    if (that->m_itemsPanel != nullptr) {
-                                        auto vis = ElementCompositionPreview::GetElementVisual(that->m_itemsPanel);
-                                        (void)vis;
-                                        auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(that->m_itemsPanel->RenderTransform);
-                                        (void)tt;
-                                    }
-                                } catch(...) {}
-                                // compute an estimated content width using realized container width and total items
-                                int totalItems = -1;
-                                try { totalItems = (int)lvRef->Items->Size; } catch(...) { totalItems = -1; }
-                                double estContent = -1.0;
-                                try { estContent = containerRef->ActualWidth * (double)totalItems; } catch(...) { estContent = -1.0; }
-                                Utils::Logf("CenterSelectedItem: polling attempt=%d sv.ScrollableWidth=%.2f itemsPanelActualW=%.2f itemsPanelRootActualW=%.2f estimatedContentWidth=%.2f totalItems=%d\n", attempt, sw, itemsPanelActualW, itemsPanelRootActualW, estContent, totalItems);
+                                if (that->m_itemsPanel != nullptr) {
+                                    auto vis = ElementCompositionPreview::GetElementVisual(that->m_itemsPanel);
+                                    (void)vis;
+                                    auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(that->m_itemsPanel->RenderTransform);
+                                    (void)tt;
+                                }
                             } catch(...) {}
-                            if (sw > 1.0) {
-                                // recompute desired in case sizes changed
-                                try {
-                                    Windows::Foundation::Point pt2 = containerRef->TransformToVisual(svRef)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
-                                    double containerCenter2 = pt2.X + containerRef->ActualWidth / 2.0;
-                                    double desired2 = containerCenter2 - (svRef->ViewportWidth / 2.0);
-                                    if (desired2 < 0) desired2 = 0;
-                                    if (desired2 > svRef->ScrollableWidth) desired2 = svRef->ScrollableWidth;
-                                    // apply computed ChangeView when available
-                                    try { svRef->ChangeView(desired2, nullptr, nullptr, false); Utils::Logf("CenterSelectedItem: polling applied ChangeView desired2=%.2f\n", desired2); } catch(...) { }
-                                    try { if (!that->m_suppressSelectionFocus) containerRef->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) {}
-                                } catch(...) { }
-                                // Mark success and stop further polling
-                                *successPtr = true;
-                                try { timer->Stop(); } catch(...) {}
-                            }
+                            // compute an estimated content width using realized container width and total items
+                            int totalItems = -1;
+                            try { totalItems = (int)lvRef->Items->Size; } catch(...) { totalItems = -1; }
+                            double estContent = -1.0;
+                            try { estContent = containerRef->ActualWidth * (double)totalItems; } catch(...) { estContent = -1.0; }
+                            Utils::Logf("CenterSelectedItem: polling sv.ScrollableWidth=%.2f itemsPanelActualW=%.2f itemsPanelRootActualW=%.2f estimatedContentWidth=%.2f totalItems=%d\n", sw, itemsPanelActualW, itemsPanelRootActualW, estContent, totalItems);
                         } catch(...) {}
-                    });
-                    timer->Start();
+                        if (sw > 1.0) {
+                            // recompute desired in case sizes changed
+                            try {
+                                Windows::Foundation::Point pt2 = containerRef->TransformToVisual(svRef)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                double containerCenter2 = pt2.X + containerRef->ActualWidth / 2.0;
+                                double desired2 = containerCenter2 - (svRef->ViewportWidth / 2.0);
+                                if (desired2 < 0) desired2 = 0;
+                                if (desired2 > svRef->ScrollableWidth) desired2 = svRef->ScrollableWidth;
+                                // apply computed ChangeView when available
+                                try { svRef->ChangeView(desired2, nullptr, nullptr, false); Utils::Logf("CenterSelectedItem: polling applied ChangeView desired2=%.2f\n", desired2); } catch(...) { }
+                                try { if (!that->m_suppressSelectionFocus) containerRef->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) {}
+                            } catch(...) { }
+                        }
+                    } catch(...) {}
                 } catch(...) { }
             } catch(...) { }
         } else {
@@ -453,7 +436,7 @@ static void AnimateElementScale(UIElement^ element, float targetScale, int durat
 
 AppPage::AppPage() {
 	InitializeComponent();
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 
     this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnLoaded);
     this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnUnloaded);
@@ -465,14 +448,16 @@ AppPage::AppPage() {
 }
 
 // Apply current search filter to Host->Apps and populate m_filteredApps
-void AppPage::ApplyAppFilter(Platform::String^ filter) {
+bool AppPage::ApplyAppFilter(Platform::String^ filter) {
     auto host = this->Host;
     auto vec = this->m_filteredApps;
-    if (vec == nullptr) return;
+    bool identical = false;
+
+    if (vec == nullptr) return identical;
 
     if (host == nullptr || host->Apps == nullptr) {
         vec->Clear();
-        return;
+        return identical;
     }
 
     // Build new filtered results into a temporary vector so we can compare before updating the bound collection.
@@ -502,7 +487,6 @@ void AppPage::ApplyAppFilter(Platform::String^ filter) {
     }
 
     // If the new results have the same IDs in the same order as the current filtered list, skip updating to avoid flashing.
-    bool identical = false;
     try {
         if (vec != nullptr && vec->Size == newResults->Size) {
             identical = true;
@@ -518,7 +502,7 @@ void AppPage::ApplyAppFilter(Platform::String^ filter) {
 
     if (identical) {
         // Nothing changed; skip UI updates
-        return;
+        return identical;
     }
 
     // Commit new results to the bound collection
@@ -629,6 +613,7 @@ void AppPage::ApplyAppFilter(Platform::String^ filter) {
             }));
         }
     } catch(...) {}
+	return identical;
 }
 
 void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -699,32 +684,6 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 			}));
 	}
 	GetApplicationState()->shouldAutoConnect = false;
-}
-
-void AppPage::CenterHorizontal_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-    try {
-        auto lv = (ListView ^) this->AppsGrid;
-        if (lv == nullptr) return;
-
-        Utils::Logf("CenterHorizontal_Click: before SelectedIndex=%d\n", lv->SelectedIndex);
-
-        // Ensure realized containers are initialized (update heights and composition visuals) before centering/animating
-        EnsureRealizedContainersInitialized(lv);
-
-        // Reset to first item for debugging / reproduce behaviour
-        this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
-        Utils::Logf("CenterHorizontal_Click: after set SelectedIndex=%d\n", this->AppsGrid->SelectedIndex);
-
-        this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-        this->AppsGrid->ScrollIntoView(this->AppsGrid->SelectedItem);
-        Utils::Log("CenterHorizontal_Click: ScrollIntoView called for selected item\n");
-        //CenterSelectedItem();
-    } catch (...) {}
-}
-
-void AppPage::CenterVertical_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-    auto selected = this->AppsGrid->SelectedItem;
-    this->AppsGrid->ScrollIntoView(selected);
 }
 
 void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs ^ e) {
@@ -833,7 +792,13 @@ void AppPage::SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml:
     try {
         auto tb = dynamic_cast<TextBox^>(sender);
         if (tb == nullptr) return;
-        ApplyAppFilter(tb->Text);
+        bool collectionChanged = !ApplyAppFilter(tb->Text);
+		if (collectionChanged) {
+			this->EnsureRealizedContainersInitialized(this->AppsGrid);
+			this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
+			this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
+			this->CenterSelectedItem(1, true);
+        }
     } catch (...) {}
 }
 
@@ -1143,13 +1108,17 @@ void AppPage::OnUnloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEve
     // Unsubscribe ContainerContentChanging if still attached
     try {
         if (this->AppsGrid != nullptr) {
-            try { this->AppsGrid->ContainerContentChanging -= this->m_container_content_changing_token; } catch(...) {}
+            if (this->m_container_content_changing_token.Value != 0) {
+                this->AppsGrid->ContainerContentChanging -= this->m_container_content_changing_token;
+            }
         }
     } catch(...) {}
 
      // Unsubscribe one-shot LayoutUpdated handler if still attached
     if (this->AppsGrid != nullptr) {
-        try { this->AppsGrid->LayoutUpdated -= this->m_layoutUpdated_token; } catch(...) {}
+        if (this->m_layoutUpdated_token.Value != 0) {
+            try { this->AppsGrid->LayoutUpdated -= this->m_layoutUpdated_token; } catch(...) {}
+        }
     }
 
     // Unsubscribe Rendering token if still registered
@@ -1252,7 +1221,6 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
     auto lv = (ListView^)sender;
     if (lv == nullptr) return;
 
-    // Remember the previously selected item (if any) so we can animate it to unselected concurrently
     Platform::Object^ prevItem = nullptr;
     try {
         if (e != nullptr && e->RemovedItems != nullptr && e->RemovedItems->Size > 0) {
@@ -1260,24 +1228,16 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
         }
     } catch(...) { prevItem = nullptr; }
 
-    try { Utils::Logf("AppsGrid_SelectionChanged invoked: SelectedIndex=%d RemovedItem=%p Items=%d\n", (int)lv->SelectedIndex, prevItem, (int)(lv->Items==nullptr?0:lv->Items->Size)); } catch(...) {}
-
-    // Ensure realized containers are initialized (update heights and composition visuals) before centering/animating
     EnsureRealizedContainersInitialized(lv);
 
     if (lv->SelectedIndex < 0) return;
-
-    // Run async to allow layout/virtualization to realize container. Forward to helper.
-    //this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([this, lv, prevItem]() {
-        try { this->HandleSelectionChangedAsync(lv, prevItem); } catch(...) {}
-    //}));
+    try { this->HandleSelectionChangedAsync(lv, prevItem); } catch(...) {}
 }
 
 void AppPage::HandleSelectionChangedAsync(Windows::UI::Xaml::Controls::ListView^ lv, Platform::Object^ prevItem) {
     if (lv == nullptr) return;
     auto item = lv->SelectedItem;
     if (item == nullptr) return;
-    try { Utils::Logf("AppsGrid_SelectionChanged(dispatch): SelectedItem=%p SelectedIndex=%d - requesting ScrollIntoView\n", item, (int)lv->SelectedIndex); } catch(...) {}
 
     // Helper to obtain a realized container, optionally forcing a ScrollIntoView for non-grid layouts.
     auto findOrEnsureContainer = [&](Platform::Object^ it)->ListViewItem^ {
@@ -1296,33 +1256,6 @@ void AppPage::HandleSelectionChangedAsync(Windows::UI::Xaml::Controls::ListView^
 	if (!m_isGridLayout) {
 		this->CenterSelectedItem(1, true);
     }
-	//this->CenterSelectedItem(1, true);
-	/*
-     if (container != nullptr && !m_isGridLayout) {
-         try {
-             // Attempt to center the realized container horizontally within the ScrollViewer viewport.
-             auto sv = m_scrollViewer == nullptr ? FindScrollViewer(lv) : m_scrollViewer;
-             if (sv != nullptr) {
-                 try {
-                     Windows::Foundation::Point pt = container->TransformToVisual(sv)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
-                     double containerCenter = pt.X + container->ActualWidth / 2.0;
-                     double desired = containerCenter - (sv->ViewportWidth / 2.0);
-                     if (desired < 0) desired = 0;
-                     if (desired > sv->ScrollableWidth) desired = sv->ScrollableWidth;
-
-                     if (sv->ScrollableWidth > 1.0) {
-                         try { sv->ChangeView(desired, nullptr, nullptr, false); } catch(...) { }
-                         try { if (!this->m_suppressSelectionFocus) container->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) { }
-                     } else {
-                         try { this->CenterSelectedItem(3, false); } catch(...) {}
-                     }
-                 } catch(...) { try { Utils::Log("HandleSelectionChangedAsync: unexpected exception during centering path\n"); } catch(...) {} }
-             } else {
-                 try { Utils::Log("HandleSelectionChangedAsync: no ScrollViewer found\n"); } catch(...) {}
-             }
-	     } catch (...) { }
-    }
-    */
 
     ListViewItem^ prevContainer = nullptr;
     if (prevItem != nullptr) {
@@ -1384,28 +1317,9 @@ void AppPage::AppsGrid_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Rout
 
 		if (m_scrollViewer != nullptr)
 			m_scrollViewer->ViewChanged += ref new Windows::Foundation::EventHandler<Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs ^>(this, &AppPage::OnScrollViewerViewChanged);
+		
+        EnsureRealizedContainersInitialized(this->AppsGrid);
 
-
-
-
-
-        // PollForCenterItem();
-
-        // auto lv = (ListView ^) this->AppsGrid;
-		// if (lv == nullptr) return;
-
-		// Utils::Logf("CenterHorizontal_Click: before SelectedIndex=%d\n", lv->SelectedIndex);
-
-		// Ensure realized containers are initialized (update heights and composition visuals) before centering/animating
-		EnsureRealizedContainersInitialized(this->AppsGrid);
-
-
-
-
-
-
-
-		// Keep composition-ready detection as before
 		try {
 			auto weakThis = WeakReference(this);
 			Windows::UI::Xaml::Media::CompositionTarget::Rendering += ref new Windows::Foundation::EventHandler<Object ^>([weakThis](Object ^, Object ^) {
@@ -1730,18 +1644,9 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, Windows::UI::Xa
                 this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([this]() {
                     try {
                         if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-                            // auto item = this->AppsGrid->SelectedItem;
-                            // if (item != nullptr) this->AppsGrid->ScrollIntoView(item);
+							EnsureRealizedContainersInitialized(this->AppsGrid);
 							this->CenterSelectedItem(1, true);
 							this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-
-			                // m_layoutNew = true;
-                            /*if (m_isGridLayout)
-                            {
-								this->AppsGrid->ScrollIntoView(this->AppsGrid->SelectedItem);
-                            } else {
-							    PollForCenterItem();
-							}*/
                         }
                     } catch(...) {}
                 }));
@@ -1755,19 +1660,31 @@ void AppPage::OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::U
         auto key = args->VirtualKey;
         // Xbox controller 'Y' maps to VirtualKey::GamepadY or VirtualKey::Y depending on input routing
         using namespace Windows::System;
-        if (key == VirtualKey::GamepadY || key == VirtualKey::Y) {
+        if (key == VirtualKey::GamepadY) {
             // toggle layout
             this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
                 try {
-                    bool newState = !this->m_isGridLayout;
-                    // update toggle button visual state if present
-                    try { if (this->LayoutToggleButton != nullptr) this->LayoutToggleButton->IsChecked = newState; } catch(...) {}
-                    // call handler to switch
-                    this->LayoutToggleButton_Click(this->LayoutToggleButton, nullptr);
+					this->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
                 } catch(...) {}
             }));
             args->Handled = true;
         }
+
+        if (key == VirtualKey::GamepadX) {
+			// toggle layout
+			this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+	            try {
+		            bool newState = !this->m_isGridLayout;
+		            try {
+			            if (this->LayoutToggleButton != nullptr) this->LayoutToggleButton->IsChecked = newState;
+		            } catch (...) {
+		            }
+		            this->LayoutToggleButton_Click(this->LayoutToggleButton, nullptr);
+	            } catch (...) {
+	            }
+            }));
+			args->Handled = true;
+		}
     } catch(...) {}
 }
 
