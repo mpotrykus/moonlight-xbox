@@ -9,8 +9,27 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
+#include <d3d11.h>
+#include <wincodec.h>
+#include <wrl.h>
+#include <ppltasks.h>
+#include <robuffer.h>
+#include <experimental/coroutine>
+#include <windows.storage.streams.h>
+#include <windows.graphics.directx.direct3d11.h>
+#include <windows.ui.xaml.media.imaging.h>
+#include <windows.ui.core.h>
+#include <windows.ui.xaml.input.h>
+#include <windows.ui.xaml.media.h>
+#include <windows.ui.xaml.navigation.h>
+#include <windows.ui.xaml.hosting.h>
+#include <windows.ui.composition.h>
+#include <windows.graphics.imaging.h>
+#include <windows.ui.xaml.h>
+#include "Common/DeviceResources.h"
+#include "../Common/EffectsLibrary.h"
 
-using namespace moonlight_xbox_dx;
+using namespace Microsoft::WRL;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::UI::Core;
@@ -22,8 +41,224 @@ using namespace Windows::UI::Xaml::Navigation;
 using namespace concurrency;
 using namespace Windows::UI::Xaml::Hosting;
 using namespace Windows::UI::Composition;
+using namespace Windows::UI::Xaml::Media::Imaging;
+using namespace Windows::Graphics::Imaging;
+using namespace Windows::Storage::Streams;
+using namespace Windows::Storage;
 
 namespace moonlight_xbox_dx {
+
+// Helper to access buffer bytes for SoftwareBitmap
+struct DECLSPEC_UUID("5B0D3235-4DBA-4D44-865E-8F1D0ED9F3E4") IMemoryBufferByteAccess : IUnknown {
+    virtual HRESULT STDMETHODCALLTYPE GetBuffer(BYTE** value, UINT32* capacity) = 0;
+};
+
+static bool BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius) {
+    using namespace Windows::Graphics::Imaging;
+    if (bitmap == nullptr) return false;
+    try {
+        auto buffer = bitmap->LockBuffer(BitmapBufferAccessMode::ReadWrite);
+        auto reference = buffer->CreateReference();
+        Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> bufferByteAccess;
+        HRESULT hr = S_OK;
+        IUnknown* unk = reinterpret_cast<IUnknown*>(reference);
+        if (unk == nullptr) {
+            Utils::Log("BoxBlurSoftwareBitmap: CreateReference returned null IUnknown\n");
+            return false;
+        }
+        hr = unk->QueryInterface(IID_PPV_ARGS(&bufferByteAccess));
+        BYTE* data = nullptr; UINT32 capacity = 0;
+        bool usedFastPath = false;
+        if (!FAILED(hr) && bufferByteAccess != nullptr) {
+            hr = bufferByteAccess->GetBuffer(&data, &capacity);
+            if (!FAILED(hr) && data != nullptr) {
+                usedFastPath = true;
+            } else {
+                Utils::Logf("BoxBlurSoftwareBitmap: GetBuffer failed hr=0x%08x\n", hr);
+            }
+        } else {
+            Utils::Logf("BoxBlurSoftwareBitmap: QueryInterface failed hr=0x%08x\n", hr);
+        }
+        auto desc = buffer->GetPlaneDescription(0);
+        int width = desc.Width;
+        int height = desc.Height;
+        int stride = desc.Stride;
+        int start = desc.StartIndex;
+        if (width <= 0 || height <= 0 || stride <= 0) return false;
+        size_t planeSize = (size_t)height * (size_t)stride;
+        std::vector<uint8_t> src(planeSize);
+        if (usedFastPath) {
+            memcpy(src.data(), data + start, planeSize);
+        } else {
+            // We must release the BitmapBuffer lock before using CopyToBuffer, otherwise
+            // CopyToBuffer/CopyFromBuffer will fail with "Bitmap exclusive lock taken".
+            try {
+                reference = nullptr;
+                buffer = nullptr;
+            } catch(...) {}
+
+            // Fallback: use SoftwareBitmap::CopyToBuffer and DataReader to obtain pixels
+            try {
+                auto ibuf = ref new Windows::Storage::Streams::Buffer((unsigned int)planeSize);
+                bitmap->CopyToBuffer(ibuf);
+                auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ibuf);
+                reader->ReadBytes(Platform::ArrayReference<uint8_t>(src.data(), (unsigned int)planeSize));
+            } catch(...) {
+                Utils::Log("BoxBlurSoftwareBitmap: fallback CopyToBuffer/DataReader failed\n");
+                return false;
+            }
+        }
+        std::vector<uint8_t> dst(src.size());
+        int diam = radius * 2 + 1;
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                uint32_t sumB = 0, sumG = 0, sumR = 0, sumA = 0;
+                int count = 0;
+                int y0 = std::max(0, y - radius);
+                int y1 = std::min(height - 1, y + radius);
+                int x0 = std::max(0, x - radius);
+                int x1 = std::min(width - 1, x + radius);
+                for (int yy = y0; yy <= y1; ++yy) {
+                    const uint8_t* row = src.data() + yy * stride;
+                    for (int xx = x0; xx <= x1; ++xx) {
+                        const uint8_t* px = row + xx * 4;
+                        sumB += px[0]; sumG += px[1]; sumR += px[2]; sumA += px[3];
+                        ++count;
+                    }
+                }
+                uint8_t outB = (uint8_t)(sumB / count);
+                uint8_t outG = (uint8_t)(sumG / count);
+                uint8_t outR = (uint8_t)(sumR / count);
+                uint8_t outA = (uint8_t)(sumA / count);
+                uint8_t* dstPx = dst.data() + y * stride + x * 4;
+                dstPx[0] = outB; dstPx[1] = outG; dstPx[2] = outR; dstPx[3] = outA;
+            }
+        }
+        // copy back
+        if (usedFastPath) {
+            memcpy(data + start, dst.data(), planeSize);
+        } else {
+            // Fallback: create IBuffer from dst and CopyFromBuffer back into the SoftwareBitmap
+            try {
+                auto writer = ref new Windows::Storage::Streams::DataWriter();
+                writer->WriteBytes(Platform::ArrayReference<uint8_t>(dst.data(), (unsigned int)planeSize));
+                auto outBuf = writer->DetachBuffer();
+                bitmap->CopyFromBuffer(outBuf);
+            } catch(...) {
+                Utils::Log("BoxBlurSoftwareBitmap: fallback CopyFromBuffer failed\n");
+                return false;
+            }
+        }
+        return true;
+    } catch(...) {
+        Utils::Log("BoxBlurSoftwareBitmap: exception while blurring\n");
+        return false;
+    }
+}
+
+
+concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app) {
+    using namespace Windows::Storage;
+    using namespace Windows::Storage::Streams;
+
+    auto path = app->ImagePath;
+    if (path == nullptr) {
+        Utils::Log("ApplyBlur: ImagePath is null\n");
+        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+    }
+    auto raw = path->Data();
+    // Handle ms-appx and ms-appdata URIs via GetFileFromApplicationUriAsync
+    if (wcsncmp(raw, L"ms-appx://", 10) == 0 || wcsncmp(raw, L"ms-appdata://", 12) == 0) {
+        auto uri = ref new Windows::Foundation::Uri(path);
+        return concurrency::create_task(StorageFile::GetFileFromApplicationUriAsync(uri))
+        .then([](StorageFile^ file) -> concurrency::task<IRandomAccessStream^> {
+            return concurrency::create_task(file->OpenReadAsync()).then([](IRandomAccessStreamWithContentType^ s) -> IRandomAccessStream^ { return safe_cast<IRandomAccessStream^>(s); });
+        })
+        .then([](IRandomAccessStream^ stream) -> concurrency::task<BitmapDecoder^> {
+            return concurrency::create_task(BitmapDecoder::CreateAsync(stream));
+        })
+        .then([](BitmapDecoder^ decoder) -> concurrency::task<SoftwareBitmap^> {
+            return concurrency::create_task(decoder->GetSoftwareBitmapAsync());
+        })
+        .then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<SoftwareBitmap^> {
+            if (softwareBitmap->BitmapPixelFormat != BitmapPixelFormat::Bgra8 || softwareBitmap->BitmapAlphaMode != BitmapAlphaMode::Premultiplied) {
+                softwareBitmap = SoftwareBitmap::Convert(softwareBitmap, BitmapPixelFormat::Bgra8, BitmapAlphaMode::Premultiplied);
+            }
+            return concurrency::task_from_result(softwareBitmap);
+        }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+            // Apply a small box blur on CPU as a safe fallback for UI thumbnail blur
+            bool blurred = false;
+            try { blurred = BoxBlurSoftwareBitmap(softwareBitmap, 6); } catch(...) { blurred = false; }
+            if (blurred) Utils::Log("ApplyBlur: CPU box blur applied (ms-appx branch)\n"); else Utils::Log("ApplyBlur: CPU box blur skipped/failed (ms-appx branch)\n");
+            auto newStream = ref new InMemoryRandomAccessStream();
+            return concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, newStream)).then([softwareBitmap, newStream](BitmapEncoder^ encoder) -> concurrency::task<void> {
+                encoder->SetSoftwareBitmap(softwareBitmap);
+                return concurrency::create_task(encoder->FlushAsync()).then([]() {});
+                }).then([newStream]() -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+                    newStream->Seek(0);
+                    try {
+                        Utils::Log("ApplyBlur: encoded PNG stream (ms-appx branch) ready\n");
+                        auto size = newStream->Size;
+                        Utils::Logf("ApplyBlur: stream size=%llu\n", (unsigned long long)size);
+                    } catch(...) {}
+                    Windows::Storage::Streams::IRandomAccessStream^ resultStream = newStream;
+                    if (resultStream == nullptr) {
+                        Utils::Log("ApplyBlur: obtaining IRandomAccessStream failed (ms-appx/ms-appdata branch)\n");
+                        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+                    }
+                    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(resultStream);
+            });
+        });
+    }
+
+    // If the path looks like an absolute file system path (e.g. starts with 'C:\\' or '\\\\'), use GetFileFromPathAsync
+    if ((wcslen(raw) >= 2 && raw[1] == L':') || (wcslen(raw) >= 2 && raw[0] == L'\\' && raw[1] == L'\\')) {
+        try {
+            return concurrency::create_task(StorageFile::GetFileFromPathAsync(path)).then([](StorageFile^ file) -> concurrency::task<IRandomAccessStream^> {
+                return concurrency::create_task(file->OpenReadAsync()).then([](IRandomAccessStreamWithContentType^ s) -> IRandomAccessStream^ { return safe_cast<IRandomAccessStream^>(s); });
+            }).then([](IRandomAccessStream^ stream) -> concurrency::task<BitmapDecoder^> {
+                return concurrency::create_task(BitmapDecoder::CreateAsync(stream));
+            }).then([](BitmapDecoder^ decoder) -> concurrency::task<SoftwareBitmap^> {
+                return concurrency::create_task(decoder->GetSoftwareBitmapAsync());
+            }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<SoftwareBitmap^> {
+                if (softwareBitmap->BitmapPixelFormat != BitmapPixelFormat::Bgra8 || softwareBitmap->BitmapAlphaMode != BitmapAlphaMode::Premultiplied) {
+                    softwareBitmap = SoftwareBitmap::Convert(softwareBitmap, BitmapPixelFormat::Bgra8, BitmapAlphaMode::Premultiplied);
+                }
+                return concurrency::task_from_result(softwareBitmap);
+            }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+                // Apply a small box blur on CPU as a safe fallback for UI thumbnail blur
+                bool blurred = false;
+                try { blurred = BoxBlurSoftwareBitmap(softwareBitmap, 6); } catch(...) { blurred = false; }
+                if (blurred) Utils::Log("ApplyBlur: CPU box blur applied (GetFileFromPathAsync branch)\n"); else Utils::Log("ApplyBlur: CPU box blur skipped/failed (GetFileFromPathAsync branch)\n");
+                auto newStream = ref new InMemoryRandomAccessStream();
+                return concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, newStream)).then([softwareBitmap, newStream](BitmapEncoder^ encoder) -> concurrency::task<void> {
+                    encoder->SetSoftwareBitmap(softwareBitmap);
+                    return concurrency::create_task(encoder->FlushAsync()).then([]() {});
+                }).then([newStream]() -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+                    newStream->Seek(0);
+                    try {
+                        Utils::Log("ApplyBlur: encoded PNG stream (GetFileFromPathAsync branch) ready\n");
+                        auto size = newStream->Size;
+                        Utils::Logf("ApplyBlur: stream size=%llu\n", (unsigned long long)size);
+                    } catch(...) {}
+                    Windows::Storage::Streams::IRandomAccessStream^ resultStream = newStream;
+                    if (resultStream == nullptr) {
+                        Utils::Log("ApplyBlur: obtaining IRandomAccessStream failed (GetFileFromPathAsync branch)\n");
+                        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+                    }
+                    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(resultStream);
+                });
+            });
+        } catch(...) {
+            Utils::Logf("ApplyBlur: StorageFile::GetFileFromPathAsync failed for path='%S'\n", raw);
+            return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+        }
+    }
+
+    // Unsupported scheme (e.g., http/https or unknown) — log and return null so callers skip assignment
+    Utils::Logf("ApplyBlur: unsupported ImagePath format='%S'\n", raw);
+    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+}
 
 static bool allowScaleTransitions = true;
 static bool allowOpacityTransitions = true;
@@ -97,7 +332,12 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
 
         if (container != nullptr && sv != nullptr) {
             try {
-                Windows::Foundation::Point pt = container->TransformToVisual(sv)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                Windows::Foundation::Point pt{0,0};
+                try {
+                    auto trans = container->TransformToVisual(sv);
+                    if (trans != nullptr) pt = trans->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                    else Utils::Log("CenterSelectedItem: TransformToVisual returned null\n");
+                } catch(...) { Utils::Log("CenterSelectedItem: TransformToVisual/TransformPoint threw\n"); }
                 double containerCenter = pt.X + container->ActualWidth / 2.0;
                 double desired = containerCenter - (sv->ViewportWidth / 2.0);
                 if (desired < 0) desired = 0;
@@ -159,7 +399,12 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                             try { swLU = sv->ScrollableWidth; } catch(...) { swLU = 0.0; }
                             if (swLU > 1.0) {
                                 try {
-                                    Windows::Foundation::Point ptLU = container->TransformToVisual(sv)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                    Windows::Foundation::Point ptLU{0,0};
+                                    try {
+                                        auto transLU = container->TransformToVisual(sv);
+                                        if (transLU != nullptr) ptLU = transLU->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                        else Utils::Log("CenterSelectedItem (LayoutUpdated): TransformToVisual returned null\n");
+                                    } catch(...) { Utils::Log("CenterSelectedItem (LayoutUpdated): TransformToVisual/TransformPoint threw\n"); }
                                     double containerCenterLU = ptLU.X + container->ActualWidth / 2.0;
                                     double desiredLU = containerCenterLU - (sv->ViewportWidth / 2.0);
                                     if (desiredLU < 0) desiredLU = 0;
@@ -214,7 +459,12 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                         if (sw > 1.0) {
                             // recompute desired in case sizes changed
                             try {
-                                Windows::Foundation::Point pt2 = containerRef->TransformToVisual(svRef)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                Windows::Foundation::Point pt2{0,0};
+                                try {
+                                    auto trans2 = containerRef->TransformToVisual(svRef);
+                                    if (trans2 != nullptr) pt2 = trans2->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                    else Utils::Log("CenterSelectedItem (polling): TransformToVisual returned null\n");
+                                } catch(...) { Utils::Log("CenterSelectedItem (polling): TransformToVisual/TransformPoint threw\n"); }
                                 double containerCenter2 = pt2.X + containerRef->ActualWidth / 2.0;
                                 double desired2 = containerCenter2 - (svRef->ViewportWidth / 2.0);
                                 if (desired2 < 0) desired2 = 0;
@@ -596,7 +846,12 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                                         if (!m_isGridLayout) {
                                             auto sv = m_scrollViewer == nullptr ? FindScrollViewer(this->AppsGrid) : m_scrollViewer;
                                             if (sv != nullptr) {
-                                                Windows::Foundation::Point pt = container->TransformToVisual(sv)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                                Windows::Foundation::Point pt{0,0};
+                                                try {
+                                                    auto trans2 = container->TransformToVisual(sv);
+                                                    if (trans2 != nullptr) pt = trans2->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                                    else Utils::Log("OnNavigatedTo center: TransformToVisual returned null\n");
+                                                } catch(...) { Utils::Log("OnNavigatedTo center: TransformToVisual/TransformPoint threw\n"); }
                                                 double containerCenter = pt.X + container->ActualWidth / 2.0;
                                                 double desired = containerCenter - (sv->ViewportWidth / 2.0);
                                                 if (desired < 0) desired = 0;
@@ -638,43 +893,128 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
     // Populate filtered list initially (in case Apps were already present)
     ApplyAppFilter(nullptr);
 
-	// Start background polling for app running state and connectivity
-	continueAppFetch.store(true);
-	wasConnected.store(host->Connected);
-	auto that = this;
-	create_task([that]() {
-		while (that->continueAppFetch.load()) {
-	        try {
-			    if (that->host != nullptr) {
-				    that->host->UpdateAppRunningStates();
-				    bool connected = false;
-				    try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
-				    if (that->wasConnected.load() && !connected) {
-					    that->wasConnected.store(false);
-					    Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
-						    try {
-							    auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-							    dialog->Title = Utils::StringFromStdString("Disconnected");
-							    dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
-							    dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-							    concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
-								    that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
-									    try {
-										    that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
-									    } catch (...) {}
-								    }));
-							    });
-						    } catch (...) {}
-					    }));
-	                }
-				    else if (!that->wasConnected.load() && connected) {
-					    that->wasConnected.store(true);
-				    }
-			    }
-		    } catch (...) {}
-			    Sleep(3000);
-		    }
-	});
+    // Blur all app images (defensive: guard nulls and log aggressively)
+    try {
+        if (host == nullptr) {
+            Utils::Log("OnNavigatedTo: host is null, skipping blur loop\n");
+        } else if (host->Apps == nullptr) {
+            Utils::Log("OnNavigatedTo: host->Apps is null, skipping blur loop\n");
+        } else {
+            for (unsigned int i = 0; i < host->Apps->Size; ++i) {
+                auto app = host->Apps->GetAt(i);
+                if (app == nullptr) {
+                    Utils::Logf("OnNavigatedTo: app at index %u is null, skipping\n", i);
+                    continue;
+                }
+                Platform::WeakReference weakThis(this);
+                try {
+                    ApplyBlur(app).then([app, weakThis](Windows::Storage::Streams::IRandomAccessStream^ stream) {
+                        try {
+                            if (stream == nullptr) {
+                                Utils::Logf("[AppPage] ApplyBlur returned null stream for app id=%d\n", app->Id);
+                                return;
+                            }
+                            auto that = weakThis.Resolve<AppPage>();
+                            if (that == nullptr) return;
+                            // Dispatch BitmapImage creation and SetSourceAsync to the page Dispatcher
+                            try {
+                                that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, stream, that]() {
+                                    try {
+                                        if (app == nullptr) return;
+                                        try { Utils::Logf("[AppPage] Dispatcher: creating BitmapImage for app id=%d\n", app->Id); } catch(...) {}
+                                        auto img = ref new Windows::UI::Xaml::Media::Imaging::BitmapImage();
+                                        try { Utils::Logf("[AppPage] Dispatcher: calling SetSourceAsync for app id=%d\n", app->Id); } catch(...) {}
+                                        concurrency::create_task(img->SetSourceAsync(stream)).then([that, app, img, stream]() {
+                                            try {
+                                                try { Utils::Logf("[AppPage] SetSourceAsync continuation for app id=%d (app=%p img=%p stream=%p)\n", app->Id, app, img, stream); } catch(...) {}
+                                                if (app == nullptr || img == nullptr) {
+                                                    Utils::Log("[AppPage] SetSourceAsync continuation: app or img null, skipping assignment\n");
+                                                    return;
+                                                }
+                                                if (that == nullptr) {
+                                                    Utils::Log("[AppPage] SetSourceAsync continuation: page 'that' is null, skipping UI assignment\n");
+                                                    return;
+                                                }
+                                                try {
+                                                    that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, img]() {
+                                                        try {
+                                                            try { Utils::Logf("[AppPage] Dispatcher (final): assigning app->Image (app=%p img=%p)\n", app, img); } catch(...) {}
+                                                            app->Image = img;
+                                                            try { Utils::Logf("[AppPage] assigned app->Image for id=%d\n", app->Id); } catch(...) {}
+                                                        } catch(...) { Utils::Log("[AppPage] assign app->Image threw in final dispatcher\n"); }
+                                                    }));
+                                                } catch(...) {
+                                                    Utils::Log("[AppPage] failed to RunAsync final assignment, attempting direct assign\n");
+                                                    try { app->Image = img; } catch(...) { Utils::Log("[AppPage] direct assign app->Image threw\n"); }
+                                                }
+                                            } catch(...) { Utils::Log("[AppPage] unexpected exception in SetSourceAsync continuation\n"); }
+                                        }, concurrency::task_continuation_context::use_arbitrary());
+                                    } catch(...) {}
+                                }));
+                            } catch(...) {}
+                        } catch(...) {}
+                    }, concurrency::task_continuation_context::use_current());
+                } catch(...) {}
+            }
+        }
+    } catch(...) {}
+
+    // Start background polling for app running state and connectivity
+    // Disabled temporarily to isolate native access-violation crashes during debugging
+    static const bool kDisableBackgroundAppFetch = true;
+    if (!kDisableBackgroundAppFetch) {
+        continueAppFetch.store(true);
+        wasConnected.store(host->Connected);
+        auto that = this;
+        create_task([that]() {
+            while (that->continueAppFetch.load()) {
+                try { Utils::Logf("AppPage: background loop iteration that=%p host=%p\n", that, that->host); } catch(...) {}
+                try {
+                    if (that->host != nullptr) {
+                        try {
+                            Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+                                Windows::UI::Core::CoreDispatcherPriority::Normal,
+                                ref new Windows::UI::Core::DispatchedHandler([that]() {
+                                    try {
+                                        if (that->host != nullptr) that->host->UpdateAppRunningStates();
+                                    } catch(...) {}
+                                })
+                            );
+                        } catch(...) {
+                            // Fallback: call directly if Dispatcher is unavailable
+                            try { that->host->UpdateAppRunningStates(); } catch(...) {}
+                        }
+                        bool connected = false;
+                        try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
+                        if (that->wasConnected.load() && !connected) {
+                            that->wasConnected.store(false);
+                            Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+                                try {
+                                    auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+                                    dialog->Title = Utils::StringFromStdString("Disconnected");
+                                    dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
+                                    dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
+                                    concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+                                        that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+                                            try {
+                                                that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+                                            } catch (...) {}
+                                        }));
+                                    });
+                                } catch (...) {}
+                            }));
+                        }
+                        else if (!that->wasConnected.load() && connected) {
+                            that->wasConnected.store(true);
+                        }
+                    }
+                } catch (...) {}
+                Sleep(3000);
+            }
+        });
+    } else {
+        Utils::Log("AppPage: background app-fetch disabled for debugging\n");
+    }
 
 	if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
 		GetApplicationState()->shouldAutoConnect = false;
@@ -1166,7 +1506,12 @@ static ScrollViewer^ FindScrollViewer(DependencyObject^ parent) {
 void AppPage::TryVerticalCentering(Windows::UI::Xaml::Controls::ScrollViewer^ sv, Windows::UI::Xaml::Controls::ListViewItem^ container, int retries, AppPage^ page) {
     if (sv == nullptr || container == nullptr || page == nullptr) return;
     try {
-        Windows::Foundation::Point pt = container->TransformToVisual(sv)->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+        Windows::Foundation::Point pt{0,0};
+        try {
+            auto trans = container->TransformToVisual(sv);
+            if (trans != nullptr) pt = trans->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+            else Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual returned null\n");
+        } catch(...) { Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual/TransformPoint threw\n"); }
         double containerCenterY = pt.Y + container->ActualHeight / 2.0;
         double desiredY = containerCenterY - (sv->ViewportHeight / 2.0);
         if (desiredY < 0) desiredY = 0;
@@ -1388,19 +1733,51 @@ void AppPage::AppsGrid_ContextRequested(Windows::UI::Xaml::UIElement^ sender, Wi
 void AppPage::AppsGrid_ContainerContentChanging(ListViewBase ^ sender, ContainerContentChangingEventArgs ^ args)
 {
 	try {
-		if (args->ItemIndex == 0 && args->Phase == 0) {
-			auto container = dynamic_cast<ListViewItem ^>(args->ItemContainer);
-			if (container != nullptr) {
-		        // try { Utils::Logf("AppsGrid_ContainerContentChanging fired\n"); } catch (...) {}
+        unsigned long tid = 0;
+        try { tid = ::GetCurrentThreadId(); } catch(...) { tid = 0; }
+        int hasAccess = 0;
+        try { hasAccess = this->Dispatcher != nullptr && this->Dispatcher->HasThreadAccess ? 1 : 0; } catch(...) { hasAccess = 0; }
+        try { Utils::Logf("[AppPage] AppsGrid_ContainerContentChanging called on thread=%u HasThreadAccess=%d\n", tid, hasAccess); } catch(...) {}
+
+        if (!hasAccess) {
+            // If this handler is invoked on a non-UI thread, re-dispatch the work to the UI thread and return.
+            auto weakThis = WeakReference(this);
+            auto senderCopy = sender;
+            auto argsCopy = args;
+            try {
+                this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([weakThis, senderCopy, argsCopy]() {
+                    try {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) return;
+                        try {
+                            if (argsCopy->ItemIndex == 0 && argsCopy->Phase == 0) {
+                                auto container = dynamic_cast<ListViewItem ^>(argsCopy->ItemContainer);
+                                if (container != nullptr) {
+                                    if (that->m_layoutNew) {
+                                        try { Utils::Logf("[AppPage] (dispatched) AppsGrid_ContainerContentChanging fired\n"); } catch(...) {}
+                                    }
+                                }
+                            }
+                        } catch(...) {}
+                    } catch(...) {}
+                }));
+            } catch(...) {}
+            return;
+        }
+
+        // Normal UI-thread path
+        if (args->ItemIndex == 0 && args->Phase == 0) {
+            auto container = dynamic_cast<ListViewItem ^>(args->ItemContainer);
+            if (container != nullptr) {
+                try { Utils::Logf("AppsGrid_ContainerContentChanging fired\n"); } catch (...) { }
 
                 if (m_layoutNew) {
-					try { Utils::Logf("AppsGrid_ContainerContentChanging fired\n"); } catch (...) { }
-					//m_layoutNew = !PollForCenterItem();
-				}
-			}
-		}
-	} catch (...) {
-	}
+                    try { Utils::Logf("AppsGrid_ContainerContentChanging: m_layoutNew=true\n"); } catch (...) {}
+                }
+            }
+        }
+    } catch (...) {
+    }
 }
 
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ args) {
@@ -1506,6 +1883,7 @@ void moonlight_xbox_dx::AppPage::OnScrollViewerViewChanged(Platform::Object^ sen
 
 void moonlight_xbox_dx::AppPage::ApplyCenteringTransformIfNeeded(ListViewItem^ container) {
     try {
+        try { Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: start\n"); } catch(...) {}
         if (this->m_disableCenteringFallback) {
             return;
         }
@@ -1570,11 +1948,20 @@ void moonlight_xbox_dx::AppPage::ApplyCenteringTransformIfNeeded(ListViewItem^ c
         m_itemsPanel->InvalidateArrange(); m_itemsPanel->UpdateLayout();
 
         // Compute container position relative to items panel (panel coordinates)
-        Point ptPanel = container->TransformToVisual(m_itemsPanel)->TransformPoint(Point{ 0,0 });
+        Point ptPanel{0,0};
+        try {
+            auto t = container->TransformToVisual(m_itemsPanel);
+            if (t != nullptr) {
+                ptPanel = t->TransformPoint(Point{0,0});
+            } else {
+                Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual returned null for container->m_itemsPanel\n");
+            }
+        } catch(...) { Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual/TransformPoint threw\n"); }
         double containerCenterInPanel = ptPanel.X + container->ActualWidth / 2.0;
 
         double appsGridCenter = this->AppsGrid->ActualWidth / 2.0;
         double translateX = appsGridCenter - containerCenterInPanel;
+        try { Utils::Logf("[AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=%.2f appsGridCenter=%.2f translateX=%.2f\n", containerCenterInPanel, appsGridCenter, translateX); } catch(...) {}
 
         // computed translateX
         // Prefer Composition animation for smoothness. Animate the visual's Offset.X
@@ -1587,14 +1974,22 @@ void moonlight_xbox_dx::AppPage::ApplyCenteringTransformIfNeeded(ListViewItem^ c
             anim->InsertKeyFrame(1.0f, (float)translateX);
             // stop any previous animation and start a new one
             try { itemsVisual->StopAnimation("Offset.X"); } catch (...) {}
-            itemsVisual->StartAnimation("Offset.X", anim);
+            try {
+                Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: starting composition animation\n");
+                itemsVisual->StartAnimation("Offset.X", anim);
+                Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: composition animation started\n");
+            } catch(...) {
+                Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: StartAnimation threw\n");
+            }
         } else {
             // Fallback to immediate RenderTransform change
             auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(m_itemsPanel->RenderTransform);
             if (tt == nullptr) tt = ref new Windows::UI::Xaml::Media::TranslateTransform();
+            try { Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: using RenderTransform fallback\n"); } catch(...) {}
             tt->X = translateX;
-            m_itemsPanel->RenderTransform = tt;
+            try { m_itemsPanel->RenderTransform = tt; } catch(...) { Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: setting RenderTransform threw\n"); }
         }
+        try { Utils::Log("[AppPage] ApplyCenteringTransformIfNeeded: end\n"); } catch(...) {}
     } catch (...) {}
 }
 

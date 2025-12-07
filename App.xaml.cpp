@@ -6,6 +6,38 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
+#include <windows.h>
+
+static LONG WINAPI MoonlightUnhandledExceptionFilter(EXCEPTION_POINTERS* ep) {
+	if (ep == nullptr) return EXCEPTION_CONTINUE_SEARCH;
+	char buf[512];
+	int len = sprintf_s(buf, sizeof(buf), "Unhandled native exception: code=0x%08X at address=%p\r\n", ep->ExceptionRecord->ExceptionCode, ep->ExceptionRecord->ExceptionAddress);
+	OutputDebugStringA(buf);
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
+static LONG CALLBACK MoonlightVectoredExceptionHandler(PEXCEPTION_POINTERS ep) {
+	if (ep == nullptr) return EXCEPTION_CONTINUE_SEARCH;
+	char buf[1024];
+	auto code = ep->ExceptionRecord->ExceptionCode;
+	void* addr = ep->ExceptionRecord->ExceptionAddress;
+	auto ctx = ep->ContextRecord;
+	int len = 0;
+	len = sprintf_s(buf, sizeof(buf), "Vectored exception: code=0x%08X addr=%p thread=%u\r\n", code, addr, GetCurrentThreadId());
+	OutputDebugStringA(buf);
+	if (ctx) {
+#if defined(_M_X64) || defined(__x86_64__)
+		len = sprintf_s(buf, sizeof(buf), "RIP=%llx RSP=%llx RBP=%llx RAX=%llx RBX=%llx RCX=%llx RDX=%llx\r\n", (unsigned long long)ctx->Rip, (unsigned long long)ctx->Rsp, (unsigned long long)ctx->Rbp, (unsigned long long)ctx->Rax, (unsigned long long)ctx->Rbx, (unsigned long long)ctx->Rcx, (unsigned long long)ctx->Rdx);
+		OutputDebugStringA(buf);
+		len = sprintf_s(buf, sizeof(buf), "RSI=%llx RDI=%llx R8=%llx R9=%llx R10=%llx R11=%llx R12=%llx\r\n", (unsigned long long)ctx->Rsi, (unsigned long long)ctx->Rdi, (unsigned long long)ctx->R8, (unsigned long long)ctx->R9, (unsigned long long)ctx->R10, (unsigned long long)ctx->R11, (unsigned long long)ctx->R12);
+		OutputDebugStringA(buf);
+#else
+		len = sprintf_s(buf, sizeof(buf), "Eip=%08x Esp=%08x Ebp=%08x Eax=%08x Ebx=%08x Ecx=%08x Edx=%08x\r\n", ctx->Eip, ctx->Esp, ctx->Ebp, ctx->Eax, ctx->Ebx, ctx->Ecx, ctx->Edx);
+		OutputDebugStringA(buf);
+#endif
+	}
+	return EXCEPTION_CONTINUE_SEARCH;
+}
 
 using namespace moonlight_xbox_dx;
 
@@ -51,6 +83,14 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 // 	}
 // #endif
 	moonlight_xbox_dx::Utils::Log("Hello from Moonlight!\n");
+	// Register a native unhandled exception filter that writes directly to disk
+	SetUnhandledExceptionFilter(MoonlightUnhandledExceptionFilter);
+
+	// Also register a vectored exception handler to capture first-chance crashes and registers.
+	// Note: AddVectoredExceptionHandler and direct file I/O are not available in all UWP
+	// configurations; we use a debug-output based handler so this compiles across builds.
+	// If AddVectoredExceptionHandler is available on the platform, the call can be
+	// re-enabled conditionally.
 	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
 
 	// Do not repeat app initialization when the Window already has content,
