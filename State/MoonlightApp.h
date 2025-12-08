@@ -11,6 +11,8 @@ namespace moonlight_xbox_dx {
         int id;
         bool currentlyRunning;
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ image;
+        // Backing image for the blurred version used as background behind the original image
+        Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -86,6 +88,17 @@ namespace moonlight_xbox_dx {
                 if (this->image == value) return;
                 this->image = value;
                 try { OnPropertyChanged("Image"); } catch(...) {}
+            }
+        }
+
+        // New property exposing the blurred image (can be null)
+        property Windows::UI::Xaml::Media::Imaging::BitmapImage^ BlurredImage
+        {
+            Windows::UI::Xaml::Media::Imaging::BitmapImage^ get() { return this->blurredImage; }
+            void set(Windows::UI::Xaml::Media::Imaging::BitmapImage^ value) {
+                if (this->blurredImage == value) return;
+                this->blurredImage = value;
+                try { OnPropertyChanged("BlurredImage"); } catch(...) {}
             }
         }
     };

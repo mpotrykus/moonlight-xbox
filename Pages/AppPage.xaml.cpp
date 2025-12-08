@@ -28,6 +28,7 @@
 #include <windows.ui.xaml.h>
 #include "Common/DeviceResources.h"
 #include "../Common/EffectsLibrary.h"
+#include "Common/ImageHelpers.h"
 
 using namespace Microsoft::WRL;
 using namespace Platform;
@@ -53,211 +54,140 @@ struct DECLSPEC_UUID("5B0D3235-4DBA-4D44-865E-8F1D0ED9F3E4") IMemoryBufferByteAc
     virtual HRESULT STDMETHODCALLTYPE GetBuffer(BYTE** value, UINT32* capacity) = 0;
 };
 
-static bool BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius) {
-    using namespace Windows::Graphics::Imaging;
-    if (bitmap == nullptr) return false;
-    try {
-        auto buffer = bitmap->LockBuffer(BitmapBufferAccessMode::ReadWrite);
-        auto reference = buffer->CreateReference();
-        Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> bufferByteAccess;
-        HRESULT hr = S_OK;
-        IUnknown* unk = reinterpret_cast<IUnknown*>(reference);
-        if (unk == nullptr) {
-            Utils::Log("BoxBlurSoftwareBitmap: CreateReference returned null IUnknown\n");
-            return false;
-        }
-        hr = unk->QueryInterface(IID_PPV_ARGS(&bufferByteAccess));
-        BYTE* data = nullptr; UINT32 capacity = 0;
-        bool usedFastPath = false;
-        if (!FAILED(hr) && bufferByteAccess != nullptr) {
-            hr = bufferByteAccess->GetBuffer(&data, &capacity);
-            if (!FAILED(hr) && data != nullptr) {
-                usedFastPath = true;
-            } else {
-                Utils::Logf("BoxBlurSoftwareBitmap: GetBuffer failed hr=0x%08x\n", hr);
-            }
-        } else {
-            Utils::Logf("BoxBlurSoftwareBitmap: QueryInterface failed hr=0x%08x\n", hr);
-        }
-        auto desc = buffer->GetPlaneDescription(0);
-        int width = desc.Width;
-        int height = desc.Height;
-        int stride = desc.Stride;
-        int start = desc.StartIndex;
-        if (width <= 0 || height <= 0 || stride <= 0) return false;
-        size_t planeSize = (size_t)height * (size_t)stride;
-        std::vector<uint8_t> src(planeSize);
-        if (usedFastPath) {
-            memcpy(src.data(), data + start, planeSize);
-        } else {
-            // We must release the BitmapBuffer lock before using CopyToBuffer, otherwise
-            // CopyToBuffer/CopyFromBuffer will fail with "Bitmap exclusive lock taken".
-            try {
-                reference = nullptr;
-                buffer = nullptr;
-            } catch(...) {}
+// Use CPU fallback in EffectsLibrary for SoftwareBitmap blurs
 
-            // Fallback: use SoftwareBitmap::CopyToBuffer and DataReader to obtain pixels
-            try {
-                auto ibuf = ref new Windows::Storage::Streams::Buffer((unsigned int)planeSize);
-                bitmap->CopyToBuffer(ibuf);
-                auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ibuf);
-                reader->ReadBytes(Platform::ArrayReference<uint8_t>(src.data(), (unsigned int)planeSize));
-            } catch(...) {
-                Utils::Log("BoxBlurSoftwareBitmap: fallback CopyToBuffer/DataReader failed\n");
-                return false;
-            }
-        }
-        std::vector<uint8_t> dst(src.size());
-        int diam = radius * 2 + 1;
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                uint32_t sumB = 0, sumG = 0, sumR = 0, sumA = 0;
-                int count = 0;
-                int y0 = std::max(0, y - radius);
-                int y1 = std::min(height - 1, y + radius);
-                int x0 = std::max(0, x - radius);
-                int x1 = std::min(width - 1, x + radius);
-                for (int yy = y0; yy <= y1; ++yy) {
-                    const uint8_t* row = src.data() + yy * stride;
-                    for (int xx = x0; xx <= x1; ++xx) {
-                        const uint8_t* px = row + xx * 4;
-                        sumB += px[0]; sumG += px[1]; sumR += px[2]; sumA += px[3];
-                        ++count;
-                    }
-                }
-                uint8_t outB = (uint8_t)(sumB / count);
-                uint8_t outG = (uint8_t)(sumG / count);
-                uint8_t outR = (uint8_t)(sumR / count);
-                uint8_t outA = (uint8_t)(sumA / count);
-                uint8_t* dstPx = dst.data() + y * stride + x * 4;
-                dstPx[0] = outB; dstPx[1] = outG; dstPx[2] = outR; dstPx[3] = outA;
-            }
-        }
-        // copy back
-        if (usedFastPath) {
-            memcpy(data + start, dst.data(), planeSize);
-        } else {
-            // Fallback: create IBuffer from dst and CopyFromBuffer back into the SoftwareBitmap
-            try {
-                auto writer = ref new Windows::Storage::Streams::DataWriter();
-                writer->WriteBytes(Platform::ArrayReference<uint8_t>(dst.data(), (unsigned int)planeSize));
-                auto outBuf = writer->DetachBuffer();
-                bitmap->CopyFromBuffer(outBuf);
-            } catch(...) {
-                Utils::Log("BoxBlurSoftwareBitmap: fallback CopyFromBuffer failed\n");
-                return false;
-            }
-        }
-        return true;
-    } catch(...) {
-        Utils::Log("BoxBlurSoftwareBitmap: exception while blurring\n");
-        return false;
-    }
-}
+// (Removed) XAML capture helper: UI-capture approach deferred — keep file-mask flow.
 
-
-concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app) {
-    using namespace Windows::Storage;
-    using namespace Windows::Storage::Streams;
-
-    auto path = app->ImagePath;
-    if (path == nullptr) {
-        Utils::Log("ApplyBlur: ImagePath is null\n");
-        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
-    }
-    auto raw = path->Data();
-    // Handle ms-appx and ms-appdata URIs via GetFileFromApplicationUriAsync
-    if (wcsncmp(raw, L"ms-appx://", 10) == 0 || wcsncmp(raw, L"ms-appdata://", 12) == 0) {
-        auto uri = ref new Windows::Foundation::Uri(path);
-        return concurrency::create_task(StorageFile::GetFileFromApplicationUriAsync(uri))
-        .then([](StorageFile^ file) -> concurrency::task<IRandomAccessStream^> {
-            return concurrency::create_task(file->OpenReadAsync()).then([](IRandomAccessStreamWithContentType^ s) -> IRandomAccessStream^ { return safe_cast<IRandomAccessStream^>(s); });
-        })
-        .then([](IRandomAccessStream^ stream) -> concurrency::task<BitmapDecoder^> {
-            return concurrency::create_task(BitmapDecoder::CreateAsync(stream));
-        })
-        .then([](BitmapDecoder^ decoder) -> concurrency::task<SoftwareBitmap^> {
-            return concurrency::create_task(decoder->GetSoftwareBitmapAsync());
-        })
-        .then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<SoftwareBitmap^> {
-            if (softwareBitmap->BitmapPixelFormat != BitmapPixelFormat::Bgra8 || softwareBitmap->BitmapAlphaMode != BitmapAlphaMode::Premultiplied) {
-                softwareBitmap = SoftwareBitmap::Convert(softwareBitmap, BitmapPixelFormat::Bgra8, BitmapAlphaMode::Premultiplied);
-            }
-            return concurrency::task_from_result(softwareBitmap);
-        }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
-            // Apply a small box blur on CPU as a safe fallback for UI thumbnail blur
-            bool blurred = false;
-            try { blurred = BoxBlurSoftwareBitmap(softwareBitmap, 6); } catch(...) { blurred = false; }
-            if (blurred) Utils::Log("ApplyBlur: CPU box blur applied (ms-appx branch)\n"); else Utils::Log("ApplyBlur: CPU box blur skipped/failed (ms-appx branch)\n");
-            auto newStream = ref new InMemoryRandomAccessStream();
-            return concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, newStream)).then([softwareBitmap, newStream](BitmapEncoder^ encoder) -> concurrency::task<void> {
-                encoder->SetSoftwareBitmap(softwareBitmap);
-                return concurrency::create_task(encoder->FlushAsync()).then([]() {});
-                }).then([newStream]() -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
-                    newStream->Seek(0);
-                    try {
-                        Utils::Log("ApplyBlur: encoded PNG stream (ms-appx branch) ready\n");
-                        auto size = newStream->Size;
-                        Utils::Logf("ApplyBlur: stream size=%llu\n", (unsigned long long)size);
-                    } catch(...) {}
-                    Windows::Storage::Streams::IRandomAccessStream^ resultStream = newStream;
-                    if (resultStream == nullptr) {
-                        Utils::Log("ApplyBlur: obtaining IRandomAccessStream failed (ms-appx/ms-appdata branch)\n");
-                        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
-                    }
-                    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(resultStream);
-            });
-        });
+// Capture a XAML element (UI thread) into a BGRA8 Premultiplied SoftwareBitmap.
+// Forward-declare visual-tree search helper so it can be used before its definition
+static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
+static concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> CaptureXamlElementAsync(Windows::UI::Xaml::FrameworkElement^ element) {
+    concurrency::task_completion_event<Windows::Graphics::Imaging::SoftwareBitmap^> tce;
+    if (element == nullptr) {
+        tce.set(nullptr);
+        return concurrency::create_task(tce);
     }
 
-    // If the path looks like an absolute file system path (e.g. starts with 'C:\\' or '\\\\'), use GetFileFromPathAsync
-    if ((wcslen(raw) >= 2 && raw[1] == L':') || (wcslen(raw) >= 2 && raw[0] == L'\\' && raw[1] == L'\\')) {
+    auto dispatcher = Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher;
+    auto dispatched = ref new Windows::UI::Core::DispatchedHandler([element, tce]() mutable {
         try {
-            return concurrency::create_task(StorageFile::GetFileFromPathAsync(path)).then([](StorageFile^ file) -> concurrency::task<IRandomAccessStream^> {
-                return concurrency::create_task(file->OpenReadAsync()).then([](IRandomAccessStreamWithContentType^ s) -> IRandomAccessStream^ { return safe_cast<IRandomAccessStream^>(s); });
-            }).then([](IRandomAccessStream^ stream) -> concurrency::task<BitmapDecoder^> {
-                return concurrency::create_task(BitmapDecoder::CreateAsync(stream));
-            }).then([](BitmapDecoder^ decoder) -> concurrency::task<SoftwareBitmap^> {
-                return concurrency::create_task(decoder->GetSoftwareBitmapAsync());
-            }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<SoftwareBitmap^> {
-                if (softwareBitmap->BitmapPixelFormat != BitmapPixelFormat::Bgra8 || softwareBitmap->BitmapAlphaMode != BitmapAlphaMode::Premultiplied) {
-                    softwareBitmap = SoftwareBitmap::Convert(softwareBitmap, BitmapPixelFormat::Bgra8, BitmapAlphaMode::Premultiplied);
+            moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: dispatched handler running\n");
+            auto rtb = ref new Windows::UI::Xaml::Media::Imaging::RenderTargetBitmap();
+            create_task(rtb->RenderAsync(element)).then([rtb]() {
+                moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: RenderAsync completed\n");
+                return create_task(rtb->GetPixelsAsync());
+            }).then([rtb, tce](Windows::Storage::Streams::IBuffer^ pixels) {
+                if (pixels == nullptr) {
+                    moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: GetPixelsAsync returned null pixels\n");
+                    tce.set(nullptr);
+                    return;
                 }
-                return concurrency::task_from_result(softwareBitmap);
-            }).then([](SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
-                // Apply a small box blur on CPU as a safe fallback for UI thumbnail blur
-                bool blurred = false;
-                try { blurred = BoxBlurSoftwareBitmap(softwareBitmap, 6); } catch(...) { blurred = false; }
-                if (blurred) Utils::Log("ApplyBlur: CPU box blur applied (GetFileFromPathAsync branch)\n"); else Utils::Log("ApplyBlur: CPU box blur skipped/failed (GetFileFromPathAsync branch)\n");
-                auto newStream = ref new InMemoryRandomAccessStream();
-                return concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, newStream)).then([softwareBitmap, newStream](BitmapEncoder^ encoder) -> concurrency::task<void> {
-                    encoder->SetSoftwareBitmap(softwareBitmap);
-                    return concurrency::create_task(encoder->FlushAsync()).then([]() {});
-                }).then([newStream]() -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
-                    newStream->Seek(0);
-                    try {
-                        Utils::Log("ApplyBlur: encoded PNG stream (GetFileFromPathAsync branch) ready\n");
-                        auto size = newStream->Size;
-                        Utils::Logf("ApplyBlur: stream size=%llu\n", (unsigned long long)size);
-                    } catch(...) {}
-                    Windows::Storage::Streams::IRandomAccessStream^ resultStream = newStream;
-                    if (resultStream == nullptr) {
-                        Utils::Log("ApplyBlur: obtaining IRandomAccessStream failed (GetFileFromPathAsync branch)\n");
-                        return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+                try {
+                    unsigned int w = rtb->PixelWidth;
+                    unsigned int h = rtb->PixelHeight;
+                    moonlight_xbox_dx::Utils::Logf("CaptureXamlElementAsync: pixels received width=%u height=%u\n", w, h);
+                    if (w == 0 || h == 0) {
+                        moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: RenderTargetBitmap reported zero width/height\n");
+                        tce.set(nullptr);
+                        return;
                     }
-                    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(resultStream);
-                });
+                    auto sb = Windows::Graphics::Imaging::SoftwareBitmap::CreateCopyFromBuffer(pixels, Windows::Graphics::Imaging::BitmapPixelFormat::Bgra8, w, h, Windows::Graphics::Imaging::BitmapAlphaMode::Premultiplied);
+                    moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: SoftwareBitmap created from pixels\n");
+                    tce.set(sb);
+                    return;
+                } catch(...) {
+                    moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: exception creating SoftwareBitmap\n");
+                    tce.set(nullptr);
+                    return;
+                }
             });
         } catch(...) {
-            Utils::Logf("ApplyBlur: StorageFile::GetFileFromPathAsync failed for path='%S'\n", raw);
-            return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+            moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: dispatched handler exception\n");
+            tce.set(nullptr);
         }
+    });
+
+    try {
+        dispatcher->RunAsync(CoreDispatcherPriority::Normal, dispatched);
+    } catch(...) {
+        // If dispatcher invocation fails, return null
+        tce.set(nullptr);
     }
 
-    // Unsupported scheme (e.g., http/https or unknown) — log and return null so callers skip assignment
-    Utils::Logf("ApplyBlur: unsupported ImagePath format='%S'\n", raw);
-    return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+    return concurrency::create_task(tce);
+}
+
+concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app) {
+    if (app == nullptr) return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+
+    Platform::String^ path = nullptr;
+    try { path = app->ImagePath; } catch(...) { path = nullptr; }
+
+    return concurrency::create_task(ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync(path)).then([this, app](Windows::Graphics::Imaging::SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+        if (softwareBitmap == nullptr) return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream^>(nullptr);
+
+        // Attempt to capture optional XAML mask element asynchronously
+        SoftwareBitmap^ nullMask = nullptr;
+        Windows::UI::Xaml::FrameworkElement^ fe = nullptr;
+        // Try page namescope first
+        try { fe = dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(this->FindName("AppImageBlurRect")); } catch(...) { fe = nullptr; }
+        // If not found, try the realized container for this app (useful if element is inside an ItemTemplate)
+        if (fe == nullptr) {
+            try {
+                if (this->AppsGrid != nullptr) {
+                    auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromItem(app));
+                    if (container != nullptr) {
+                        try { auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")); fe = dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(found); } catch(...) { fe = nullptr; }
+                    }
+                }
+            } catch(...) { fe = nullptr; }
+        }
+        concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> captureTask = fe != nullptr ? CaptureXamlElementAsync(fe) : concurrency::task_from_result<Windows::Graphics::Imaging::SoftwareBitmap^>(nullMask);
+
+        return captureTask.then([this, softwareBitmap](Windows::Graphics::Imaging::SoftwareBitmap^ maskFromXaml) mutable -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
+            try {
+                if (maskFromXaml == nullptr) {
+                    moonlight_xbox_dx::Utils::Log("ApplyBlur: no XAML mask captured (maskFromXaml == nullptr)\n");
+                } else {
+                    try {
+                        unsigned int mw = maskFromXaml->PixelWidth;
+                        unsigned int mh = maskFromXaml->PixelHeight;
+                        moonlight_xbox_dx::Utils::Logf("ApplyBlur: XAML mask captured size=%u x %u\n", mw, mh);
+                    } catch(...) {
+                        moonlight_xbox_dx::Utils::Log("ApplyBlur: XAML mask captured but failed to read dimensions\n");
+                    }
+                }
+            } catch(...) {}
+            // Composite mask if present
+            try {
+                if (maskFromXaml != nullptr) {
+                    try { softwareBitmap = ImageHelpers::CompositeWithMask(softwareBitmap, maskFromXaml, 8); } catch(...) { }
+                }
+            } catch(...) {}
+
+            // Try GPU blur first
+            try {
+                auto gpuResult = ::EffectsLibrary::GpuBoxBlurSoftwareBitmap(softwareBitmap, 6);
+                if (gpuResult != nullptr) {
+                    return concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(gpuResult)).then([](Windows::Storage::Streams::IRandomAccessStream^ newStream) -> Windows::Storage::Streams::IRandomAccessStream^ {
+                        if (newStream != nullptr) {
+                            try { newStream->Seek(0); } catch(...) {}
+                        }
+                        return newStream;
+                    });
+                }
+            } catch(...) {}
+
+            // CPU fallback
+            try { ::EffectsLibrary::BoxBlurSoftwareBitmap(softwareBitmap, 6); } catch(...) {}
+            return concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(softwareBitmap)).then([](Windows::Storage::Streams::IRandomAccessStream^ newStream) -> Windows::Storage::Streams::IRandomAccessStream^ {
+                if (newStream != nullptr) {
+                    try { newStream->Seek(0); } catch(...) {}
+                }
+                return newStream;
+            });
+        });
+    });
 }
 
 static bool allowScaleTransitions = true;
@@ -272,6 +202,7 @@ static constexpr double kAppsGridHeightFactor = 0.75;
 
 // Forward declare helper used below
 static ScrollViewer^ FindScrollViewer(DependencyObject^ parent);
+static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
 // Forward declare animation helpers used by ApplySelectionVisuals
 static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs);
 static void SetElementOpacityImmediate(UIElement^ element, float value);
@@ -918,30 +849,33 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
                             if (that == nullptr) return;
                             // Dispatch BitmapImage creation and SetSourceAsync to the page Dispatcher
                             try {
-                                that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, stream, that]() {
+                                that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, stream, weakThis]() {
                                     try {
+                                        auto thatInner = weakThis.Resolve<AppPage>();
+                                        if (thatInner == nullptr) return;
                                         if (app == nullptr) return;
                                         try { Utils::Logf("[AppPage] Dispatcher: creating BitmapImage for app id=%d\n", app->Id); } catch(...) {}
                                         auto img = ref new Windows::UI::Xaml::Media::Imaging::BitmapImage();
                                         try { Utils::Logf("[AppPage] Dispatcher: calling SetSourceAsync for app id=%d\n", app->Id); } catch(...) {}
-                                        concurrency::create_task(img->SetSourceAsync(stream)).then([that, app, img, stream]() {
+                                        concurrency::create_task(img->SetSourceAsync(stream)).then([weakThis, app, img, stream]() {
                                             try {
                                                 try { Utils::Logf("[AppPage] SetSourceAsync continuation for app id=%d (app=%p img=%p stream=%p)\n", app->Id, app, img, stream); } catch(...) {}
                                                 if (app == nullptr || img == nullptr) {
                                                     Utils::Log("[AppPage] SetSourceAsync continuation: app or img null, skipping assignment\n");
                                                     return;
                                                 }
-                                                if (that == nullptr) {
-                                                    Utils::Log("[AppPage] SetSourceAsync continuation: page 'that' is null, skipping UI assignment\n");
+                                                auto thatCont = weakThis.Resolve<AppPage>();
+                                                if (thatCont == nullptr) {
+                                                    Utils::Log("[AppPage] SetSourceAsync continuation: page is gone, skipping UI assignment\n");
                                                     return;
                                                 }
                                                 try {
-                                                    that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, img]() {
+                                                    thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, img]() {
                                                         try {
-                                                            try { Utils::Logf("[AppPage] Dispatcher (final): assigning app->Image (app=%p img=%p)\n", app, img); } catch(...) {}
-                                                            app->Image = img;
-                                                            try { Utils::Logf("[AppPage] assigned app->Image for id=%d\n", app->Id); } catch(...) {}
-                                                        } catch(...) { Utils::Log("[AppPage] assign app->Image threw in final dispatcher\n"); }
+                                                            try { Utils::Logf("[AppPage] Dispatcher (final): assigning app->BlurredImage (app=%p img=%p)\n", app, img); } catch(...) {}
+                                                            app->BlurredImage = img;
+                                                            try { Utils::Logf("[AppPage] assigned app->BlurredImage for id=%d\n", app->Id); } catch(...) {}
+                                                        } catch(...) { Utils::Log("[AppPage] assign app->BlurredImage threw in final dispatcher\n"); }
                                                     }));
                                                 } catch(...) {
                                                     Utils::Log("[AppPage] failed to RunAsync final assignment, attempting direct assign\n");
@@ -965,39 +899,46 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
     if (!kDisableBackgroundAppFetch) {
         continueAppFetch.store(true);
         wasConnected.store(host->Connected);
-        auto that = this;
-        create_task([that]() {
-            while (that->continueAppFetch.load()) {
+        Platform::WeakReference weakThis(this);
+        create_task([weakThis]() {
+            while (true) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that == nullptr) break;
                 try { Utils::Logf("AppPage: background loop iteration that=%p host=%p\n", that, that->host); } catch(...) {}
                 try {
                     if (that->host != nullptr) {
                         try {
                             Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
                                 Windows::UI::Core::CoreDispatcherPriority::Normal,
-                                ref new Windows::UI::Core::DispatchedHandler([that]() {
+                                ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                                    auto thatInner = weakThis.Resolve<AppPage>();
                                     try {
-                                        if (that->host != nullptr) that->host->UpdateAppRunningStates();
+                                        if (thatInner != nullptr && thatInner->host != nullptr) thatInner->host->UpdateAppRunningStates();
                                     } catch(...) {}
                                 })
                             );
                         } catch(...) {
-                            // Fallback: call directly if Dispatcher is unavailable
-                            try { that->host->UpdateAppRunningStates(); } catch(...) {}
+                            try { if (that->host != nullptr) that->host->UpdateAppRunningStates(); } catch(...) {}
                         }
                         bool connected = false;
                         try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
                         if (that->wasConnected.load() && !connected) {
                             that->wasConnected.store(false);
-                            Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+                            Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                                auto thatInner = weakThis.Resolve<AppPage>();
                                 try {
+                                    if (thatInner == nullptr) return;
                                     auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
                                     dialog->Title = Utils::StringFromStdString("Disconnected");
                                     dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
                                     dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-                                    concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
-                                        that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+                                    concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([weakThis](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+                                        auto thatFinal = weakThis.Resolve<AppPage>();
+                                        if (thatFinal == nullptr) return;
+                                        thatFinal->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                                            auto thatNavigate = weakThis.Resolve<AppPage>();
                                             try {
-                                                that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+                                                if (thatNavigate != nullptr) thatNavigate->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
                                             } catch (...) {}
                                         }));
                                     });
@@ -1009,7 +950,12 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
                         }
                     }
                 } catch (...) {}
-                Sleep(3000);
+                // sleep but check if page still exists every 300ms to allow quick exit
+                for (int i = 0; i < 10; ++i) {
+                    auto thatChk = weakThis.Resolve<AppPage>();
+                    if (thatChk == nullptr) return;
+                    Sleep(300);
+                }
             }
         });
     } else {
@@ -1182,34 +1128,38 @@ void AppPage::closeAndStartButton_Click(Platform::Object ^ sender, Windows::UI::
 }
 
 void AppPage::ExecuteCloseAndStart() {
-	auto that = this;
-	auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing app..."));
-	moonlight_xbox_dx::Utils::Logf("AppPage::ExecuteCloseAndStart: progressToken=%llu\n", (unsigned long long)progressToken);
+    Platform::WeakReference weakThis(this);
+    auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing app..."));
+    moonlight_xbox_dx::Utils::Logf("AppPage::ExecuteCloseAndStart: progressToken=%llu\n", (unsigned long long)progressToken);
 
-	concurrency::create_task(concurrency::create_async([that, progressToken]() {
+    concurrency::create_task(concurrency::create_async([weakThis, progressToken]() {
 		try {
-			MoonlightClient client;
-			auto ipAddr = Utils::PlatformStringToStdString(that->host->LastHostname);
-			int status = client.Connect(ipAddr.c_str());
-			if (status == 0) {
-				client.StopApp();
-				Sleep(1000);
-			}
+            auto thatLocal = weakThis.Resolve<AppPage>();
+            if (thatLocal == nullptr) return;
+            MoonlightClient client;
+            auto ipAddr = Utils::PlatformStringToStdString(thatLocal->host->LastHostname);
+            int status = client.Connect(ipAddr.c_str());
+            if (status == 0) {
+                client.StopApp();
+                Sleep(1000);
+            }
 		} catch (...) {
 		}
-
-		that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
-				try {
-					if (that->currentApp != nullptr) {
-						that->Connect(that->currentApp->Id);
-					}
-					::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
-				} catch (const std::exception &e) {
-					Utils::Logf("ExecuteCloseAndStart UI exception: %s\n", e.what());
-				} catch (...) {
-					Utils::Log("ExecuteCloseAndStart UI unknown exception\n");
-				}
-			}));
+        auto thatLocal2 = weakThis.Resolve<AppPage>();
+        if (thatLocal2 == nullptr) return;
+        thatLocal2->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([weakThis, progressToken]() {
+                auto thatUI = weakThis.Resolve<AppPage>();
+                try {
+                    if (thatUI != nullptr && thatUI->currentApp != nullptr) {
+                        thatUI->Connect(thatUI->currentApp->Id);
+                    }
+                    ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+                } catch (const std::exception &e) {
+                    Utils::Logf("ExecuteCloseAndStart UI exception: %s\n", e.what());
+                } catch (...) {
+                    Utils::Log("ExecuteCloseAndStart UI unknown exception\n");
+                }
+            }));
 	})).then([](concurrency::task<void> t) {
 		try {
 			t.get();
@@ -1222,32 +1172,39 @@ void AppPage::ExecuteCloseAndStart() {
 }
 
 void AppPage::closeAppButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-	auto that = this;
+    Platform::WeakReference weakThis(this);
 
-	auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(Utils::StringFromStdString("Closing"), Utils::StringFromStdString("Closing app..."));
-	moonlight_xbox_dx::Utils::Logf("AppPage::closeAppButton_Click: progressToken=%llu\n", (unsigned long long)progressToken);
+    auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(Utils::StringFromStdString("Closing"), Utils::StringFromStdString("Closing app..."));
+    moonlight_xbox_dx::Utils::Logf("AppPage::closeAppButton_Click: progressToken=%llu\n", (unsigned long long)progressToken);
 
-	concurrency::create_task(concurrency::create_async([that, progressToken]() {
-		try {
-			MoonlightClient client;
-			auto ipAddr = Utils::PlatformStringToStdString(that->host->LastHostname);
-			int status = client.Connect(ipAddr.c_str());
-			if (status == 0) {
-				client.StopApp();
-				Sleep(1000);
-			}
-		} catch (...) {
-		}
+    concurrency::create_task(concurrency::create_async([weakThis, progressToken]() {
+        try {
+            auto thatLocal = weakThis.Resolve<AppPage>();
+            if (thatLocal == nullptr) return;
+            MoonlightClient client;
+            auto ipAddr = Utils::PlatformStringToStdString(thatLocal->host->LastHostname);
+            int status = client.Connect(ipAddr.c_str());
+            if (status == 0) {
+                client.StopApp();
+                Sleep(1000);
+            }
+        } catch (...) {
+        }
 
-		that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([that, progressToken]() {
-				try {
-					that->host->UpdateHostInfo(true);
-					that->host->UpdateAppRunningStates();
-				} catch (...) {
-				}
-				::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
-			}));
-	}));
+        auto thatLocal2 = weakThis.Resolve<AppPage>();
+        if (thatLocal2 == nullptr) return;
+        thatLocal2->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis, progressToken]() {
+                auto thatUI = weakThis.Resolve<AppPage>();
+                try {
+                    if (thatUI != nullptr) {
+                        thatUI->host->UpdateHostInfo(true);
+                        thatUI->host->UpdateAppRunningStates();
+                    }
+                } catch (...) {
+                }
+                ::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+            }));
+    }));
 }
 
 void AppPage::backButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -1463,6 +1420,13 @@ void AppPage::OnUnloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEve
 
     // Unsubscribe Rendering token if still registered
     try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= m_rendering_token; } catch(...) {}
+
+    // Unsubscribe ScrollViewer ViewChanged if we registered it
+    try {
+        if (m_scrollViewer != nullptr) {
+            try { m_scrollViewer->ViewChanged -= m_scrollviewer_viewchanged_token; } catch(...) {}
+        }
+    } catch(...) {}
 }
 
 void AppPage::OnFirstRender(Object^ sender, Object^ e) {
@@ -1660,11 +1624,12 @@ void AppPage::AppsGrid_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Rout
 		if (m_scrollViewer == nullptr)
 			m_scrollViewer = FindScrollViewer(this->AppsGrid);
 
-		if (m_scrollViewer != nullptr)
-			m_scrollViewer->ViewChanged += ref new Windows::Foundation::EventHandler<Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs ^>(this, &AppPage::OnScrollViewerViewChanged);
-		
-        EnsureRealizedContainersInitialized(this->AppsGrid);
-
+        if (m_scrollViewer != nullptr) {
+            try {
+                // Register ViewChanged and save the token so we can unsubscribe in OnUnloaded.
+                m_scrollviewer_viewchanged_token = m_scrollViewer->ViewChanged += ref new Windows::Foundation::EventHandler<Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs ^>(this, &AppPage::OnScrollViewerViewChanged);
+            } catch(...) {}
+        }
 		try {
 			auto weakThis = WeakReference(this);
 			Windows::UI::Xaml::Media::CompositionTarget::Rendering += ref new Windows::Foundation::EventHandler<Object ^>([weakThis](Object ^, Object ^) {

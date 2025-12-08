@@ -3,6 +3,9 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+// SoftwareBitmap type used by CPU fallback blur
+#include <windows.graphics.imaging.h>
+#include <mutex>
 
 class EffectsLibrary {
 
@@ -11,6 +14,13 @@ public:
     static void Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
 
     static ID3D11ShaderResourceView* Blur(ID3D11ShaderResourceView* src, float sigma);
+
+    // CPU fallback blur operating on SoftwareBitmap (UWP-safe). Returns true on success.
+    static bool BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
+
+    // Attempt to run blur on GPU and return a new SoftwareBitmap containing the blurred result.
+    // Returns nullptr on failure (caller should fall back to CPU).
+    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
 
     static ID3D11ShaderResourceView* Glow(ID3D11ShaderResourceView* src, float radius) {
 
@@ -27,6 +37,12 @@ private:
     static ID3D11Device* m_device;
 
     static ID3D11DeviceContext* m_context;
+    static ID3D11Multithread* m_multithread;
+    // True if the library created the device/context via EnsureDeviceInitialized
+    // and therefore is responsible for releasing them. If false, the
+    // device/context are owned by the application and must not be released
+    // by the EffectsLibrary.
+    static bool m_ownsDevice;
 
     static ID3D11VertexShader* m_vs;
 
@@ -40,6 +56,9 @@ private:
 
     static ID3D11SamplerState* m_sampler;
 
+    // Mutex to protect lazy initialization and device-bound resource creation/binding
+    static std::mutex m_mutex;
+
     struct BlurCB {
 
         DirectX::XMFLOAT2 texSize;
@@ -49,5 +68,8 @@ private:
         int direction;
 
     };
+
+    // Ensure D3D device/context are available (lazy init fallback)
+    static bool EnsureDeviceInitialized();
 
 };

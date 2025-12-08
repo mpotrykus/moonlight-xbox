@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
+#include "EffectsLibrary.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
@@ -190,6 +191,13 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
+
+    // Initialize EffectsLibrary with the created device/context so GPU effects can run.
+    try {
+        ::EffectsLibrary::Initialize(m_d3dDevice.Get(), m_d3dContext.Get());
+    } catch(...) {
+        // Avoid throwing from device setup; EffectsLibrary failures will fall back at runtime.
+    }
 }
 
 // These resources need to be recreated every time the window size is changed.
