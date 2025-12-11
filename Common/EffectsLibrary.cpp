@@ -8,6 +8,7 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
+#include <ppltasks.h>
 #include "ImageHelpers.h"
 using namespace Windows::Graphics::Imaging;
 
@@ -256,7 +257,7 @@ bool EffectsLibrary::BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareB
 }
 
 // GPU-path stub (kept for compatibility)
-SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap, int radius)
+SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics, bool returnPadded)
 {
     using namespace Windows::Graphics::Imaging;
     if (bitmap == nullptr) return nullptr;
@@ -318,8 +319,14 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
         // Prepare D3D resources
         Microsoft::WRL::ComPtr<ID3D11Texture2D> srcTex;
         D3D11_TEXTURE2D_DESC texDesc = {};
-        texDesc.Width = width;
-        texDesc.Height = height;
+        // Compute padding and padded sizes
+        int pad = 54; // std::max(1, radius * 5);
+        int paddedW = width + pad * 2;
+        int paddedH = height + pad * 2;
+        moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: computed pad=%d padded=%d x %d (src=%d x %d) radius=%d\n", pad, paddedW, paddedH, width, height, radius);
+        int paddedStride = paddedW * 4;
+        texDesc.Width = paddedW;
+        texDesc.Height = paddedH;
         texDesc.MipLevels = 1;
         texDesc.ArraySize = 1;
         texDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -328,15 +335,30 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
         texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
         texDesc.CPUAccessFlags = 0;
 
+        // Create a padded CPU buffer and leave padding transparent (no edge replication).
+        // This prevents edge pixels from being stretched into the padding area
+        // when the blur samples beyond the original image bounds.
+        std::vector<uint8_t> paddedSrc((size_t)paddedH * (size_t)paddedStride);
+        // Zero initialize -> transparent BGRA=0,0,0,0
+        memset(paddedSrc.data(), 0, paddedSrc.size());
+        // Copy source rows into center without replicating edges
+        for (int y = 0; y < height; ++y) {
+            uint8_t* dstRow = paddedSrc.data() + ((size_t)(y + pad) * (size_t)paddedStride);
+            uint8_t* srcRow = src.data() + ((size_t)y * (size_t)stride);
+            // copy main pixels into the centered region; padding remains transparent
+            memcpy(dstRow + pad * 4, srcRow, width * 4);
+        }
+
         D3D11_SUBRESOURCE_DATA initData = {};
-        initData.pSysMem = src.data();
-        initData.SysMemPitch = stride;
+        initData.pSysMem = paddedSrc.data();
+        initData.SysMemPitch = paddedStride;
 
         hr = m_device->CreateTexture2D(&texDesc, &initData, srcTex.GetAddressOf());
         if (FAILED(hr) || srcTex == nullptr) {
-            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: CreateTexture2D(src) failed hr=0x%08x\n", hr);
-            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (CreateTexture2D src)\n");
+            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: CreateTexture2D(src padded) failed hr=0x%08x\n", hr);
+            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (CreateTexture2D src padded)\n");
             return nullptr;
+            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: created padded srcTex %p (padded=%d x %d)\n", (void*)srcTex.Get(), paddedW, paddedH);
         }
 
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srcSRV;
@@ -347,11 +369,14 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
             return nullptr;
         }
 
-        // Create two ping-pong render targets
+        // Create two ping-pong render targets (padded) to allow sampling beyond original edges
         Microsoft::WRL::ComPtr<ID3D11Texture2D> rtA, rtB;
         Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtvA, rtvB;
         Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srvA, srvB;
+        // rtDesc already describes the padded size
         D3D11_TEXTURE2D_DESC rtDesc = texDesc;
+        rtDesc.Width = paddedW;
+        rtDesc.Height = paddedH;
         rtDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
         rtDesc.Usage = D3D11_USAGE_DEFAULT;
         rtDesc.CPUAccessFlags = 0;
@@ -373,9 +398,24 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
         Microsoft::WRL::ComPtr<ID3DBlob> vsBlob, psBlob, errBlob;
         const char* vsSrc = "struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };\n"
             "VSOut VS(uint vid : SV_VertexID) { VSOut o; float2 pos[3] = { float2(-1,-1), float2(-1,3), float2(3,-1) }; o.pos = float4(pos[vid], 0.0f, 1.0f); o.uv = pos[vid] * 0.5f + 0.5f; return o; }\n";
-        const char* psSrc = "Texture2D srcTex : register(t0); SamplerState samp : register(s0); cbuffer BlurCB : register(b0) { float2 texSize; float sigma; int direction; };\n"
-            "struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };\n"
-            "float4 PS(VSOut i) : SV_TARGET { int radius = (int)sigma; float2 texel = float2(1.0/texSize.x, 1.0/texSize.y); float2 step = (direction==0) ? float2(texel.x,0) : float2(0,texel.y); float4 sum = float4(0,0,0,0); for (int k = -radius; k <= radius; ++k) { sum += srcTex.SampleLevel(samp, i.uv + step * k, 0); } float inv = 1.0 / (float)(radius*2+1); return sum * inv; }\n";
+            const char* psSrc =
+                "Texture2D srcTex : register(t0); SamplerState samp : register(s0); cbuffer BlurCB : register(b0) { float2 texSize; float sigma; int direction; };\n"
+                "struct VSOut { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };\n"
+                "float4 PS(VSOut i) : SV_TARGET {\n"
+                "    float s = max(sigma, 0.0001f);\n"
+                "    int radius = (int)ceil(3.0f * s);\n"
+                "    float2 texel = float2(1.0/texSize.x, 1.0/texSize.y);\n"
+                "    float2 step = (direction==0) ? float2(texel.x,0) : float2(0,texel.y);\n"
+                "    float4 sum = float4(0,0,0,0);\n"
+                "    float wsum = 0.0f;\n"
+                "    float twoSigmaSq = 2.0f * s * s;\n"
+                "    for (int k = -radius; k <= radius; ++k) {\n"
+                "        float wk = exp(-((float)(k*k)) / twoSigmaSq);\n"
+                "        sum += srcTex.SampleLevel(samp, i.uv + step * k, 0) * wk;\n"
+                "        wsum += wk;\n"
+                "    }\n"
+                "    return sum / wsum;\n"
+                "}\n";
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -403,13 +443,21 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
             // Create sampler
             if (m_sampler == nullptr) {
                 D3D11_SAMPLER_DESC sd = {};
-                sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-                sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-                sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-                sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+                // Use linear filtering for smoother blur results (bilinear interpolation)
+                sd.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+                // Use a transparent border address mode so sampling outside
+                // the padded texture yields transparent pixels instead of
+                // clamping to the edge color.
+                sd.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+                sd.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+                sd.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
                 sd.ComparisonFunc = D3D11_COMPARISON_NEVER;
                 sd.MinLOD = 0;
                 sd.MaxLOD = D3D11_FLOAT32_MAX;
+                sd.BorderColor[0] = 0.0f;
+                sd.BorderColor[1] = 0.0f;
+                sd.BorderColor[2] = 0.0f;
+                sd.BorderColor[3] = 0.0f;
                 m_device->CreateSamplerState(&sd, &m_sampler);
             }
 
@@ -426,12 +474,13 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
         }
         }
 
-        // Setup viewport
+        // Setup viewport for padded render targets
         D3D11_VIEWPORT vp = {};
         vp.TopLeftX = 0.f;
         vp.TopLeftY = 0.f;
-        vp.Width = (float)width;
-        vp.Height = (float)height;
+        vp.Width = (float)paddedW;
+        vp.Height = (float)paddedH;
+        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)\n");
         vp.MinDepth = 0.f;
         vp.MaxDepth = 1.f;
 
@@ -446,12 +495,15 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
             ID3D11SamplerState* samps[1] = { m_sampler };
             m_context->PSSetSamplers(0, 1, samps);
 
-            // Prepare constant buffer data structure
+            // We created a padded source texture `srcTex` and its SRV `srcSRV`.
+            // For the first pass we sample directly from `srcSRV` and render into a ping target.
+
+            // Prepare constant buffer data structure (use padded tex size)
             BlurCB cbdata;
-            cbdata.texSize = DirectX::XMFLOAT2((float)width, (float)height);
+            cbdata.texSize = DirectX::XMFLOAT2((float)paddedW, (float)paddedH);
             cbdata.sigma = (float)radius;
 
-            // First pass: horizontal
+            // First pass: horizontal (sample rtA -> render to rtB)
             cbdata.direction = 0;
             D3D11_MAPPED_SUBRESOURCE mapped = {};
             if (m_cb) {
@@ -463,23 +515,22 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
                 m_context->PSSetConstantBuffers(0, 1, cbs);
             }
 
-            // Bind source SRV and render target A
+            // Bind srcSRV (padded source) and render to rtB
             ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-            ID3D11ShaderResourceView* srvSrc = srcSRV.Get();
-            m_context->PSSetShaderResources(0, 1, &srvSrc);
-            ID3D11RenderTargetView* rtv = rtvA.Get();
-            m_context->OMSetRenderTargets(1, &rtv, nullptr);
+            ID3D11ShaderResourceView* srvSrcPad = srcSRV.Get();
+            m_context->PSSetShaderResources(0, 1, &srvSrcPad);
+            ID3D11RenderTargetView* rtvBptr = rtvB.Get();
+            m_context->OMSetRenderTargets(1, &rtvBptr, nullptr);
             m_context->RSSetViewports(1, &vp);
-            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal)\n");
+            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)\n");
+            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)\n");
             m_context->Draw(3, 0);
 
-            // Unbind the render target we just rendered to so we can safely bind
-            // its shader resource view in the next pass without causing a hazard.
+            // Unbind render target to avoid hazards
             ID3D11RenderTargetView* nullRTVArr[1] = { nullptr };
             m_context->OMSetRenderTargets(1, nullRTVArr, nullptr);
 
-            // Second pass: vertical (use srvA as source, render to rtB)
-            // Unbind previous SRV from PS to avoid binding as both SRV and RTV
+            // Second pass: vertical (sample srvB -> render to rtA)
             m_context->PSSetShaderResources(0, 1, nullSRV);
             cbdata.direction = 1;
             if (m_cb) {
@@ -490,12 +541,13 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
                 ID3D11Buffer* cbs2[1] = { m_cb };
                 m_context->PSSetConstantBuffers(0, 1, cbs2);
             }
-            ID3D11ShaderResourceView* srvAptr = srvA.Get();
-            m_context->PSSetShaderResources(0, 1, &srvAptr);
-            ID3D11RenderTargetView* rtvBptr = rtvB.Get();
-            m_context->OMSetRenderTargets(1, &rtvBptr, nullptr);
+            ID3D11ShaderResourceView* srvBptr = srvB.Get();
+            m_context->PSSetShaderResources(0, 1, &srvBptr);
+            ID3D11RenderTargetView* rtvAptr = rtvA.Get();
+            m_context->OMSetRenderTargets(1, &rtvAptr, nullptr);
             m_context->RSSetViewports(1, &vp);
-            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing second draw (vertical)\n");
+            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)\n");
+            moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)\n");
             m_context->Draw(3, 0);
 
             // Unbind SRV before copy/readback
@@ -509,7 +561,7 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
 
         // Read back rtB into staging texture (guarded by mutex)
         Microsoft::WRL::ComPtr<ID3D11Texture2D> staging;
-        D3D11_TEXTURE2D_DESC stagingDesc = texDesc;
+        D3D11_TEXTURE2D_DESC stagingDesc = rtDesc; // use padded desc
         stagingDesc.Usage = D3D11_USAGE_STAGING;
         stagingDesc.BindFlags = 0;
         stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
@@ -520,71 +572,265 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
             std::lock_guard<std::mutex> lock(m_mutex);
             // Copy from rtB to staging
             moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: copying rtB -> staging\n");
-            m_context->CopyResource(staging.Get(), rtB.Get());
+            // Final blurred padded image lives in rtA (we rendered vertical into rtA)
+            m_context->CopyResource(staging.Get(), rtA.Get());
+            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: copied padded rt to staging (padded=%d x %d)\n", paddedW, paddedH);
 
             D3D11_MAPPED_SUBRESOURCE mapSR = {};
+            bool stagingMapped = false;
             hr = m_context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapSR);
-            if (FAILED(hr)) { moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: Map staging failed hr=0x%08x\n", hr); moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (Map staging)\n"); return nullptr; }
+            if (FAILED(hr)) {
+                moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: Map staging failed hr=0x%08x\n", hr);
+                moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (Map staging)\n");
+                return nullptr;
+            } else {
+                stagingMapped = true;
+            }
 
-            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=%u\n", mapSR.RowPitch);
+            moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=%u mappedFlag=%d\n", mapSR.RowPitch, stagingMapped?1:0);
+
+            // Debug dump: create a contiguous copy of the padded mapped data and write it
+            // out as a PNG into the app LocalFolder so we can inspect the padded blurred texture.
+            try {
+                size_t srcRowPitch = mapSR.RowPitch;
+                uint8_t* srcPtr = (uint8_t*)mapSR.pData;
+                if (srcPtr != nullptr && srcRowPitch >= (size_t)paddedStride) {
+                    std::vector<uint8_t> paddedCopy((size_t)paddedH * (size_t)paddedStride);
+                    for (int yy = 0; yy < paddedH; ++yy) {
+                        uint8_t* rowSrc = srcPtr + (size_t)yy * srcRowPitch;
+                        uint8_t* rowDst = paddedCopy.data() + (size_t)yy * (size_t)paddedStride;
+                        memcpy(rowDst, rowSrc, (size_t)paddedStride);
+                    }
+                    // Unmap before starting async encode to avoid holding the map across awaits
+                    if (stagingMapped) {
+                        m_context->Unmap(staging.Get(), 0);
+                        stagingMapped = false;
+                    } else {
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: diagnostic branch expected stagingMapped==true but was false\n");
+                    }
+
+                    if (enableDiagnostics) {
+                        try {
+                            auto writer = ref new Windows::Storage::Streams::DataWriter();
+                            writer->WriteBytes(Platform::ArrayReference<uint8_t>(paddedCopy.data(), (unsigned int)paddedCopy.size()));
+                            auto ibuf = writer->DetachBuffer();
+                            auto paddedSb = SoftwareBitmap::CreateCopyFromBuffer(ibuf, BitmapPixelFormat::Bgra8, paddedW, paddedH, BitmapAlphaMode::Straight);
+                            // Encode and save file asynchronously
+                            concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(paddedSb)).then([paddedW, paddedH](Windows::Storage::Streams::IRandomAccessStream ^ s) {
+                                try {
+                                    if (s == nullptr) return;
+                                    try { s->Seek(0); } catch(...) {}
+                                    auto folder = Windows::Storage::ApplicationData::Current->LocalFolder;
+                                    SYSTEMTIME st; GetLocalTime(&st);
+                                    wchar_t nameBuf[128];
+                                    swprintf_s(nameBuf, _countof(nameBuf), L"gpu_padded_%04d%02d%02d_%02d%02d%02d_%dx%d.png", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, paddedW, paddedH);
+                                    auto name = ref new Platform::String(nameBuf);
+                                    concurrency::create_task(folder->CreateFileAsync(name, Windows::Storage::CreationCollisionOption::GenerateUniqueName)).then([s](Windows::Storage::StorageFile ^ f) {
+                                        if (f == nullptr) return;
+                                        concurrency::create_task(f->OpenAsync(Windows::Storage::FileAccessMode::ReadWrite)).then([s](Windows::Storage::Streams::IRandomAccessStream ^ outStream) {
+                                            if (outStream == nullptr) return;
+                                            try { s->Seek(0); } catch(...) {}
+                                            concurrency::create_task(s->GetInputStreamAt(0)->ReadAsync(ref new Windows::Storage::Streams::Buffer((unsigned int)s->Size), (unsigned int)s->Size, Windows::Storage::Streams::InputStreamOptions::None)).then([outStream](Windows::Storage::Streams::IBuffer ^ buf) {
+                                                if (buf == nullptr) return;
+                                                concurrency::create_task(outStream->WriteAsync(buf)).then([outStream](unsigned int) { try { outStream->FlushAsync(); } catch(...) {} });
+                                            });
+                                        });
+                                    });
+                                } catch(...) {}
+                            });
+                        } catch(...) {
+                            // ignore; this is only diagnostic
+                        }
+                    }
+                    // mapped was already unmapped
+                    goto after_map_unmapped;
+                }
+            } catch(...) {}
+
+            // If we didn't unmap already above, unmap now (normal path continues)
+            if (stagingMapped) {
+                m_context->Unmap(staging.Get(), 0);
+                stagingMapped = false;
+            }
+            after_map_unmapped: ;
 
             // We'll unmap below after copying out the data, but keep protection for the read
             // Copy-out operations below assume mapSR is valid.
             
-            // Create output SoftwareBitmap and copy data in
+                // Create output SoftwareBitmap and copy data in
             try {
-                auto outBmp = ref new SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Premultiplied);
+                int outW = returnPadded ? paddedW : width;
+                int outH = returnPadded ? paddedH : height;
+                auto outBmp = ref new SoftwareBitmap(BitmapPixelFormat::Bgra8, outW, outH, BitmapAlphaMode::Premultiplied);
                 auto outBuf = outBmp->LockBuffer(BitmapBufferAccessMode::Write);
                 auto outRef = outBuf->CreateReference();
                 Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> outAccess;
                 IUnknown* outUnk = reinterpret_cast<IUnknown*>(outRef);
-                if (outUnk != nullptr) outUnk->QueryInterface(IID_PPV_ARGS(&outAccess));
+                static std::atomic<int> s_outAccessAvailable(-1); // -1 = unknown, 0 = not available, 1 = available
+                HRESULT outQiHr = E_FAIL;
                 BYTE* outData = nullptr; UINT32 outCap = 0;
-                if (outAccess != nullptr) {
-                    outAccess->GetBuffer(&outData, &outCap);
+
+                // Attempt or skip QueryInterface based on cached availability
+                if (s_outAccessAvailable.load() == 1) {
+                    if (outUnk != nullptr) outQiHr = outUnk->QueryInterface(IID_PPV_ARGS(&outAccess));
+                    if (SUCCEEDED(outQiHr) && outAccess) outAccess->GetBuffer(&outData, &outCap);
+                } else if (s_outAccessAvailable.load() == 0) {
+                    outQiHr = E_NOINTERFACE;
+                } else {
+                    try {
+                        if (outUnk != nullptr) outQiHr = outUnk->QueryInterface(IID_PPV_ARGS(&outAccess));
+                    } catch (...) {
+                        outQiHr = RPC_E_DISCONNECTED;
+                    }
+                    moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: outAccess QueryInterface hr=0x%08x\n", outQiHr);
+                    if (SUCCEEDED(outQiHr) && outAccess) {
+                        outAccess->GetBuffer(&outData, &outCap);
+                        s_outAccessAvailable.store(1);
+                    } else {
+                        s_outAccessAvailable.store(0);
+                    }
+                }
+
+                if (SUCCEEDED(outQiHr) && outData != nullptr) {
                     auto outDesc = outBuf->GetPlaneDescription(0);
                     uint8_t* dstPtr = outData + outDesc.StartIndex;
                     uint8_t* srcPtr = (uint8_t*)mapSR.pData;
                     size_t srcRowPitch = mapSR.RowPitch;
                     size_t dstRowPitch = outDesc.Stride;
-                    for (int y = 0; y < height; ++y) {
-                        memcpy(dstPtr + y * dstRowPitch, srcPtr + y * srcRowPitch, std::min(srcRowPitch, dstRowPitch));
+                    // Source is padded; compute start offset to crop center region when not returning padded
+                    size_t srcOffsetRow = (size_t)pad * srcRowPitch;
+                    size_t srcOffsetCol = (size_t)pad * 4; // bytes
+                    // If returning padded output, copy entire padded region instead of cropping
+                    size_t copyStartOffsetRow = returnPadded ? 0 : srcOffsetRow;
+                    size_t copyStartOffsetCol = returnPadded ? 0 : srcOffsetCol;
+                    int copyWidth = returnPadded ? paddedW : width;
+                    int copyHeight = returnPadded ? paddedH : height;
+                    // Validate mapped source pointer and pitches before copying
+                    if (srcPtr == nullptr) {
+                        if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: invalid mapped source pointer (null)\n");
+                        return nullptr;
                     }
-                    m_context->Unmap(staging.Get(), 0);
+                    if (srcRowPitch < (size_t)width * 4) {
+                        if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                        moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: unexpected srcRowPitch=%u (width*4=%u)\n", (unsigned)srcRowPitch, (unsigned)(width*4));
+                        return nullptr;
+                    }
+                    // Ensure output buffer capacity is sufficient when available via outAccess
+                    if (outCap < outDesc.StartIndex + dstRowPitch * (size_t)height) {
+                        if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                        moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: output buffer capacity too small (cap=%u required=%zu)\n", outCap, outDesc.StartIndex + dstRowPitch * (size_t)height);
+                        return nullptr;
+                    }
+                    for (int y = 0; y < copyHeight; ++y) {
+                        uint8_t* srcRowStart = srcPtr + copyStartOffsetRow + (size_t)y * srcRowPitch + copyStartOffsetCol;
+                        size_t copyBytes = std::min((size_t)copyWidth * 4, dstRowPitch);
+                        memcpy(dstPtr + y * dstRowPitch, srcRowStart, copyBytes);
+                        if (dstRowPitch > copyBytes) memset(dstPtr + y * dstRowPitch + copyBytes, 0, dstRowPitch - copyBytes);
+                    }
+                    if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
                     moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: success (fast path outAccess)\n");
                     return outBmp;
                 }
 
                 // If outAccess QI fails (some WinRT contexts don't support IMemoryBufferByteAccess),
-                // use a fallback: create a temporary IBuffer and CopyFromBuffer into the SoftwareBitmap.
+                // use a fallback: build a contiguous temporary pixel buffer and create a SoftwareBitmap
+                // from that buffer via CreateCopyFromBuffer. This avoids calling CopyFromBuffer on an
+                // existing SoftwareBitmap which can fail with "Insufficient memory for response"
+                // in some WinRT hosting scenarios.
                 moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback\n");
-                    try {
+                try {
                     size_t srcRowPitch = mapSR.RowPitch;
+                    // Validate mapped data pointer and pitches
+                    uint8_t* srcPtr = (uint8_t*)mapSR.pData;
+                    if (srcPtr == nullptr) {
+                        if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: invalid mapped source pointer (null) in fallback\n");
+                        return nullptr;
+                    }
+                    if (srcRowPitch < (size_t)4) {
+                        if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                        moonlight_xbox_dx::Utils::Logf("GpuBoxBlurSoftwareBitmap: unexpected small srcRowPitch=%u in fallback\n", (unsigned)srcRowPitch);
+                        return nullptr;
+                    }
                     // Determine destination row pitch from the output buffer description
                     auto outDesc = outBuf->GetPlaneDescription(0);
                     size_t dstRowPitch = outDesc.Stride;
-                    std::vector<uint8_t> tmpBuf((size_t)height * dstRowPitch);
-                    uint8_t* srcPtr = (uint8_t*)mapSR.pData;
-                    for (int y = 0; y < height; ++y) {
-                        size_t copyBytes = std::min(srcRowPitch, dstRowPitch);
-                        memcpy(tmpBuf.data() + y * dstRowPitch, srcPtr + y * srcRowPitch, copyBytes);
-                        if (dstRowPitch > copyBytes) {
-                            // Zero any remaining padding in the destination row to be safe
-                            memset(tmpBuf.data() + y * dstRowPitch + copyBytes, 0, dstRowPitch - copyBytes);
-                        }
+                    // Determine copy dimensions based on returnPadded
+                    int copyWidth = returnPadded ? paddedW : width;
+                    int copyHeight = returnPadded ? paddedH : height;
+                    // Guard against overflow in allocation
+                    size_t allocSize = (size_t)copyHeight * dstRowPitch;
+                    if (allocSize == 0 || allocSize / (size_t)copyHeight != dstRowPitch) {
+                        m_context->Unmap(staging.Get(), 0);
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: integer overflow or zero detected allocating tmpBuf\n");
+                        return nullptr;
                     }
-                    m_context->Unmap(staging.Get(), 0);
-                    // Release any locks on the output bitmap before calling CopyFromBuffer
+                    std::vector<uint8_t> tmpBuf(allocSize);
+                    // Source is padded; compute offsets to crop center region when not returning padded
+                    size_t srcOffsetRow = returnPadded ? 0 : (size_t)pad * srcRowPitch;
+                    size_t srcOffsetCol = returnPadded ? 0 : (size_t)pad * 4; // bytes
+                    for (int y = 0; y < copyHeight; ++y) {
+                        uint8_t* srcRowStart = srcPtr + srcOffsetRow + (size_t)y * srcRowPitch + srcOffsetCol;
+                        size_t copyBytes = std::min((size_t)copyWidth * 4, dstRowPitch);
+                        memcpy(tmpBuf.data() + y * dstRowPitch, srcRowStart, copyBytes);
+                        if (dstRowPitch > copyBytes) memset(tmpBuf.data() + y * dstRowPitch + copyBytes, 0, dstRowPitch - copyBytes);
+                    }
+                    if (stagingMapped) { m_context->Unmap(staging.Get(), 0); stagingMapped = false; }
+                    // Release any locks on the output bitmap references
                     outAccess = nullptr;
                     outUnk = nullptr;
                     outRef = nullptr;
                     outBuf = nullptr;
-                    auto writer = ref new Windows::Storage::Streams::DataWriter();
-                    writer->WriteBytes(Platform::ArrayReference<uint8_t>(tmpBuf.data(), (unsigned int)tmpBuf.size()));
-                    auto outIBuf = writer->DetachBuffer();
-                    outBmp->CopyFromBuffer(outIBuf);
-                    moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: success (fallback CopyFromBuffer)\n");
-                    return outBmp;
+                    // Diagnostic: also write the cropped/padded region we will produce so we can compare
+                    if (enableDiagnostics) {
+                        try {
+                            auto diagWriter = ref new Windows::Storage::Streams::DataWriter();
+                            diagWriter->WriteBytes(Platform::ArrayReference<uint8_t>(tmpBuf.data(), (unsigned int)tmpBuf.size()));
+                            auto diagBuf = diagWriter->DetachBuffer();
+                            int diagW = copyWidth;
+                            int diagH = copyHeight;
+                            auto diagSb = SoftwareBitmap::CreateCopyFromBuffer(diagBuf, BitmapPixelFormat::Bgra8, diagW, diagH, BitmapAlphaMode::Straight);
+                            concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(diagSb)).then([diagW, diagH](Windows::Storage::Streams::IRandomAccessStream ^ s) {
+                                try {
+                                    if (s == nullptr) return;
+                                    try { s->Seek(0); } catch(...) {}
+                                    auto folder = Windows::Storage::ApplicationData::Current->LocalFolder;
+                                    SYSTEMTIME st; GetLocalTime(&st);
+                                    wchar_t nameBuf[128];
+                                    swprintf_s(nameBuf, _countof(nameBuf), L"gpu_cropped_%04d%02d%02d_%02d%02d%02d_%dx%d.png", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, diagW, diagH);
+                                    auto name = ref new Platform::String(nameBuf);
+                                    concurrency::create_task(folder->CreateFileAsync(name, Windows::Storage::CreationCollisionOption::GenerateUniqueName)).then([s](Windows::Storage::StorageFile ^ f) {
+                                        if (f == nullptr) return;
+                                        concurrency::create_task(f->OpenAsync(Windows::Storage::FileAccessMode::ReadWrite)).then([s](Windows::Storage::Streams::IRandomAccessStream ^ outStream) {
+                                            if (outStream == nullptr) return;
+                                            try { s->Seek(0); } catch(...) {}
+                                            concurrency::create_task(s->GetInputStreamAt(0)->ReadAsync(ref new Windows::Storage::Streams::Buffer((unsigned int)s->Size), (unsigned int)s->Size, Windows::Storage::Streams::InputStreamOptions::None)).then([outStream](Windows::Storage::Streams::IBuffer ^ buf) {
+                                                if (buf == nullptr) return;
+                                                concurrency::create_task(outStream->WriteAsync(buf)).then([outStream](unsigned int) { try { outStream->FlushAsync(); } catch(...) {} });
+                                            });
+                                        });
+                                    });
+                                } catch(...) {}
+                            });
+                        } catch(...) {}
+                    }
+
+                    // Create output SoftwareBitmap directly from the contiguous tmpBuf to avoid CopyFromBuffer on an existing bitmap
+                    try {
+                        auto writer = ref new Windows::Storage::Streams::DataWriter();
+                        writer->WriteBytes(Platform::ArrayReference<uint8_t>(tmpBuf.data(), (unsigned int)tmpBuf.size()));
+                        auto outIBuf = writer->DetachBuffer();
+                        int outW = returnPadded ? paddedW : width;
+                        int outH = returnPadded ? paddedH : height;
+                        auto outSb = SoftwareBitmap::CreateCopyFromBuffer(outIBuf, BitmapPixelFormat::Bgra8, outW, outH, BitmapAlphaMode::Premultiplied);
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: success (fallback CreateCopyFromBuffer)\n");
+                        return outSb;
+                    } catch(...) {
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: fallback CreateCopyFromBuffer failed\n");
+                        moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (fallback CreateCopyFromBuffer)\n");
+                        return nullptr;
+                    }
                 } catch(...) {
                     m_context->Unmap(staging.Get(), 0);
                     moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: fallback CopyFromBuffer failed\n");

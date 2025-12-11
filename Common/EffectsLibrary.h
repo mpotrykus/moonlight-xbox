@@ -20,7 +20,10 @@ public:
 
     // Attempt to run blur on GPU and return a new SoftwareBitmap containing the blurred result.
     // Returns nullptr on failure (caller should fall back to CPU).
-    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
+    // If enableDiagnostics is true, diagnostic PNGs may be emitted to LocalFolder.
+    // If returnPadded is true the returned SoftwareBitmap will be the padded blurred canvas
+    // (padded by radius*2 on each side) instead of the cropped center region.
+    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics = false, bool returnPadded = false);
 
     static ID3D11ShaderResourceView* Glow(ID3D11ShaderResourceView* src, float radius) {
 

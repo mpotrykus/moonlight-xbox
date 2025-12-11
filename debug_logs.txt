@@ -1,53 +1,391 @@
-
-[17:54.556] EffectsLibrary: lazy-created device=000001A57FE6B270 context=000001A5069B0070
-[17:54.556] GpuBoxBlurSoftwareBitmap: entry bitmap=000001A506956DB0 radius=6 device=000001A57FE6B270 context=000001A5069B0070
-[17:54.556] GpuBoxBlurSoftwareBitmap: entry bitmap=000001A506957050 radius=6 device=000001A57FE6B270 context=000001A5069B0070
-[17:54.556] GpuBoxBlurSoftwareBitmap: entry bitmap=000001A506957670 radius=6 device=000001A57FE6B270 context=000001A5069B0070
-[17:54.556] GpuBoxBlurSoftwareBitmap: entry bitmap=000001A5069577C0 radius=6 device=000001A57FE6B270 context=000001A5069B0070
-[17:54.570] GpuBoxBlurSoftwareBitmap: compiling shaders
-[17:54.578] GpuBoxBlurSoftwareBitmap: shader/sampler/CB setup complete
-[17:54.578] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal)
-[17:54.579] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical)
-[17:54.579] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal)
-[17:54.579] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical)
-[17:54.579] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal)
-[17:54.579] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical)
-[17:54.580] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
-[17:54.587] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2432
-[17:54.587] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
-[17:54.588] GpuBoxBlurSoftwareBitmap: success (fallback CopyFromBuffer)
-[17:54.589] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal)
-[17:54.589] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical)
-[17:54.589] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
-[17:54.590] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2432
-[17:54.590] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
-[17:54.591] GpuBoxBlurSoftwareBitmap: success (fallback CopyFromBuffer)
-[17:54.591] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
-[17:54.592] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2432
-[17:54.592] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
-[17:54.593] GpuBoxBlurSoftwareBitmap: success (fallback CopyFromBuffer)
-[17:54.594] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
-[17:54.595] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2432
-[17:54.595] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
-[17:54.596] GpuBoxBlurSoftwareBitmap: success (fallback CopyFromBuffer)
-[17:54.605] [AppPage] Dispatcher: creating BitmapImage for app id=136554901
-[17:54.605] [AppPage] Dispatcher: calling SetSourceAsync for app id=136554901
-[17:54.608] [AppPage] SetSourceAsync continuation for app id=136554901 (app=000001A50612D880 img=000001A50690D060 stream=000001A50695AA10)
-[17:54.608] [AppPage] Dispatcher (final): assigning app->BlurredImage (app=000001A50612D880 img=000001A50690D060)
-[17:54.608] [AppPage] assigned app->BlurredImage for id=136554901
-[17:54.621] [AppPage] Dispatcher: creating BitmapImage for app id=1883389049
-[17:54.621] [AppPage] Dispatcher: calling SetSourceAsync for app id=1883389049
-[17:54.625] [AppPage] SetSourceAsync continuation for app id=1883389049 (app=000001A50612E3C0 img=000001A50690C640 stream=000001A506959BA0)
-[17:54.626] [AppPage] Dispatcher (final): assigning app->BlurredImage (app=000001A50612E3C0 img=000001A50690C640)
-[17:54.626] [AppPage] assigned app->BlurredImage for id=1883389049
-[17:54.639] [AppPage] Dispatcher: creating BitmapImage for app id=187591418
-[17:54.639] [AppPage] Dispatcher: calling SetSourceAsync for app id=187591418
-[17:54.640] [AppPage] Dispatcher: creating BitmapImage for app id=1596438515
-[17:54.640] [AppPage] Dispatcher: calling SetSourceAsync for app id=1596438515
-[17:54.645] [AppPage] SetSourceAsync continuation for app id=187591418 (app=000001A50612E060 img=000001A50690B200 stream=000001A50695B260)
-[17:54.645] [AppPage] SetSourceAsync continuation for app id=1596438515 (app=000001A50612DB50 img=000001A50690F220 stream=000001A50695A9A0)
-[17:54.645] [AppPage] Dispatcher (final): assigning app->BlurredImage (app=000001A50612E060 img=000001A50690B200)
-[17:54.646] [AppPage] assigned app->BlurredImage for id=187591418
-[17:54.646] [AppPage] Dispatcher (final): assigning app->BlurredImage (app=000001A50612DB50 img=000001A50690F220)
-[17:54.646] [AppPage] assigned app->BlurredImage for id=1596438515
-The thread 47956 has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\moonlight-xbox-dx.exe'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ntdll.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\kernel32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\KernelBase.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\combase.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ucrtbase.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\rpcrt4.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ws2_32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\libexpat.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\libcurl.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\libcrypto-3-x64.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\crypt32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\avcodec-61.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\avutil-59.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\d3d11.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msvcp_win.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\win32u.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\dxgi.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\opus.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\D3DCompiler_47.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vccorlib140d_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\oleaut32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\msvcp140d_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\concrt140d_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140d_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140_1d_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\ucrtbased.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\libssl-3-x64.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Users\mpotr\source\repos\moonlight-xbox\x64\Debug\moonlight-xbox-dx\AppX\zlib1.dll'. Symbols loaded.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\bcrypt.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\sechost.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\mfplat.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\D3D12.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\powrprof.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptsp.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 57144 has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\bcryptprimitives.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\RTWorkQ.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\SHCore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\umpdc.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\gdi32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\gdi32full.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\user32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\imm32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\kernel.appcore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msvcrt.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\WinTypes.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Xaml.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\iertutil.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\advapi32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\srvcli.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\netutils.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\twinapi.appcore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.StateRepositoryCore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\CoreMessaging.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\OneCoreUAPCommonProxyStub.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\uxtheme.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\urlmon.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\shell32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\windows.storage.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DXCore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ResourcePolicyClient.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\InputHost.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Unloaded 'C:\Windows\System32\ResourcePolicyClient.dll'
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\directxdatabasehelper.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Energy.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cfgmgr32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\MrmCoreR.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.StateRepositoryClient.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\profapi.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\BCP47mrm.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db\nvldumdx.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\version.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.UI.Xaml.2.7_7.2409.9001.0_x64__8wekyb3d8bbwe\Microsoft.UI.Xaml.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140_1_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\d2d1.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\msvcp140_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msasn1.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptnet.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptbase.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\wldp.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\drvstore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\devobj.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\wintrust.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\imagehlp.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Xaml.Controls.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msctf.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Shell.ServiceHostBuilder.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\execmodelproxy.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\CoreUIComponents.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\rmclient.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\rsaenh.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\UiaManager.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db\nvgpucomp64.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ole32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\WindowManagementAPI.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Core.TextInput.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\TextInputFramework.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db\NvMemMapStoragex.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\winmm.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ApplicationTargetedFeatureDatabase.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 'ShellHandwriting Delegate Thread' (59556) has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Immersive.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DataExchange.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\ProgramData\A-Volute\A-Volute.28054DF1F58B4\Modules\ScheduledModules\x64\NahimicOSD.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\shlwapi.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\ProgramData\A-Volute\A-Volute.28054DF1F58B4\Modules\ScheduledModules\x64\ProductInfo.dll'. Symbol loading disabled by Include/Exclude setting.
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+Error 20 (this feature has not been implemented yet) in function AVolute::GetProductInfoT::<lambda_3920e95365a48b95dd51020986e9e351>::operator ()
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db\nvwgf2umx.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\nvspcap64.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 51060 has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_20ae8f14a487d5db\nvppex.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DWrite.dll'. Symbol loading disabled by Include/Exclude setting.
+[37:17.802] Hello from Moonlight!
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\TextShaping.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Globalization.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\BCP47Langs.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.ApplicationModel.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\dcomp.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Microsoft.Internal.WarpPal.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 53008 has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Graphics.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Storage.ApplicationData.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\propsys.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.System.Launcher.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_5.82.26100.5074_none_87eb64a37a300c6e\comctl32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\directmanipulation.dll'. Symbol loading disabled by Include/Exclude setting.
+onecoreuap\windows\frameworkudk\warppal.cpp(783)\Microsoft.Internal.WarpPal.dll!00007FF9DDE9EE4C: (caller: 00007FF9DECABE0E) ReturnHr(1) tid(e738) 80004002 No such interface supported
+onecoreuap\windows\frameworkudk\warppal.cpp(783)\Microsoft.Internal.WarpPal.dll!00007FF9DDE9EE4C: (caller: 00007FF9DECABE0E) ReturnHr(2) tid(e738) 80004002 No such interface supported
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\WindowsCodecs.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\ProgramData\A-Volute\A-Volute.28054DF1F58B4\Modules\ScheduledModules\x64\AudioDevProps2.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\mswsock.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\wuceffects.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\threadpoolwinrt.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xmllite.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\d3d10warp.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\XamlDiagnostics\x64\Microsoft.VisualStudio.DesignTools.UwpTap.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\dwmapi.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ninput.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\pfclient.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msftedit.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\globinputhost.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Xaml.Phone.dll'. Symbol loading disabled by Include/Exclude setting.
+[37:25.476] AppPage: background app-fetch disabled for debugging
+[37:25.498] [AppPage] AppsGrid_ContainerContentChanging called on thread=59192 HasThreadAccess=1
+[37:25.498] AppsGrid_ContainerContentChanging fired
+[37:25.498] AppsGrid_ContainerContentChanging: m_layoutNew=true
+[37:25.503] [AppPage] AppsGrid_ContainerContentChanging called on thread=59192 HasThreadAccess=1
+[37:25.507] [AppPage] AppsGrid_ContainerContentChanging called on thread=59192 HasThreadAccess=1
+[37:25.508] AppsGrid_Loaded fired.
+[37:25.509] AppPage::OnFirstRender: first render occurred
+[37:25.511] CenterSelectedItem: centering index=0 attempts=1 immediate=1 id=1883389049 name=Desktop
+[37:25.511] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.511] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.512] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.512] CenterSelectedItem: ItemsPanel type = Other or null
+[37:25.512] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=-1.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.512] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.512] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.512] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.513] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.513] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.513] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.513] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.515] CenterSelectedItem: centering index=0 attempts=1 immediate=1 id=1883389049 name=Desktop
+[37:25.515] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.515] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.515] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.515] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[37:25.515] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.515] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.516] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.516] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.516] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.516] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.516] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.516] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.517] CenterSelectedItem: centering index=0 attempts=1 immediate=1 id=1883389049 name=Desktop
+[37:25.517] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.517] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.517] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.517] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[37:25.517] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.517] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.518] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.518] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.518] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.518] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.518] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.518] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.530] CenterSelectedItem: centering index=0 attempts=0 immediate=1 id=1883389049 name=Desktop
+[37:25.530] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.530] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.530] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.530] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[37:25.531] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.531] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.531] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.531] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.531] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.531] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.531] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.531] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.532] CenterSelectedItem: centering index=0 attempts=0 immediate=1 id=1883389049 name=Desktop
+[37:25.532] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.532] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.532] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.532] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[37:25.532] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.532] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.533] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.533] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.533] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.533] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.533] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.534] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.534] CenterSelectedItem: centering index=0 attempts=0 immediate=1 id=1883389049 name=Desktop
+[37:25.534] CenterSelectedItem: sv ExtentWidth=1478.00 ViewportWidth=1478.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[37:25.534] CenterSelectedItem: container ActualWidth=549.00 pt.X=0.00 containerCenter=274.50
+[37:25.534] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[37:25.534] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[37:25.534] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 containerWidth=549.00
+[37:25.535] [AppPage] ApplyCenteringTransformIfNeeded: start
+[37:25.535] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=274.50 appsGridCenter=739.00 translateX=464.50
+[37:25.535] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[37:25.535] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[37:25.535] [AppPage] ApplyCenteringTransformIfNeeded: end
+[37:25.535] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[37:25.535] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=2396.00 itemsPanelRootActualW=2396.00 estimatedContentWidth=2196.00 totalItems=4
+[37:25.625] [AppPage] AppsGrid_ContainerContentChanging called on thread=59192 HasThreadAccess=1
+The thread 57392 has exited with code 0 (0x0).
+[37:27.576] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='C:\Users\mpotr\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\1883389049.png'
+[37:27.577] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='C:\Users\mpotr\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\136554901.png'
+[37:27.578] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='C:\Users\mpotr\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\1596438515.png'
+[37:27.579] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='C:\Users\mpotr\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\187591418.png'
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\PhotoMetadataHandler.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\WindowsCodecsExt.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\mscms.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\icm32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\RTMediaFrame.dll'. Symbol loading disabled by Include/Exclude setting.
+[37:27.636] ApplyBlur(UI): captured display pixel target=456 x 702 from ActualWidth/Height (dpi=96.00)
+[37:27.636] CaptureXamlElementAsync: dispatched handler running
+[37:27.636] CaptureXamlElementAsync: element name='AppImageBlurRect' ActualWidth=581.00 ActualHeight=893.00
+[37:27.636] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=581 x 893
+[37:27.637] CaptureXamlElementAsync: dispatched handler running
+[37:27.637] CaptureXamlElementAsync: element name='AppImageRect' ActualWidth=456.00 ActualHeight=702.00
+[37:27.637] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=456 x 702
+[37:27.643] ApplyBlur(UI): captured display pixel target=456 x 702 from ActualWidth/Height (dpi=96.00)
+[37:27.644] CaptureXamlElementAsync: dispatched handler running
+[37:27.644] CaptureXamlElementAsync: element name='AppImageBlurRect' ActualWidth=517.00 ActualHeight=796.00
+[37:27.644] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=517 x 796
+[37:27.645] ApplyBlur(UI): captured display pixel target=580 x 893 from ActualWidth/Height (dpi=96.00)
+[37:27.645] CaptureXamlElementAsync: dispatched handler running
+[37:27.645] CaptureXamlElementAsync: element name='AppImageRect' ActualWidth=456.00 ActualHeight=702.00
+[37:27.646] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=456 x 702
+[37:27.646] CaptureXamlElementAsync: dispatched handler running
+[37:27.646] CaptureXamlElementAsync: element name='AppImageBlurRect' ActualWidth=581.00 ActualHeight=893.00
+[37:27.646] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=581 x 893
+[37:27.646] CaptureXamlElementAsync: dispatched handler running
+[37:27.646] CaptureXamlElementAsync: element name='AppImageRect' ActualWidth=580.00 ActualHeight=893.00
+[37:27.647] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=580 x 893
+[37:27.658] CaptureXamlElementAsync: RenderAsync completed
+[37:27.659] CaptureXamlElementAsync: RenderAsync completed
+[37:27.660] ApplyBlur(UI): captured display pixel target=456 x 702 from ActualWidth/Height (dpi=96.00)
+[37:27.660] CaptureXamlElementAsync: dispatched handler running
+[37:27.660] CaptureXamlElementAsync: element name='AppImageBlurRect' ActualWidth=581.00 ActualHeight=893.00
+[37:27.660] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=581 x 893
+[37:27.661] CaptureXamlElementAsync: dispatched handler running
+[37:27.661] CaptureXamlElementAsync: element name='AppImageRect' ActualWidth=456.00 ActualHeight=702.00
+[37:27.661] CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=96.00) => expected=456 x 702
+[37:27.663] CaptureXamlElementAsync: pixels received width=581 height=893
+[37:27.664] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.673] CaptureXamlElementAsync: pixels received width=456 height=702
+[37:27.673] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.674] ApplyBlur: XAML mask captured size=581 x 893
+[37:27.674] ApplyBlur: raster target pixels=456 x 702 (from UI capture or fallback)
+[37:27.675] CaptureXamlElementAsync: RenderAsync completed
+[37:27.675] CaptureXamlElementAsync: RenderAsync completed
+[37:27.675] CaptureXamlElementAsync: RenderAsync completed
+[37:27.676] CaptureXamlElementAsync: RenderAsync completed
+[37:27.682] ApplyBlur: captured XAML mask empty, falling back to programmatic mask before blur
+[37:27.687] ApplyBlur: programmatic mask generated (pre-blur), compositing now
+[37:27.689] CaptureXamlElementAsync: pixels received width=517 height=796
+[37:27.689] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.690] CaptureXamlElementAsync: pixels received width=456 height=702
+[37:27.691] ImageHelpers::CompositeWithMask: mask non-zero coverage=319984/320112 (99.96%) (mask=456 x 702, base=456 x 702)
+[37:27.691] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.691] CaptureXamlElementAsync: pixels received width=581 height=893
+[37:27.691] ApplyBlur: XAML mask captured size=517 x 796
+[37:27.691] ApplyBlur: raster target pixels=456 x 702 (from UI capture or fallback)
+[37:27.692] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.692] CaptureXamlElementAsync: pixels received width=580 height=893
+[37:27.693] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.693] ApplyBlur: XAML mask captured size=581 x 893
+[37:27.693] ApplyBlur: raster target pixels=580 x 893 (from UI capture or fallback)
+[37:27.697] CaptureXamlElementAsync: RenderAsync completed
+[37:27.698] CaptureXamlElementAsync: RenderAsync completed
+[37:27.701] CaptureXamlElementAsync: pixels received width=581 height=893
+[37:27.702] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.702] CaptureXamlElementAsync: pixels received width=456 height=702
+[37:27.702] ApplyBlur: captured XAML mask empty, falling back to programmatic mask before blur
+[37:27.702] CaptureXamlElementAsync: SoftwareBitmap created from pixels
+[37:27.703] ApplyBlur: XAML mask captured size=581 x 893
+[37:27.703] ApplyBlur: raster target pixels=456 x 702 (from UI capture or fallback)
+[37:27.706] ApplyBlur: captured XAML mask empty, falling back to programmatic mask before blur
+[37:27.709] ApplyBlur: programmatic mask generated (pre-blur), compositing now
+[37:27.712] ApplyBlur: captured XAML mask empty, falling back to programmatic mask before blur
+[37:27.713] ImageHelpers::CompositeWithMask: mask non-zero coverage=319984/320112 (99.96%) (mask=456 x 702, base=456 x 702)
+[37:27.715] ApplyBlur: programmatic mask generated (pre-blur), compositing now
+[37:27.717] ApplyBlur: attempting GPU blur path (pre-masked)
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DXGIDebug.dll'. Symbol loading disabled by Include/Exclude setting.
+[37:27.720] ApplyBlur: programmatic mask generated (pre-blur), compositing now
+[37:27.722] ImageHelpers::CompositeWithMask: mask non-zero coverage=517812/517940 (99.98%) (mask=580 x 893, base=580 x 893)
+[37:27.723] ImageHelpers::CompositeWithMask: mask non-zero coverage=319984/320112 (99.96%) (mask=456 x 702, base=456 x 702)
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\d3d11_3SDKLayers.dll'. Symbol loading disabled by Include/Exclude setting.
+[37:27.741] ApplyBlur: attempting GPU blur path (pre-masked)
+[37:27.748] ApplyBlur: attempting GPU blur path (pre-masked)
+[37:27.761] ApplyBlur: attempting GPU blur path (pre-masked)
+[37:27.771] EffectsLibrary: lazy-created device=000001D6B8422400 context=000001D6B8424510
+[37:27.772] GpuBoxBlurSoftwareBitmap: entry bitmap=000001D6B2AE7590 radius=16 device=000001D6B8422400 context=000001D6B8424510
+[37:27.772] GpuBoxBlurSoftwareBitmap: entry bitmap=000001D6B2FE6490 radius=16 device=000001D6B8422400 context=000001D6B8424510
+[37:27.772] GpuBoxBlurSoftwareBitmap: entry bitmap=000001D6B2AE5B50 radius=16 device=000001D6B8422400 context=000001D6B8424510
+[37:27.772] GpuBoxBlurSoftwareBitmap: entry bitmap=000001D6B2AE68E0 radius=16 device=000001D6B8422400 context=000001D6B8424510
+[37:27.772] GpuBoxBlurSoftwareBitmap: computed pad=32 padded=520 x 766 (src=456 x 702) radius=16
+[37:27.773] GpuBoxBlurSoftwareBitmap: computed pad=32 padded=520 x 766 (src=456 x 702) radius=16
+[37:27.773] GpuBoxBlurSoftwareBitmap: computed pad=32 padded=520 x 766 (src=456 x 702) radius=16
+[37:27.773] GpuBoxBlurSoftwareBitmap: computed pad=32 padded=644 x 957 (src=580 x 893) radius=16
+[37:27.782] GpuBoxBlurSoftwareBitmap: compiling shaders
+[37:27.792] GpuBoxBlurSoftwareBitmap: shader/sampler/CB setup complete
+[37:27.792] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[37:27.792] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[37:27.793] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[37:27.793] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[37:27.793] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.793] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.793] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.793] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.793] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.794] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.795] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[37:27.795] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.795] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[37:27.795] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
+[37:27.795] GpuBoxBlurSoftwareBitmap: copied padded rt to staging (padded=520 x 766)
+[37:27.803] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2176 mappedFlag=1
+[37:27.804] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface hr=0x80004002
+[37:27.804] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
+Exception thrown at 0x00007FF9E2F680DA in moonlight-xbox-dx.exe: Microsoft C++ exception: _com_error at memory location 0x0000002140A7BC60.
+Exception thrown at 0x00007FF9E2F680DA (KernelBase.dll) in moonlight-xbox-dx.exe: WinRT originate error - 0xC00D7170 : 'Insufficient memory for response.'.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\userenv.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\profext.dll'. Symbol loading disabled by Include/Exclude setting.
+Exception thrown at 0x00007FF9E2F680DA in moonlight-xbox-dx.exe: Microsoft C++ exception: Platform::COMException ^ at memory location 0x0000002140A7BC10. HRESULT:0xC00D7170 Insufficient memory for response.
+WinRT information: Insufficient memory for response.
+Stack trace:
+ >combase.dll!00007ff9e468c577()
+ >vccorlib140d_app.dll!00007ff93eecef37()
+ >vccorlib140d_app.dll!00007ff93eecefe3()
+ >vccorlib140d_app.dll!00007ff93eed4742()
+ >moonlight-xbox-dx.exe!__abi_WinRTraiseException(long __hrArg) Line 1134
+ >moonlight-xbox-dx.exe!__abi_ThrowIfFailed(long __hrArg) Line 100
+ >moonlight-xbox-dx.exe!Windows::Graphics::Imaging::ISoftwareBitmap::CopyFromBuffer(Windows::Storage::Streams::IBuffer ^ __param0)
+ >moonlight-xbox-dx.exe!EffectsLibrary::GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap ^ bitmap, int radius, bool enableDiagnostics, bool returnPadded) Line 814
+ >moonlight-xbox-dx.exe!moonlight_xbox_dx::AppPage::ApplyBlur::__l2::Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^)::__l2::Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^)::__l2::<lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^ maskFromXaml) Line 467
+ >moonlight-xbox-dx.exe!std::invoke<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^) &,Windows::Graphics::Imaging::SoftwareBitmap ^>(moonlight_xbox_dx::AppPage::ApplyBlur::__l2::Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^)::__l2::Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^)::__l2::Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^) & _Obj, Windows::Graphics::Imaging::SoftwareBitmap ^ && _Arg1) Line 1680
+ >moonlight-xbox-dx.exe!std::_Func_impl_no_alloc<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> <lambda>(Windows::Graphics::Imaging::SoftwareBitmap ^),Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^>,Windows::Graphics::Imaging::SoftwareBitmap ^>::_Do_call(Windows::Graphics::Imaging::SoftwareBitmap ^ && <_Args_0>) Line 882
+ >moonlight-xbox-dx.exe!std::_Func_class<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^>,Windows::Graphics::Imaging::SoftwareBitmap ^>::operator()(Windows::Graphics::Imaging::SoftwareBitmap ^ <_Args_0>) Line 926
+ >moonlight-xbox-dx.exe!Concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^>::_ContinuationTaskHandle<Windows::Graphics::Imaging::SoftwareBitmap ^,Windows::Storage::Streams::IRandomAccessStream ^,std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)>,std::integral_constant<bool,0>,Concurrency::details::_TypeSelectorAsyncTask>::_LogWorkItemAndInvokeUserLambda<std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)>,Windows::Graphics::Imaging::SoftwareBitmap ^>(std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)> && _func, Windows::Graphics::Imaging::SoftwareBitmap ^ && _value) Line 3638
+ >moonlight-xbox-dx.exe!Concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^>::_ContinuationTaskHandle<Windows::Graphics::Imaging::SoftwareBitmap ^,Windows::Storage::Streams::IRandomAccessStream ^,std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)>,std::integral_constant<bool,0>,Concurrency::details::_TypeSelectorAsyncTask>::_Continue(std::integral_constant<bool,0> __formal, Concurrency::details::_TypeSelectorAsyncOperationOrTask __formal) Line 3685
+ >moonlight-xbox-dx.exe!Concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^>::_ContinuationTaskHandle<Windows::Graphics::Imaging::SoftwareBitmap ^,Windows::Storage::Streams::IRandomAccessStream ^,std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)>,std::integral_constant<bool,0>,Concurrency::details::_TypeSelectorAsyncTask>::_Perform() Line 3643
+ >moonlight-xbox-dx.exe!Concurrency::details::_PPLTaskHandle<Windows::Storage::Streams::IRandomAccessStream ^,Concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^>::_ContinuationTaskHandle<Windows::Graphics::Imaging::SoftwareBitmap ^,Windows::Storage::Streams::IRandomAccessStream ^,std::function<Concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> __cdecl(Windows::Graphics::Imaging::SoftwareBitmap ^)>,std::integral_constant<bool,0>,Concurrency::details::_TypeSelectorAsyncTask>,Concurrency::details::_ContinuationTaskHandleBase>::invoke() Line 1475
+ >moonlight-xbox-dx.exe!Concurrency::details::_TaskProcHandle::_RunChoreBridge(void * _Parameter) Line 171
+ >moonlight-xbox-dx.exe!Concurrency::details::_DefaultPPLTaskScheduler::_PPLTaskChore::_Callback(void * _Args) Line 57
+ >msvcp140d_app.dll!00007ff9407b3237()
+ >ntdll.dll!00007ff9e5d15370()
+ >ntdll.dll!00007ff9e5d163c1()
+ >kernel32.dll!00007ff9e3b8e8d7()
+ >ntdll.dll!00007ff9e5d2c53c()

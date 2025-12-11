@@ -1,4 +1,7 @@
 ﻿#pragma once
+#pragma once
+#pragma once
+#pragma once
 
 // Use the C++ standard templated min/max
 #define NOMINMAX

@@ -197,11 +197,9 @@ void MoonlightClient::StopApp() {
 	gs_quit_app(&serverData);
 }
 int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, StreamConfiguration ^ sConfig) {
-	// Thanks to https://stackoverflow.com/questions/11746146/how-to-convert-platformstring-to-char
-	std::wstring fooW(sConfig->hostname->Begin());
-	std::string fooA(fooW.begin(), fooW.end());
-	const char *charStr = fooA.c_str();
-	this->Connect(charStr);
+	// Convert Platform::String^ hostname to UTF-8 std::string using helper
+	std::string fooA = Utils::PlatformStringToStdString(sConfig->hostname);
+	this->Connect(fooA.c_str());
 	STREAM_CONFIGURATION config;
 	LiInitializeStreamConfiguration(&config);
 	config.width = sConfig->width;
