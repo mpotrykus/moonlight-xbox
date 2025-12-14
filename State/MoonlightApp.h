@@ -13,6 +13,8 @@ namespace moonlight_xbox_dx {
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ image;
         // Backing image for the blurred version used as background behind the original image
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
+        // Backing image for the reflection
+        Windows::UI::Xaml::Media::Imaging::BitmapImage^ reflectionImage;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -99,6 +101,23 @@ namespace moonlight_xbox_dx {
                 if (this->blurredImage == value) return;
                 this->blurredImage = value;
                 try { OnPropertyChanged("BlurredImage"); } catch(...) {}
+            }
+        }
+
+        // New property exposing the reflection image (can be null)
+        property Windows::UI::Xaml::Media::Imaging::BitmapImage^ ReflectionImage
+        {
+            Windows::UI::Xaml::Media::Imaging::BitmapImage^ get() { return this->reflectionImage; }
+            void set(Windows::UI::Xaml::Media::Imaging::BitmapImage^ value) {
+                if (this->reflectionImage == value) return;
+                this->reflectionImage = value;
+                try { OnPropertyChanged("ReflectionImage"); } catch(...) {}
+                // Diagnostic log: ReflectionImage assigned on model
+                try {
+                    char buf[256];
+                    sprintf_s(buf, "MoonlightApp: ReflectionImage set for app id=%d, bmp_ptr=%p\n", this->id, value);
+                    OutputDebugStringA(buf);
+                } catch(...) {}
             }
         }
     };

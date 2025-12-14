@@ -121,21 +121,17 @@ void TabsLayout::SetIsSelected(UIElement^ element, bool value)
             if (!props->HasKey("origForeground")) {
                 props->Insert("origForeground", btn->Foreground);
             }
-            // Apply selected brushes
+            // Apply selected foreground and accent-colored background
             btn->Foreground = ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
-            // Create a horizontal gradient foreground from transparent #333333 (left) to opaque #333333 (right)
-            auto lgBrush = ref new LinearGradientBrush();
-            lgBrush->StartPoint = Windows::Foundation::Point(0, 0.5);
-            lgBrush->EndPoint = Windows::Foundation::Point(1, 0.5);
-            auto stop1 = ref new GradientStop();
-            stop1->Color = Windows::UI::ColorHelper::FromArgb(0x00, 0x33, 0x33, 0x33); // transparent #333333
-            stop1->Offset = 0.0;
-            lgBrush->GradientStops->Append(stop1);
-            auto stop2 = ref new GradientStop();
-            stop2->Color = Windows::UI::ColorHelper::FromArgb(0xFF, 0x33, 0x33, 0x33); // opaque #333333
-            stop2->Offset = 1.0;
-            lgBrush->GradientStops->Append(stop2);
-			btn->Background = lgBrush;
+            // Use system accent color for background
+            try {
+                auto uiSettings = ref new Windows::UI::ViewManagement::UISettings();
+                auto accentColor = uiSettings->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
+                btn->Background = ref new SolidColorBrush(accentColor);
+            } catch(...) {
+                // fallback: use a neutral brush if UISettings unavailable
+                btn->Background = ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(0xFF, 0x33, 0x33, 0x33));
+            }
         }
         else {
             // Restore original brushes if available, otherwise clear to defaults

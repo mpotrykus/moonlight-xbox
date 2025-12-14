@@ -256,6 +256,86 @@ bool EffectsLibrary::BoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareB
     }
 }
 
+// Single-pass horizontal box blur that returns a new SoftwareBitmap containing the horizontally
+// blurred result. This is useful for cheap reflections where a vertical blur is unnecessary.
+SoftwareBitmap^ EffectsLibrary::BoxBlurHorizontalSoftwareBitmap(SoftwareBitmap^ bitmap, int radius)
+{
+    using namespace Windows::Graphics::Imaging;
+    if (bitmap == nullptr) {
+        moonlight_xbox_dx::Utils::Log("BoxBlurHorizontalSoftwareBitmap: bitmap is null\n");
+        return nullptr;
+    }
+    try {
+        moonlight_xbox_dx::Utils::Logf("BoxBlurHorizontalSoftwareBitmap: entry bitmap=%p radius=%d\n", (void*)bitmap, radius);
+        auto src = EnsureBgra8Premultiplied(bitmap);
+        if (src == nullptr) { moonlight_xbox_dx::Utils::Log("BoxBlurHorizontalSoftwareBitmap: EnsureBgra8Premultiplied returned null\n"); return nullptr; }
+        auto buf = src->LockBuffer(BitmapBufferAccessMode::Read);
+        auto ref = buf->CreateReference();
+        Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> mba;
+        IUnknown* unk = reinterpret_cast<IUnknown*>(ref);
+        BYTE* data = nullptr; UINT32 cap = 0;
+        bool fast = false;
+        if (unk != nullptr && SUCCEEDED(unk->QueryInterface(IID_PPV_ARGS(&mba)))) {
+            if (SUCCEEDED(mba->GetBuffer(&data, &cap)) && data != nullptr) fast = true;
+        }
+        auto desc = buf->GetPlaneDescription(0);
+        int width = desc.Width; int height = desc.Height; int stride = desc.Stride; int start = desc.StartIndex;
+        if (width <= 0 || height <= 0) { moonlight_xbox_dx::Utils::Logf("BoxBlurHorizontalSoftwareBitmap: invalid size w=%d h=%d\n", width, height); return nullptr; }
+        size_t planeSize = (size_t)height * (size_t)stride;
+        std::vector<uint8_t> srcPixels(planeSize);
+        if (fast) memcpy(srcPixels.data(), data + start, planeSize);
+        else {
+            try {
+                auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)planeSize);
+                src->CopyToBuffer(ib);
+                auto rdr = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+                rdr->ReadBytes(Platform::ArrayReference<uint8_t>(srcPixels.data(), (unsigned int)planeSize));
+            } catch(...) { return nullptr; }
+        }
+
+        // allocate destination buffer and perform horizontal box blur per-row
+        std::vector<uint8_t> dstPixels(planeSize);
+        for (int y = 0; y < height; ++y) {
+            uint8_t* rowSrc = srcPixels.data() + (size_t)y * stride;
+            uint8_t* rowDst = dstPixels.data() + (size_t)y * stride;
+            // prefix sums per channel
+            std::vector<uint32_t> prefB(width + 1, 0), prefG(width + 1, 0), prefR(width + 1, 0), prefA(width + 1, 0);
+            for (int x = 0; x < width; ++x) {
+                prefB[x+1] = prefB[x] + rowSrc[x*4 + 0];
+                prefG[x+1] = prefG[x] + rowSrc[x*4 + 1];
+                prefR[x+1] = prefR[x] + rowSrc[x*4 + 2];
+                prefA[x+1] = prefA[x] + rowSrc[x*4 + 3];
+            }
+            for (int x = 0; x < width; ++x) {
+                int x0 = std::max(0, x - radius);
+                int x1 = std::min(width - 1, x + radius);
+                int count = x1 - x0 + 1;
+                uint32_t sb = prefB[x1+1] - prefB[x0];
+                uint32_t sg = prefG[x1+1] - prefG[x0];
+                uint32_t sr = prefR[x1+1] - prefR[x0];
+                uint32_t sa = prefA[x1+1] - prefA[x0];
+                rowDst[x*4 + 0] = (uint8_t)(sb / count);
+                rowDst[x*4 + 1] = (uint8_t)(sg / count);
+                rowDst[x*4 + 2] = (uint8_t)(sr / count);
+                rowDst[x*4 + 3] = (uint8_t)(sa / count);
+            }
+        }
+
+        // create SoftwareBitmap from contiguous dstPixels
+        try {
+            auto writer = ref new Windows::Storage::Streams::DataWriter();
+            writer->WriteBytes(Platform::ArrayReference<uint8_t>(dstPixels.data(), (unsigned int)dstPixels.size()));
+            auto bufOut = writer->DetachBuffer();
+            auto outSb = SoftwareBitmap::CreateCopyFromBuffer(bufOut, BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Premultiplied);
+            moonlight_xbox_dx::Utils::Logf("BoxBlurHorizontalSoftwareBitmap: created result SoftwareBitmap %p (%d x %d)\n", (void*)outSb, width, height);
+            return outSb;
+        } catch(...) {
+            moonlight_xbox_dx::Utils::Log("BoxBlurHorizontalSoftwareBitmap: CreateCopyFromBuffer failed\n");
+            return nullptr;
+        }
+    } catch(...) { return nullptr; }
+}
+
 // GPU-path stub (kept for compatibility)
 SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics, bool returnPadded)
 {
@@ -849,6 +929,28 @@ SoftwareBitmap^ EffectsLibrary::GpuBoxBlurSoftwareBitmap(SoftwareBitmap^ bitmap,
         moonlight_xbox_dx::Utils::Log("GpuBoxBlurSoftwareBitmap: GPU blur failed (unexpected exception)\n");
         return nullptr;
     }
+}
+
+// Thin wrapper to request a GPU blur for horizontal-style reflections. Prefer GPU path; fall back to CPU horizontal blur.
+SoftwareBitmap^ EffectsLibrary::GpuBoxBlurHorizontalSoftwareBitmap(SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics)
+{
+    if (bitmap == nullptr) {
+        moonlight_xbox_dx::Utils::Log("GpuBoxBlurHorizontalSoftwareBitmap: bitmap is null\n");
+        return nullptr;
+    }
+    moonlight_xbox_dx::Utils::Logf("GpuBoxBlurHorizontalSoftwareBitmap: entry bitmap=%p radius=%d enableDiag=%d\n", bitmap, radius, enableDiagnostics?1:0);
+    // Try GPU two-pass box blur first (closest available GPU implementation).
+    auto gpu = GpuBoxBlurSoftwareBitmap(bitmap, radius, enableDiagnostics, false);
+    if (gpu != nullptr) {
+        moonlight_xbox_dx::Utils::Log("GpuBoxBlurHorizontalSoftwareBitmap: GPU produced result\n");
+        return gpu;
+    }
+    moonlight_xbox_dx::Utils::Log("GpuBoxBlurHorizontalSoftwareBitmap: GPU returned null, falling back to CPU horizontal blur\n");
+    // GPU failed or not available; fall back to CPU horizontal blur which we already have
+    auto cpu = BoxBlurHorizontalSoftwareBitmap(bitmap, radius);
+    if (cpu == nullptr) moonlight_xbox_dx::Utils::Log("GpuBoxBlurHorizontalSoftwareBitmap: CPU BoxBlurHorizontal returned null\n");
+    else moonlight_xbox_dx::Utils::Log("GpuBoxBlurHorizontalSoftwareBitmap: CPU BoxBlurHorizontal produced result\n");
+    return cpu;
 }
 
 ID3D11ShaderResourceView* EffectsLibrary::Blur(ID3D11ShaderResourceView* src, float sigma)

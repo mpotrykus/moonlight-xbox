@@ -25,6 +25,12 @@ public:
     // (padded by radius*2 on each side) instead of the cropped center region.
     static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics = false, bool returnPadded = false);
 
+    // GPU horizontal blur wrapper (uses GPU path when available, CPU fallback otherwise).
+    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurHorizontalSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics = false);
+
+    // CPU-only horizontal blur producing a new SoftwareBitmap (single-pass horizontal box blur).
+    static Windows::Graphics::Imaging::SoftwareBitmap^ BoxBlurHorizontalSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
+
     static ID3D11ShaderResourceView* Glow(ID3D11ShaderResourceView* src, float radius) {
 
         return Blur(src, radius);
