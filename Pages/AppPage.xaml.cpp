@@ -282,12 +282,15 @@ concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, 
 	});
 }
 
+// OPACITY
 static constexpr float kDesaturatorOpacityUnselected = 0.7f;
 static constexpr float kBlurOpacitySelected = 0.4f;
-static constexpr float kReflectionOpacitySelected = 0.05f;
+static constexpr float kReflectionOpacitySelected = 0.2f;
 
+// SCALE
 static constexpr float kSelectedScale = 1.0f;
 static constexpr float kUnselectedScale = 0.8f;
+
 
 static constexpr double kAppsGridHeightFactor = 0.7;
 static constexpr int kAnimationDurationMs = 150;
@@ -298,6 +301,7 @@ static constexpr float kBlurAmount = 16.0f;
 static ScrollViewer^ FindScrollViewer(DependencyObject^ parent);
 static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
 static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs);
+static void AnimateElementWidth(FrameworkElement ^ element, double targetWidth, int durationMs);
 static void SetElementOpacityImmediate(UIElement^ element, float value);
 static void SetElementScaleImmediate(UIElement^ element, float scale);
 static void AnimateElementScale(UIElement^ element, float targetScale, int durationMs);
@@ -326,22 +330,6 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
         } catch(...) {}
         return;
     }
-
-    // Diagnostic: log selected index and item id/name if available
-    try {
-        int idx = lv->SelectedIndex;
-        auto sel = lv->SelectedItem;
-        if (sel != nullptr) {
-            auto app = dynamic_cast<::moonlight_xbox_dx::MoonlightApp^>(sel);
-            if (app != nullptr) {
-                Utils::Logf("CenterSelectedItem: centering index=%d attempts=%d immediate=%d id=%d name=%S\n", idx, attempts, immediate ? 1 : 0, app->Id, app->Name->Data());
-            } else {
-                Utils::Logf("CenterSelectedItem: centering index=%d attempts=%d immediate=%d (selected item not MoonlightApp)\n", idx, attempts, immediate ? 1 : 0);
-            }
-        } else {
-            Utils::Logf("CenterSelectedItem: centering index=%d attempts=%d immediate=%d (selected item null)\n", idx, attempts, immediate ? 1 : 0);
-        }
-    } catch(...) {}
 
     // Simplified centering: prefer built-in ScrollIntoView with Center alignment.
     auto item = lv->SelectedItem;
@@ -688,7 +676,9 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
 					} catch (...) {
 						tarWidth = 0;
 					}
+
                     if (tarWidth <= 0 && targetWidth > 0) tarWidth = (int)std::round(targetWidth);
+
                     if (tarWidth > 0) {
 						
                         blurFE->Opacity = 0.0;
@@ -730,16 +720,10 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
 							if (displayW <= 0.0) displayW = (double)tarWidth;
 
 							double paddedW = displayW + (kBlurAmount * 2);
-							if (paddedW >= 1.0){ 
-								blurFE->Width = paddedW;
-							}
-							else {
-								blurFE->Width = displayW;
-							}
-						} catch (...) {
-						    blurFE->Width = (double)tarWidth;
-						}
-
+                            AnimateElementWidth(blurFE, paddedW, kAnimationDurationMs);
+                        } catch (...) {
+                            AnimateElementWidth(blurFE, (double)tarWidth, kAnimationDurationMs);
+                        }
                         AnimateElementOpacity(blurFE, kBlurOpacitySelected, kAnimationDurationMs);
                     }
                 }
@@ -808,6 +792,38 @@ static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int d
     } catch (...) {}
 }
 
+// Animate a UIElement's width using the Composition Visual for smooth fades
+static void AnimateElementWidth(
+    FrameworkElement ^ element,
+    double targetWidth,
+    int durationMs = kAnimationDurationMs) {
+	if (element == nullptr) return;
+
+	try {
+		using namespace Windows::UI::Xaml::Media::Animation;
+
+		auto dbl = ref new DoubleAnimation();
+		dbl->To = ref new Platform::Box<double>(targetWidth);
+
+		Windows::Foundation::TimeSpan ts;
+		ts.Duration = (int64_t)durationMs * 10000LL;
+		dbl->Duration = DurationHelper::FromTimeSpan(ts);
+
+		// Allow dependent animation
+		dbl->EnableDependentAnimation = true;
+
+		auto sb = ref new Storyboard();
+		sb->Children->Append(dbl);
+		Storyboard::SetTarget(dbl, element);
+		Storyboard::SetTargetProperty(dbl, "(FrameworkElement.Width)");
+
+		sb->Begin();
+
+	} catch (...) {
+		Utils::Logf("AnimateElementWidth failed.");
+	}
+}
+
 // Set opacity immediately without animation
 static void SetElementOpacityImmediate(UIElement^ element, float value) {
     if (element == nullptr) return;
@@ -861,186 +877,303 @@ AppPage::AppPage() {
 	InitializeComponent();
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 
-    this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnLoaded);
-    this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &AppPage::OnUnloaded);
-	
-	this->SizeChanged += ref new Windows::UI::Xaml::SizeChangedEventHandler(this, &AppPage::PageRoot_SizeChanged);
+    // Initialize event registration tokens to zero to avoid invalid remove calls later
+    try {
+        m_apps_changed_token.Value = 0;
+        m_back_cookie.Value = 0;
+        m_keydown_cookie.Value = 0;
+        m_rendering_token.Value = 0;
+        m_scrollviewer_viewchanged_token.Value = 0;
+        m_layoutUpdated_token.Value = 0;
+        m_appsgird_selection_token.Value = 0;
+        m_appsgird_itemclick_token.Value = 0;
+        m_appsgird_righttapped_token.Value = 0;
+        m_appsgird_sizechanged_token.Value = 0;
+        m_appsgird_loaded_token.Value = 0;
+        m_appsgird_unloaded_token.Value = 0;
+    } catch(...) {}
+
+    // Use weak-capturing lambdas to avoid calling into a disconnected 'this' and add lightweight logging
+    {
+        auto weakThis = WeakReference(this);
+        this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::RoutedEventArgs^ e) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that == nullptr) return;
+            try { Utils::Log("AppPage: Loaded event invoked\n"); } catch(...) {}
+            try { that->OnLoaded(s, e); } catch(...) {}
+        });
+    }
+    {
+        auto weakThis = WeakReference(this);
+        this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::RoutedEventArgs^ e) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that == nullptr) return;
+            try { Utils::Log("AppPage: Unloaded event invoked\n"); } catch(...) {}
+            try { that->OnUnloaded(s, e); } catch(...) {}
+        });
+    }
+    {
+        auto weakThis = WeakReference(this);
+        this->SizeChanged += ref new Windows::UI::Xaml::SizeChangedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::SizeChangedEventArgs^ e) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that == nullptr) return;
+            try { that->PageRoot_SizeChanged(s, e); } catch(...) {}
+        });
+    }
+
+    // Register AppsGrid event handlers in code (remove XAML-attached handlers to allow explicit unsubscribe)
+    try {
+        if (this->AppsGrid != nullptr) {
+            auto weakThis = WeakReference(this);
+            // SelectionChanged
+            auto selToken = this->AppsGrid->SelectionChanged += ref new Windows::UI::Xaml::Controls::SelectionChangedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_SelectionChanged(s, e); } catch(...) {}
+            });
+            this->m_appsgird_selection_token = selToken;
+
+            // ItemClick
+            auto icToken = this->AppsGrid->ItemClick += ref new Windows::UI::Xaml::Controls::ItemClickEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_ItemClick(s, e); } catch(...) {}
+            });
+            this->m_appsgird_itemclick_token = icToken;
+
+            // RightTapped
+            auto rtToken = this->AppsGrid->RightTapped += ref new Windows::UI::Xaml::Input::RightTappedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_RightTapped(s, e); } catch(...) {}
+            });
+            this->m_appsgird_righttapped_token = rtToken;
+
+            // SizeChanged
+            auto szToken = this->AppsGrid->SizeChanged += ref new Windows::UI::Xaml::SizeChangedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::SizeChangedEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_SizeChanged(s, e); } catch(...) {}
+            });
+            this->m_appsgird_sizechanged_token = szToken;
+
+            // Loaded
+            auto ldToken = this->AppsGrid->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::RoutedEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_Loaded(s, e); } catch(...) {}
+            });
+            this->m_appsgird_loaded_token = ldToken;
+
+            // Unloaded
+            auto ulToken = this->AppsGrid->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^ s, Windows::UI::Xaml::RoutedEventArgs^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_Unloaded(s, e); } catch(...) {}
+            });
+            this->m_appsgird_unloaded_token = ulToken;
+
+            // LayoutUpdated -> store token via add and assign to m_layoutUpdated_token
+            auto luToken = this->AppsGrid->LayoutUpdated += ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^ s, Platform::Object^ e) {
+                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_LayoutUpdated(s, nullptr); } catch(...) {}
+            });
+            this->m_layoutUpdated_token = luToken;
+
+            // ContainerContentChanging registration removed to avoid parsing issues; XAML no longer wires this event.
+        }
+    } catch(...) {}
 
 	m_compositionReady = false;
     m_filteredApps = ref new Platform::Collections::Vector<MoonlightApp^>();
 }
 
 // Apply current search filter to Host->Apps and populate m_filteredApps
-bool AppPage::ApplyAppFilter(Platform::String^ filter) {
-    auto host = this->Host;
-    auto vec = this->m_filteredApps;
-    bool identical = false;
+bool AppPage::ApplyAppFilter(Platform::String ^ filter) {
+	auto host = this->Host;
+	auto vec = this->m_filteredApps;
+	bool identical = false;
 
-    if (vec == nullptr) return identical;
+	if (vec == nullptr) return identical;
 
-    if (host == nullptr || host->Apps == nullptr) {
-        vec->Clear();
-        return identical;
-    }
+	if (host == nullptr || host->Apps == nullptr) {
+		vec->Clear();
+		return identical;
+	}
 
-    // Build new filtered results into a temporary vector so we can compare before updating the bound collection.
-    auto newResults = ref new Platform::Collections::Vector<moonlight_xbox_dx::MoonlightApp^>();
+	// Build new filtered results into a temporary vector so we can compare before updating the bound collection.
+	auto newResults = ref new Platform::Collections::Vector<moonlight_xbox_dx::MoonlightApp ^>();
 
-    bool empty = filter == nullptr || filter->Length() == 0;
-    std::wstring fw;
-    if (!empty) {
-        std::string fstr = Utils::PlatformStringToStdString(filter);
-        fw = Utils::NarrowToWideString(fstr);
-        // tolower
-        std::transform(fw.begin(), fw.end(), fw.begin(), ::towlower);
-    }
+	bool empty = filter == nullptr || filter->Length() == 0;
+	std::wstring fw;
+	if (!empty) {
+		std::string fstr = Utils::PlatformStringToStdString(filter);
+		fw = Utils::NarrowToWideString(fstr);
+		// tolower
+		std::transform(fw.begin(), fw.end(), fw.begin(), ::towlower);
+	}
 
-    for (unsigned int i = 0; i < host->Apps->Size; ++i) {
-        auto app = host->Apps->GetAt(i);
-        if (app == nullptr) continue;
-        if (empty) {
-            newResults->Append(app);
-        } else {
-            auto namePS = app->Name != nullptr ? app->Name : ref new Platform::String(L"");
-            std::string nstr = Utils::PlatformStringToStdString(namePS);
-            std::wstring namew = Utils::NarrowToWideString(nstr);
-            std::transform(namew.begin(), namew.end(), namew.begin(), ::towlower);
-            if (namew.find(fw) != std::wstring::npos) newResults->Append(app);
-        }
-    }
+	for (unsigned int i = 0; i < host->Apps->Size; ++i) {
+		auto app = host->Apps->GetAt(i);
+		if (app == nullptr) continue;
+		if (empty) {
+			newResults->Append(app);
+		} else {
+			auto namePS = app->Name != nullptr ? app->Name : ref new Platform::String(L"");
+			std::string nstr = Utils::PlatformStringToStdString(namePS);
+			std::wstring namew = Utils::NarrowToWideString(nstr);
+			std::transform(namew.begin(), namew.end(), namew.begin(), ::towlower);
+			if (namew.find(fw) != std::wstring::npos) newResults->Append(app);
+		}
+	}
 
-    // If the new results have the same IDs in the same order as the current filtered list, skip updating to avoid flashing.
-    try {
-        if (vec != nullptr && vec->Size == newResults->Size) {
-            identical = true;
-            for (unsigned int i = 0; i < vec->Size; ++i) {
-                auto a = vec->GetAt(i);
-                auto b = newResults->GetAt(i);
-                int aid = a != nullptr ? a->Id : -1;
-                int bid = b != nullptr ? b->Id : -1;
-                if (aid != bid) { identical = false; break; }
-            }
-        }
-    } catch(...) { identical = false; }
+	// If the new results have the same IDs in the same order as the current filtered list, skip updating to avoid flashing.
+	try {
+		if (vec != nullptr && vec->Size == newResults->Size) {
+			identical = true;
+			for (unsigned int i = 0; i < vec->Size; ++i) {
+				auto a = vec->GetAt(i);
+				auto b = newResults->GetAt(i);
+				int aid = a != nullptr ? a->Id : -1;
+				int bid = b != nullptr ? b->Id : -1;
+				if (aid != bid) {
+					identical = false;
+					break;
+				}
+			}
+		}
+	} catch (...) {
+		identical = false;
+	}
 
-    if (identical) {
-        // Nothing changed; skip UI updates
-        return identical;
-    }
+	if (identical) {
+		// Nothing changed; skip UI updates
+		return identical;
+	}
 
-    // Commit new results to the bound collection
-    vec->Clear();
-    for (unsigned int i = 0; i < newResults->Size; ++i) vec->Append(newResults->GetAt(i));
+	// Commit new results to the bound collection
+	vec->Clear();
+	for (unsigned int i = 0; i < newResults->Size; ++i) vec->Append(newResults->GetAt(i));
 
     // Toggle a centered placeholder message when no apps match the filter
     try {
         bool emptyResults = (vec->Size == 0);
-        this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this, emptyResults]() {
-            try {
-                if (this->NoAppsMessage != nullptr) {
-                    this->NoAppsMessage->Visibility = emptyResults ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-                }
-
-                // If there are no results, animate out the shared SelectedAppBox/SelectedAppText
+        {
+            auto weakThisTmp = WeakReference(this);
+            this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThisTmp, emptyResults]() {
                 try {
-                    if (emptyResults && this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
-                        auto res = this->Resources;
-                        if (res != nullptr) {
-                            auto sbObj = res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard"));
-                            auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(sbObj);
-                            if (sb != nullptr) {
-                                sb->Begin();
-                            } else {
-                                if (m_compositionReady) {
-                                    AnimateElementOpacity(this->SelectedAppBox, 0.0f, kAnimationDurationMs);
-                                    AnimateElementOpacity(this->SelectedAppText, 0.0f, kAnimationDurationMs);
+                    auto thatTmp = weakThisTmp.Resolve<AppPage>();
+                    if (thatTmp == nullptr) return;
+                    if (thatTmp->NoAppsMessage != nullptr) {
+                        thatTmp->NoAppsMessage->Visibility = emptyResults ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+                    }
+
+                    // If there are no results, animate out the shared SelectedAppBox/SelectedAppText
+                    try {
+                        if (emptyResults && thatTmp->SelectedAppText != nullptr && thatTmp->SelectedAppBox != nullptr) {
+                            auto res = thatTmp->Resources;
+                            if (res != nullptr) {
+                                auto sbObj = res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard"));
+                                auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(sbObj);
+                                if (sb != nullptr) {
+                                    sb->Begin();
                                 } else {
-                                    SetElementOpacityImmediate(this->SelectedAppBox, 0.0f);
-                                    SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
+                                    if (thatTmp->m_compositionReady) {
+                                        AnimateElementOpacity(thatTmp->SelectedAppBox, 0.0f, kAnimationDurationMs);
+                                        AnimateElementOpacity(thatTmp->SelectedAppText, 0.0f, kAnimationDurationMs);
+                                    } else {
+                                        SetElementOpacityImmediate(thatTmp->SelectedAppBox, 0.0f);
+                                        SetElementOpacityImmediate(thatTmp->SelectedAppText, 0.0f);
+                                    }
                                 }
                             }
                         }
-                    }
-                } catch(...) {}
+                    } catch(...) {}
 
-            } catch(...) {}
-        }));
-    } catch(...) {}
-
-    // If we have results, visually promote the first item and center it (no focus changes)
-    try {
-        if (vec->Size > 0 && this->AppsGrid != nullptr) {
-            // Promote first item on the UI thread so visuals/layout are updated
-            this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-                try {
-                    if (this->AppsGrid == nullptr) return;
-                    if (this->AppsGrid->Items != nullptr && this->AppsGrid->Items->Size > 0) {
-                        try {
-                            // Clear visuals on other realized containers so only the promoted item appears selected
-                            try {
-                                for (unsigned int i = 0; i < this->AppsGrid->Items->Size; ++i) {
-                                    auto c = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromIndex(i));
-                                    if (c != nullptr) ApplyVisualsToContainer(c, false);
-                                }
-                            } catch(...) {}
-
-                            auto firstItem = this->AppsGrid->Items->GetAt(0);
-                            if (firstItem != nullptr) {
-                                // Ensure it's realized
-                                this->AppsGrid->ScrollIntoView(firstItem);
-                                auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromItem(firstItem));
-                                if (container != nullptr) {
-                                    ApplyVisualsToContainer(container, true);
-
-                                    // Update the shared SelectedAppText/SelectedAppBox to mirror selection visuals
-                                    try {
-                                        if (this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
-                                            auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp^>(firstItem);
-                                            if (selApp != nullptr) {
-                                                this->SelectedAppText->Text = selApp->Name;
-                                                this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
-                                                this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
-                                                this->SelectedAppBox->Background = ref new SolidColorBrush(Windows::UI::Colors::Transparent);
-                                                this->SelectedAppText->Foreground = ref new SolidColorBrush(Windows::UI::Colors::White);
-                                                SetElementOpacityImmediate(this->SelectedAppBox, 0.0f);
-                                                SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
-                                                auto res = this->Resources;
-                                                if (res != nullptr) {
-                                                    auto sbObj = res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard"));
-                                                    auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(sbObj);
-                                                    if (sb != nullptr) sb->Begin();
-                                                }
-                                            }
-                                        }
-                                    } catch(...) {}
-
-                                    // Center the container in the horizontal view without changing selection
-                                    try {
-                                        if (!m_isGridLayout) {
-                                            auto sv = m_scrollViewer == nullptr ? FindScrollViewer(this->AppsGrid) : m_scrollViewer;
-                                            if (sv != nullptr) {
-                                                Point pt{0,0};
-                                                try {
-                                                    auto trans2 = container->TransformToVisual(sv);
-                                                    if (trans2 != nullptr) pt = trans2->TransformPoint(Point{ 0, 0 });
-                                                    else Utils::Log("OnNavigatedTo center: TransformToVisual returned null\n");
-                                                } catch(...) { Utils::Log("OnNavigatedTo center: TransformToVisual/TransformPoint threw\n"); }
-                                                double containerCenter = pt.X + container->ActualWidth / 2.0;
-                                                double desired = containerCenter - (sv->ViewportWidth / 2.0);
-                                                if (desired < 0) desired = 0;
-                                                if (desired > sv->ScrollableWidth) desired = sv->ScrollableWidth;
-                                                if (sv->ScrollableWidth > 1.0) sv->ChangeView(desired, nullptr, nullptr, false);
-                                            }
-                                        }
-                                    } catch(...) {}
-                                }
-                            }
-                        } catch(...) {}
-                    }
                 } catch(...) {}
             }));
         }
-    } catch(...) {}
+    } catch (...) {}
+
+	// If we have results, visually promote the first item and center it (no focus changes)
+	try {
+		if (vec->Size > 0 && this->AppsGrid != nullptr) {
+			// Promote first item on the UI thread so visuals/layout are updated
+			auto weakThis = WeakReference(this);
+			auto isGrid = this->m_isGridLayout;
+			auto svi = this->m_scrollViewer;
+			auto appsGrid = this->AppsGrid;
+			this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis, appsGrid, isGrid, svi]() {
+				try {
+					auto that = weakThis.Resolve<AppPage>();
+					if (that == nullptr) return;
+					if (that->AppsGrid == nullptr) return;
+					if (that->AppsGrid->Items != nullptr && that->AppsGrid->Items->Size > 0) {
+						try {
+							// Clear visuals on other realized containers so only the promoted item appears selected
+							try {
+								for (unsigned int i = 0; i < that->AppsGrid->Items->Size; ++i) {
+									auto c = dynamic_cast<ListViewItem ^>(that->AppsGrid->ContainerFromIndex(i));
+									if (c != nullptr) ApplyVisualsToContainer(c, false);
+								}
+							} catch (...) {
+							}
+
+							auto firstItem = that->AppsGrid->Items->GetAt(0);
+							if (firstItem != nullptr) {
+								// Ensure it's realized
+								that->AppsGrid->ScrollIntoView(firstItem);
+								auto container = dynamic_cast<ListViewItem ^>(that->AppsGrid->ContainerFromItem(firstItem));
+								if (container != nullptr) {
+									ApplyVisualsToContainer(container, true);
+
+									// Update the shared SelectedAppText/SelectedAppBox to mirror selection visuals
+									try {
+										if (that->SelectedAppText != nullptr && that->SelectedAppBox != nullptr) {
+											auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(firstItem);
+											if (selApp != nullptr) {
+												that->SelectedAppText->Text = selApp->Name;
+												that->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+												that->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
+												that->SelectedAppBox->Background = ref new SolidColorBrush(Windows::UI::Colors::Transparent);
+												that->SelectedAppText->Foreground = ref new SolidColorBrush(Windows::UI::Colors::White);
+												SetElementOpacityImmediate(that->SelectedAppBox, 0.0f);
+												SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
+												auto res = that->Resources;
+												if (res != nullptr) {
+													auto sbObj = res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard"));
+													auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard ^>(sbObj);
+													if (sb != nullptr) sb->Begin();
+												}
+											}
+										}
+									} catch (...) {
+									}
+
+									// Center the container in the horizontal view without changing selection
+									try {
+										if (!isGrid) {
+											auto sv = svi == nullptr ? FindScrollViewer(appsGrid) : svi;
+											if (sv != nullptr) {
+												Point pt{0, 0};
+												try {
+													auto trans2 = container->TransformToVisual(sv);
+													if (trans2 != nullptr)
+														pt = trans2->TransformPoint(Point{0, 0});
+													else
+														Utils::Log("OnNavigatedTo center: TransformToVisual returned null\n");
+												} catch (...) {
+													Utils::Log("OnNavigatedTo center: TransformToVisual/TransformPoint threw\n");
+												}
+												double containerCenter = pt.X + container->ActualWidth / 2.0;
+												double desired = containerCenter - (sv->ViewportWidth / 2.0);
+												if (desired < 0) desired = 0;
+												if (desired > sv->ScrollableWidth) desired = sv->ScrollableWidth;
+												if (sv->ScrollableWidth > 1.0) sv->ChangeView(desired, nullptr, nullptr, false);
+											}
+										}
+									} catch (...) {
+									}
+								}
+							}
+						} catch (...) {
+						}
+					}
+				} catch (...) {
+				}
+			}));
+		}
+	}
+	catch (...) {
+	}
+
 	return identical;
 }
 
@@ -1058,7 +1191,13 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
         if (host->Apps != nullptr) {
             auto obs = dynamic_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(host->Apps);
             if (obs != nullptr) {
-                m_apps_changed_token = obs->VectorChanged += ref new Windows::Foundation::Collections::VectorChangedEventHandler<MoonlightApp^>(this, &AppPage::OnHostAppsChanged);
+                Platform::WeakReference weakThis(this);
+                auto token = obs->VectorChanged += ref new Windows::Foundation::Collections::VectorChangedEventHandler<MoonlightApp^>([weakThis](Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^ sender, Windows::Foundation::Collections::IVectorChangedEventArgs^ args) {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr) return;
+                    try { that->OnHostAppsChanged(sender, args); } catch(...) {}
+                });
+                m_apps_changed_token = token;
             }
         }
     } catch(...) {}
@@ -1532,6 +1671,7 @@ void AppPage::BlurAppImage(MoonlightApp ^ selApp) {
 }
 
 void AppPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackRequestedEventArgs ^ args) {
+    try { Utils::Logf("[AppPage] Handler Enter: OnBackRequested\n"); } catch(...) {}
 	// UWP on Xbox One triggers a back request whenever the B
 	// button is pressed which can result in the app being
 	// suspended if unhandled
@@ -1542,21 +1682,25 @@ void AppPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackReque
 }
 
 void AppPage::AppsGrid_SizeChanged(Platform::Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
+    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_SizeChanged\n"); } catch(...) {}
     // No-op: disable adjusting ItemsPanel margin which previously caused unexpected clipping/blank-first-item.
     (void)sender; (void)e;
 }
 
 void AppPage::AppsGrid_Unloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_Unloaded\n"); } catch(...) {}
     // Intentionally empty: lifecycle hook for AppsGrid Unloaded
     (void)sender; (void)e;
 }
 
 void AppPage::AppsGrid_StatusChanged(Platform::Object^ sender, Platform::Object^ args) {
+    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_StatusChanged\n"); } catch(...) {}
     // Intentionally empty: lifecycle hook for AppsGrid status changes
     (void)sender; (void)args;
 }
 
 void AppPage::AppsGrid_ItemsChanged(Platform::Object^ sender, Platform::Object^ args) {
+    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_ItemsChanged\n"); } catch(...) {}
     // Intentionally empty: lifecycle hook for AppsGrid items changed
     (void)sender; (void)args;
 }
@@ -1666,22 +1810,49 @@ void AppPage::UpdateItemHeights() {
 }
 
 void AppPage::OnLoaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
-	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &AppPage::OnBackRequested);
+    auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
+    {
+        Platform::WeakReference weakThis(this);
+        auto token = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>([
+            weakThis
+        ](Platform::Object^ sender, BackRequestedEventArgs^ args) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that != nullptr) that->OnBackRequested(sender, args);
+        });
+        m_back_cookie = token;
+    }
 
     // No diagnostics attached in OnLoaded (clean build)
 
     try {
         auto window = Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow;
         if (window != nullptr) {
-            m_keydown_cookie = window->KeyDown += ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &AppPage::OnGamepadKeyDown);
+            {
+                Platform::WeakReference weakThis(this);
+                auto kd = window->KeyDown += ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>([
+                    weakThis
+                ](CoreWindow^ sender, KeyEventArgs^ args) {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that != nullptr) that->OnGamepadKeyDown(sender, args);
+                });
+                m_keydown_cookie = kd;
+            }
         }
     } catch(...) {}
 
     // Subscribe to a one-shot Rendering event so we can run logic after first visual render.
     try {
         // Save token so we can unsubscribe correctly later
-        m_rendering_token = Windows::UI::Xaml::Media::CompositionTarget::Rendering += ref new EventHandler<Object^>(this, &AppPage::OnFirstRender);
+        {
+            Platform::WeakReference weakThis(this);
+            auto rt = Windows::UI::Xaml::Media::CompositionTarget::Rendering += ref new EventHandler<Object^>([
+                weakThis
+            ](Platform::Object^ sender, Platform::Object^ args) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) that->OnFirstRender(sender, args);
+            });
+            m_rendering_token = rt;
+        }
     } catch(...) {}
 }
 
@@ -1707,15 +1878,6 @@ void AppPage::OnUnloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEve
             }
         }
     } catch(...) {}
- 
-    // Unsubscribe ContainerContentChanging if still attached
-    try {
-        if (this->AppsGrid != nullptr) {
-            if (this->m_container_content_changing_token.Value != 0) {
-                this->AppsGrid->ContainerContentChanging -= this->m_container_content_changing_token;
-            }
-        }
-    } catch(...) {}
 
      // Unsubscribe one-shot LayoutUpdated handler if still attached
     if (this->AppsGrid != nullptr) {
@@ -1731,6 +1893,19 @@ void AppPage::OnUnloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEve
     try {
         if (m_scrollViewer != nullptr) {
             try { m_scrollViewer->ViewChanged -= m_scrollviewer_viewchanged_token; } catch(...) {}
+        }
+    } catch(...) {}
+
+    // Unsubscribe AppsGrid event handlers registered in constructor
+    try {
+        if (this->AppsGrid != nullptr) {
+            try { this->AppsGrid->SelectionChanged -= this->m_appsgird_selection_token; } catch(...) {}
+            try { this->AppsGrid->ItemClick -= this->m_appsgird_itemclick_token; } catch(...) {}
+            try { this->AppsGrid->RightTapped -= this->m_appsgird_righttapped_token; } catch(...) {}
+            try { this->AppsGrid->SizeChanged -= this->m_appsgird_sizechanged_token; } catch(...) {}
+            try { this->AppsGrid->Loaded -= this->m_appsgird_loaded_token; } catch(...) {}
+            try { this->AppsGrid->Unloaded -= this->m_appsgird_unloaded_token; } catch(...) {}
+            try { this->AppsGrid->LayoutUpdated -= this->m_layoutUpdated_token; } catch(...) {}
         }
     } catch(...) {}
 }
@@ -1750,11 +1925,16 @@ void AppPage::OnFirstRender(Object^ sender, Object^ e) {
 void AppPage::OnHostAppsChanged(Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^ sender, Windows::Foundation::Collections::IVectorChangedEventArgs^ args) {
     try {
         // Reapply the current search filter on the UI thread
-        this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-            try {
-                ApplyAppFilter(this->SearchBox != nullptr ? this->SearchBox->Text : nullptr);
-            } catch(...) {}
-        }));
+        {
+            auto weakThis = WeakReference(this);
+            this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                try {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr) return;
+                    that->ApplyAppFilter(that->SearchBox != nullptr ? that->SearchBox->Text : nullptr);
+                } catch(...) {}
+            }));
+        }
     } catch(...) {}
 }
 
@@ -1833,6 +2013,7 @@ void AppPage::TryVerticalCentering(Windows::UI::Xaml::Controls::ScrollViewer^ sv
 }
 
 void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs ^ e) {
+    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_SelectionChanged\n"); } catch(...) {}
 
     // VALIDATE
 
@@ -1881,16 +2062,21 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
 
     // STYLING
 
+    // Sets centerpoints
+    EnsureRealizedContainersInitialized(lv);
 
     try{
 		auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
 		if (selApp != nullptr) {
-			BlurAppImage(selApp);
+            if (selApp->BlurredImage == nullptr)
+            {
+			    BlurAppImage(selApp);
+            } else {
+				FadeInRealizedBlurAndReflectionIfSelected(selApp, selApp->BlurredImage);
+            }
 		}
 	} catch (...) {
 	}
-
-    EnsureRealizedContainersInitialized(lv);
 
     try {
         if (container != nullptr) ApplyVisualsToContainer(container, true);
@@ -1939,14 +2125,22 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
 
 void AppPage::AppsGrid_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	try {
-		Utils::Logf("AppsGrid_Loaded fired.\n");
+        Utils::Logf("AppsGrid_Loaded fired.\n");
 		if (m_scrollViewer == nullptr)
 			m_scrollViewer = FindScrollViewer(this->AppsGrid);
 
         if (m_scrollViewer != nullptr) {
             try {
-                // Register ViewChanged and save the token so we can unsubscribe in OnUnloaded.
-                m_scrollviewer_viewchanged_token = m_scrollViewer->ViewChanged += ref new Windows::Foundation::EventHandler<Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs ^>(this, &AppPage::OnScrollViewerViewChanged);
+                // Register ViewChanged (weak lambda) and save token for unsubscribe in OnUnloaded.
+                Platform::WeakReference weakThis(this);
+                auto token = m_scrollViewer->ViewChanged += ref new Windows::Foundation::EventHandler<Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs ^>([
+                    weakThis
+                ](Platform::Object^ s, Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs^ args) {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr) return;
+                    try { that->OnScrollViewerViewChanged(s, args); } catch(...) {}
+                });
+                m_scrollviewer_viewchanged_token = token;
             } catch(...) {}
         }
 		try {
@@ -2294,27 +2488,35 @@ void AppPage::OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::U
         using namespace Windows::System;
         if (key == VirtualKey::GamepadY) {
             // toggle layout
-            this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-                try {
-                    this->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-                } catch(...) {}
-            }));
+            {
+                auto weakThis = WeakReference(this);
+                this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                    try {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) return;
+                        try { that->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) {}
+                    } catch(...) {}
+                }));
+            }
             args->Handled = true;
         }
 
         if (key == VirtualKey::GamepadX) {
 			// toggle layout
-			this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
-	            try {
-		            bool newState = !this->m_isGridLayout;
-		            try {
-			            if (this->LayoutToggleButton != nullptr) this->LayoutToggleButton->IsChecked = newState;
-		            } catch (...) {
-		            }
-		            this->LayoutToggleButton_Click(this->LayoutToggleButton, nullptr);
-	            } catch (...) {
-	            }
-            }));
+            {
+                auto weakThis = WeakReference(this);
+                this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+                    try {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) return;
+                        try {
+                            bool newState = !that->m_isGridLayout;
+                            try { if (that->LayoutToggleButton != nullptr) that->LayoutToggleButton->IsChecked = newState; } catch(...) {}
+                            that->LayoutToggleButton_Click(that->LayoutToggleButton, nullptr);
+                        } catch(...) {}
+                    } catch(...) {}
+                }));
+            }
 			args->Handled = true;
 		}
     } catch(...) {}
@@ -2496,4 +2698,5 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
     } catch(...) {}
 }
 
-} 
+}
+
