@@ -283,22 +283,20 @@ concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, 
 }
 
 static constexpr float kDesaturatorOpacityUnselected = 0.7f;
-static constexpr float kBlurOpacitySelected = 0.5f; // 0.35f;
-static constexpr float kBlurAmount = 16.0f;
-
-static constexpr float kReflectionOpacitySelected = .03f; // 0.3f;
-static constexpr float kReflectionOpacityUnselected = 0.0f;
+static constexpr float kBlurOpacitySelected = 0.4f;
+static constexpr float kReflectionOpacitySelected = 0.05f;
 
 static constexpr float kSelectedScale = 1.0f;
 static constexpr float kUnselectedScale = 0.8f;
+
+static constexpr double kAppsGridHeightFactor = 0.7;
 static constexpr int kAnimationDurationMs = 150;
-// Fraction of the AppsGrid height used to size the app image area. Change this to adjust layout globally.
-static constexpr double kAppsGridHeightFactor = 0.75;
+
+static constexpr float kBlurAmount = 16.0f;
 
 // Forward declare helper used below
 static ScrollViewer^ FindScrollViewer(DependencyObject^ parent);
 static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
-// Forward declare animation helpers used by ApplySelectionVisuals
 static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs);
 static void SetElementOpacityImmediate(UIElement^ element, float value);
 static void SetElementScaleImmediate(UIElement^ element, float scale);
@@ -605,13 +603,23 @@ static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nam
         }
 
         if (blur != nullptr) {
-            AnimateElementScale(blur, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-			AnimateElementOpacity(blur, selected ? kBlurOpacitySelected : 0.0f, kAnimationDurationMs);
+			if (selected) {
+				blur->Visibility = Windows::UI::Xaml::Visibility::Visible;
+				AnimateElementScale(blur, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+				AnimateElementOpacity(blur, selected ? kBlurOpacitySelected : 0.0f, kAnimationDurationMs);
+			} else {
+				blur->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			}
         }
 
         if (reflection != nullptr) {
-            AnimateElementScale(reflection, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-			AnimateElementOpacity(reflection, selected ? kReflectionOpacitySelected : kReflectionOpacityUnselected, kAnimationDurationMs);
+			if (selected) {
+				reflection->Visibility = Windows::UI::Xaml::Visibility::Visible;
+				AnimateElementScale(reflection, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+				AnimateElementOpacity(reflection, selected ? kReflectionOpacitySelected : 0.0f, kAnimationDurationMs);
+			} else {
+                reflection->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+            }
         }
 
         if (nameTxt != nullptr) {
@@ -671,25 +679,68 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
             // Set widths and fade-in when elements are present
             try {
                 int tarWidth = 0;
-                int tarHeight = 0;
 
                 auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
                 auto blurFE = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
                 if (blurFE != nullptr && img->PixelHeight > 0) {
 					try {
-						tarWidth = targetWidth + (kBlurAmount * 2); /*(blurFE->ActualHeight / img->PixelHeight);*/
-						tarHeight = targetHeight;                   // + (kBlurAmount * 1); /*(blurFE->ActualHeight / img->PixelHeight);*/
+						tarWidth = targetWidth + (kBlurAmount * 2);
 					} catch (...) {
 						tarWidth = 0;
-						tarHeight = 0;
 					}
                     if (tarWidth <= 0 && targetWidth > 0) tarWidth = (int)std::round(targetWidth);
-                    if (tarHeight <= 0 && targetHeight > 0) tarHeight = (int)std::round(targetHeight);
-                    if (tarWidth > 0 && tarHeight > 0) {
-                        try { blurFE->Opacity = 0.0; } catch(...) {}
-                        try { blurFE->Width = img->PixelWidth; } catch(...) {}
-                        try { blurFE->Height = img->PixelHeight; } catch(...) {}
-                        try { AnimateElementOpacity(blurFE, kBlurOpacitySelected, kAnimationDurationMs); } catch(...) {}
+                    if (tarWidth > 0) {
+						
+                        blurFE->Opacity = 0.0;
+						
+                        double displayW = 0.0;
+						try {
+							    double dpi = 96.0;
+							try {
+								auto di = DisplayInformation::GetForCurrentView();
+								if (di != nullptr) dpi = di->LogicalDpi;
+							} catch (...) {
+							}
+							 bool usedBlurImage = false;
+							if (img != nullptr) {
+								try {
+									unsigned int bpx = img->PixelWidth;
+									if (bpx > 0) { 
+										displayW = (double)bpx * 96.0 / dpi;
+										usedBlurImage = true;
+										
+									}
+									
+								} catch (...) {
+									usedBlurImage = false;
+								}
+								
+							}
+							  if (!usedBlurImage) {
+								try {
+									auto imgRectFE = dynamic_cast<FrameworkElement ^>(FindChildByName(container, ref new Platform::String(L"AppImageRect")));
+									if (imgRectFE != nullptr) {
+										displayW = imgRectFE->ActualWidth;
+									}
+									
+								} catch (...) {
+									displayW = 0.0;
+								}
+							}
+							if (displayW <= 0.0) displayW = (double)tarWidth;
+
+							double paddedW = displayW + (kBlurAmount * 2);
+							if (paddedW >= 1.0){ 
+								blurFE->Width = paddedW;
+							}
+							else {
+								blurFE->Width = displayW;
+							}
+						} catch (...) {
+						    blurFE->Width = (double)tarWidth;
+						}
+
+                        AnimateElementOpacity(blurFE, kBlurOpacitySelected, kAnimationDurationMs);
                     }
                 }
 
@@ -1205,7 +1256,7 @@ void AppPage::SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml:
 			this->EnsureRealizedContainersInitialized(this->AppsGrid);
 			this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
 			this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-			this->CenterSelectedItem(1, true);
+			// this->CenterSelectedItem(1, true);
         }
     } catch (...) {}
 }
@@ -1782,8 +1833,17 @@ void AppPage::TryVerticalCentering(Windows::UI::Xaml::Controls::ScrollViewer^ sv
 }
 
 void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs ^ e) {
+
+    // VALIDATE
+
     auto lv = (ListView^)sender;
     if (lv == nullptr) return;
+
+    if (lv->SelectedIndex < 0) return;
+
+    if (lv == nullptr) return;
+    auto item = lv->SelectedItem;
+    if (item == nullptr) return;
 
     Platform::Object^ prevItem = nullptr;
     try {
@@ -1792,23 +1852,8 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
         }
     } catch(...) { prevItem = nullptr; }
 
-    try{
-		auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(lv->SelectedItem);
-		if (selApp != nullptr) {
-			BlurAppImage(selApp);
-		}
-	} catch (...) {
-	}
+	// SCROLL INTO VIEW
 
-    EnsureRealizedContainersInitialized(lv);
-
-    if (lv->SelectedIndex < 0) return;
-
-    if (lv == nullptr) return;
-    auto item = lv->SelectedItem;
-    if (item == nullptr) return;
-
-    // Helper to obtain a realized container, optionally forcing a ScrollIntoView for non-grid layouts.
     auto findOrEnsureContainer = [&](Platform::Object^ it)->ListViewItem^ {
         if (it == nullptr) return nullptr;
         ListViewItem^ c = nullptr;
@@ -1834,7 +1879,19 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
         try { prevContainer = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(prevItem)); } catch(...) { prevContainer = nullptr; }
     }
 
-    // Apply selection visuals to the new and previous containers
+    // STYLING
+
+
+    try{
+		auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
+		if (selApp != nullptr) {
+			BlurAppImage(selApp);
+		}
+	} catch (...) {
+	}
+
+    EnsureRealizedContainersInitialized(lv);
+
     try {
         if (container != nullptr) ApplyVisualsToContainer(container, true);
         if (prevContainer != nullptr) ApplyVisualsToContainer(prevContainer, false);
@@ -2268,16 +2325,13 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
          if (lv == nullptr) return;
          double listTarget = lv->ActualHeight * kAppsGridHeightFactor;
 
-         // Update realized containers to ensure their visuals are initialized
          for (unsigned int i = 0; i < lv->Items->Size; ++i) {
              auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromIndex(i));
              if (container == nullptr) continue;
 
-             // Force a measure and arrange pass for the container
              container->InvalidateMeasure();
              container->UpdateLayout();
 
-             // find AspectRatioBox inside the container and set Height immediately
              std::function<DependencyObject^(DependencyObject^)> find = [&](DependencyObject^ parent)->DependencyObject^ {
                  if (parent == nullptr) return nullptr;
                  int count = VisualTreeHelper::GetChildrenCount(parent);
@@ -2297,7 +2351,6 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
              if (found != nullptr) {
                  auto fe = dynamic_cast<FrameworkElement^>(found);
                  if (fe != nullptr) {
-                     // apply uniform height immediately so converters see consistent size
                      double desired = listTarget;
                      double prev = fe->Height;
                      if (std::isnan(prev) || std::fabs(prev - desired) > 1.0) {
@@ -2307,7 +2360,6 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                  }
              }
 
-             // Initialize visuals for the realized container so virtualized items have correct state
              try {
                  auto desFE = FindChildByName(container, "Desaturator");
                  auto des = dynamic_cast<UIElement^>(desFE);
@@ -2315,6 +2367,8 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
 				 auto img = dynamic_cast<UIElement ^>(imgFE);
 				 auto blurFE = FindChildByName(container, "AppImageBlurRect");
 				 auto blur = dynamic_cast<UIElement ^>(blurFE);
+				 auto reflFE = FindChildByName(container, "AppImageReflectionRect");
+				 auto refl = dynamic_cast<UIElement ^>(reflFE);
                  auto nameFE = FindChildByName(container, "AppName");
                  auto nameTxt = dynamic_cast<UIElement^>(nameFE);
 
@@ -2326,19 +2380,19 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                      }
                  } catch(...) { isSelected = false; }
 
-                // Initialize composition visual properties so animations operate from the correct baseline.
                 try {
                     if (img != nullptr) {
                         auto imgVis = ElementCompositionPreview::GetElementVisual(img);
                         if (imgVis != nullptr) {
                             try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
-                            // Initialize to unselected baseline for all realized items. Keep immediate on first load
+
                             if (m_compositionReady) {
                                 AnimateElementScale(img, kUnselectedScale, kAnimationDurationMs);
                             } else {
                                 Windows::Foundation::Numerics::float3 s; s.x = kUnselectedScale; s.y = s.x; s.z = 0.0f;
                                 imgVis->Scale = s;
                             }
+
                             auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
                             if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
                                 Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
@@ -2356,7 +2410,6 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
 							} catch (...) {
 							}
 
-							// Initialize to unselected baseline for all realized items. Keep immediate on first load
 							if (m_compositionReady) {
 								AnimateElementScale(blur, kUnselectedScale, kAnimationDurationMs);
 							} else {
@@ -2377,27 +2430,51 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
 							}
 						}
 					}
+					if (refl != nullptr) {
+						auto reflVis = ElementCompositionPreview::GetElementVisual(refl);
+						if (reflVis != nullptr) {
+
+							try {
+								reflVis->StopAnimation("Scale.X");
+								reflVis->StopAnimation("Scale.Y");
+							} catch (...) {
+							}
+
+							if (m_compositionReady) {
+								AnimateElementScale(refl, kUnselectedScale, kAnimationDurationMs);
+							} else {
+								Windows::Foundation::Numerics::float3 s;
+								s.x = kUnselectedScale;
+								s.y = s.x;
+								s.z = 0.0f;
+								reflVis->Scale = s;
+							}
+
+							auto reflFE2 = dynamic_cast<FrameworkElement ^>(refl);
+							if (reflFE2 != nullptr && reflFE2->ActualWidth > 0 && reflFE2->ActualHeight > 0) {
+								Windows::Foundation::Numerics::float3 cp;
+								cp.x = (float)reflFE2->ActualWidth * 0.5f;
+								cp.y = (float)reflFE2->ActualHeight * 0.5f;
+								cp.z = 0.0f;
+								reflVis->CenterPoint = cp;
+							}
+						}
+					}
                     if (des != nullptr) {
                         auto desVis = ElementCompositionPreview::GetElementVisual(des);
-                        auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
                         if (desVis != nullptr) {
 
                             try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
                             
                             if (m_compositionReady) {
                                 AnimateElementScale(dynamic_cast<UIElement^>(des), kUnselectedScale, kAnimationDurationMs);
-                                AnimateElementScale(dynamic_cast<UIElement^>(blur), kUnselectedScale, kAnimationDurationMs);
-
                                 AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
-                                AnimateElementOpacity(blur, 0, kAnimationDurationMs);
                             } else {
                                 Windows::Foundation::Numerics::float3 s2; s2.x = kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
                                 desVis->Scale = s2;
                                 desVis->Opacity = kDesaturatorOpacityUnselected;
-								blurVis->Opacity = 0;
                             }
 
-                            // Init name opacity for scroll update
                             if (nameTxt != nullptr) {
                                 if (m_compositionReady) {
                                     AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
