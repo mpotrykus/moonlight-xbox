@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ImageHelpers.h"
 #include "../Utils.hpp"
+#include "EffectsLibrary.h"
 
 // Helper interface for efficient access to SoftwareBitmap underlying bytes
 struct DECLSPEC_UUID("5B0D3235-4DBA-4D44-865E-8F1D0ED9F3E4") IMemoryBufferByteAccess : IUnknown {
@@ -601,6 +602,319 @@ SoftwareBitmap^ ImageHelpers::CompositeWithMask(SoftwareBitmap^ base, SoftwareBi
     }
 }
 
+// Combine mask with rounded-rect mask (alpha multiplication). Returns BGRA8 premultiplied mask.
+SoftwareBitmap^ ImageHelpers::CombineMaskWithRoundedRect(SoftwareBitmap^ mask, unsigned int width, unsigned int height, float radiusPx) {
+    try {
+        // Diagnostics
+        try { moonlight_xbox_dx::Utils::Logf("CombineMaskWithRoundedRect: mask=%p target=%u x %u radius=%.2f\n", mask, width, height, radiusPx); } catch(...) {}
+        // If no mask, just create rounded mask sized to requested dimensions
+        if (mask == nullptr) {
+            try { moonlight_xbox_dx::Utils::Log("CombineMaskWithRoundedRect: no input mask, generating rounded mask only\n"); } catch(...) {}
+            return CreateRoundedRectMask(width, height, radiusPx);
+        }
+
+        // Ensure both are BGRA8 premultiplied
+        auto m = EnsureBgra8Premultiplied(mask);
+        // Save original input mask for inspection
+        try { SaveSoftwareBitmapToLocalPngAsync(m, ref new Platform::String(L"input_mask_original.png")); } catch(...) {}
+        try { SaveMaskVisualToLocalPngAsync(m, ref new Platform::String(L"input_mask_original_vis.png")); } catch(...) {}
+
+        // Resize mask if needed
+        auto mbuf = m->LockBuffer(BitmapBufferAccessMode::Read);
+        auto mdesc = mbuf->GetPlaneDescription(0);
+        if ((unsigned int)mdesc.Width != width || (unsigned int)mdesc.Height != height) {
+            try {
+                auto resized = ResizeSoftwareBitmap(m, width, height);
+                if (resized != nullptr) {
+                    m = resized;
+                    mbuf = m->LockBuffer(BitmapBufferAccessMode::Read);
+                    mdesc = mbuf->GetPlaneDescription(0);
+                }
+            } catch(...) {}
+        }
+
+        // Create rounded mask of target size
+        auto rounded = CreateRoundedRectMask(width, height, radiusPx);
+        if (rounded == nullptr) return m;
+
+        // Read alpha channels from both masks
+        std::vector<uint8_t> alphaA((size_t)height * (size_t)width);
+        std::vector<uint8_t> alphaB((size_t)height * (size_t)width);
+
+        // Read mask m into alphaA
+        {
+            auto mref = mbuf->CreateReference();
+            Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> mba;
+            IUnknown* unk = reinterpret_cast<IUnknown*>(mref);
+            if (unk != nullptr && SUCCEEDED(unk->QueryInterface(IID_PPV_ARGS(&mba)))) {
+                BYTE* data = nullptr; UINT32 cap = 0;
+                auto raw = mba.Get();
+                if (raw != nullptr && SUCCEEDED(raw->GetBuffer(&data, &cap))) {
+                    // mdesc.Stride bytes per row, assume BGRA
+                    for (unsigned int y = 0; y < (unsigned int)mdesc.Height && y < height; ++y) {
+                        BYTE* row = data + mdesc.StartIndex + y * mdesc.Stride;
+                        for (unsigned int x = 0; x < (unsigned int)mdesc.Width && x < width; ++x) {
+                            uint8_t a = row[x*4 + 3];
+                            if (a == 0) {
+                                uint8_t b = row[x*4 + 0];
+                                uint8_t g = row[x*4 + 1];
+                                uint8_t r = row[x*4 + 2];
+                                uint16_t lum = (uint16_t)r * 30 + (uint16_t)g * 59 + (uint16_t)b * 11;
+                                a = (uint8_t)(lum / 100);
+                            }
+                            alphaA[y * width + x] = a;
+                        }
+                    }
+                }
+            } else {
+                try {
+                    auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)mdesc.Height * mdesc.Stride);
+                    m->CopyToBuffer(ib);
+                    auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+                    std::vector<uint8_t> tmp((size_t)mdesc.Height * mdesc.Stride);
+                    reader->ReadBytes(Platform::ArrayReference<uint8_t>(tmp.data(), (unsigned int)tmp.size()));
+                    for (unsigned int y = 0; y < (unsigned int)mdesc.Height && y < height; ++y) {
+                        uint8_t* row = tmp.data() + y * mdesc.Stride;
+                        for (unsigned int x = 0; x < (unsigned int)mdesc.Width && x < width; ++x) {
+                            uint8_t a = row[x*4 + 3];
+                            if (a == 0) {
+                                uint8_t b = row[x*4 + 0];
+                                uint8_t g = row[x*4 + 1];
+                                uint8_t r = row[x*4 + 2];
+                                uint16_t lum = (uint16_t)r * 30 + (uint16_t)g * 59 + (uint16_t)b * 11;
+                                a = (uint8_t)(lum / 100);
+                            }
+                            alphaA[y * width + x] = a;
+                        }
+                    }
+                    // Save resized mask for inspection
+                    try { SaveSoftwareBitmapToLocalPngAsync(m, ref new Platform::String(L"input_mask_resized.png")); } catch(...) {}
+                    try { SaveMaskVisualToLocalPngAsync(m, ref new Platform::String(L"input_mask_resized_vis.png")); } catch(...) {}
+                } catch(...) {}
+            }
+        }
+
+        // Read rounded mask's alpha
+        {
+            auto r = EnsureBgra8Premultiplied(rounded);
+            auto rbuf = r->LockBuffer(BitmapBufferAccessMode::Read);
+            auto rdesc = rbuf->GetPlaneDescription(0);
+            auto rref = rbuf->CreateReference();
+            Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> rma;
+            IUnknown* runk = reinterpret_cast<IUnknown*>(rref);
+            if (runk != nullptr && SUCCEEDED(runk->QueryInterface(IID_PPV_ARGS(&rma)))) {
+                BYTE* data = nullptr; UINT32 cap = 0;
+                auto raw = rma.Get();
+                if (raw != nullptr && SUCCEEDED(raw->GetBuffer(&data, &cap))) {
+                    for (unsigned int y = 0; y < (unsigned int)rdesc.Height && y < height; ++y) {
+                        BYTE* row = data + rdesc.StartIndex + y * rdesc.Stride;
+                        for (unsigned int x = 0; x < (unsigned int)rdesc.Width && x < width; ++x) {
+                            uint8_t a = row[x*4 + 3];
+                            if (a == 0) {
+                                uint8_t b = row[x*4 + 0];
+                                uint8_t g = row[x*4 + 1];
+                                uint8_t r = row[x*4 + 2];
+                                uint16_t lum = (uint16_t)r * 30 + (uint16_t)g * 59 + (uint16_t)b * 11;
+                                a = (uint8_t)(lum / 100);
+                            }
+                            alphaB[y * width + x] = a;
+                        }
+                    }
+                }
+            } else {
+                try {
+                    auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)rdesc.Height * rdesc.Stride);
+                    r->CopyToBuffer(ib);
+                    auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+                    std::vector<uint8_t> tmp((size_t)rdesc.Height * rdesc.Stride);
+                    reader->ReadBytes(Platform::ArrayReference<uint8_t>(tmp.data(), (unsigned int)tmp.size()));
+                    for (unsigned int y = 0; y < (unsigned int)rdesc.Height && y < height; ++y) {
+                        uint8_t* row = tmp.data() + y * rdesc.Stride;
+                        for (unsigned int x = 0; x < (unsigned int)rdesc.Width && x < width; ++x) {
+                                uint8_t a = row[x*4 + 3];
+                                if (a == 0) {
+                                    uint8_t b = row[x*4 + 0];
+                                    uint8_t g = row[x*4 + 1];
+                                    uint8_t r = row[x*4 + 2];
+                                    uint16_t lum = (uint16_t)r * 30 + (uint16_t)g * 59 + (uint16_t)b * 11;
+                                    a = (uint8_t)(lum / 100);
+                                }
+                                alphaB[y * width + x] = a;
+                            }
+                    }
+                    // try { SaveSoftwareBitmapToLocalPngAsync(r, ref new Platform::String(L"rounded_mask.png")); } catch(...) {}
+                    // try { SaveMaskVisualToLocalPngAsync(r, ref new Platform::String(L"rounded_mask_vis.png")); } catch(...) {}
+                } catch(...) {}
+            }
+        }
+
+        // Log alpha non-zero counts for inputs
+        try {
+            uint64_t aCount = 0, bCount = 0;
+            for (size_t i = 0; i < alphaA.size(); ++i) { if (alphaA[i] != 0) ++aCount; if (alphaB[i] != 0) ++bCount; }
+            moonlight_xbox_dx::Utils::Logf("CombineMaskWithRoundedRect: input mask nonzero=%llu, rounded nonzero=%llu (total=%u)\n", aCount, bCount, width*height);
+        } catch(...) {}
+
+        // Create output mask (BGRA8 premultiplied) with alpha = (a*b)/255 and white RGB
+        try {
+            auto out = ref new SoftwareBitmap(BitmapPixelFormat::Bgra8, width, height, BitmapAlphaMode::Premultiplied);
+            auto outBuf = out->LockBuffer(BitmapBufferAccessMode::Write);
+            auto plane = outBuf->GetPlaneDescription(0);
+            auto outRef = outBuf->CreateReference();
+            Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> oba;
+            IUnknown* ounk = reinterpret_cast<IUnknown*>(outRef);
+            bool wroteFast = false;
+            if (ounk != nullptr && SUCCEEDED(ounk->QueryInterface(IID_PPV_ARGS(&oba)))) {
+                BYTE* data = nullptr; UINT32 cap = 0;
+                auto raw = oba.Get();
+                if (raw != nullptr && SUCCEEDED(raw->GetBuffer(&data, &cap))) {
+                    uint64_t nonzeroOut = 0;
+                    for (unsigned int y = 0; y < height; ++y) {
+                        BYTE* row = data + plane.StartIndex + y * plane.Stride;
+                        for (unsigned int x = 0; x < width; ++x) {
+                            uint8_t a = alphaA[y*width + x];
+                            uint8_t b = alphaB[y*width + x];
+                            uint8_t outa = (uint8_t)((uint16_t)a * (uint16_t)b / 255);
+                            if (outa == 0) {
+                                row[x*4 + 0] = 0; row[x*4 + 1] = 0; row[x*4 + 2] = 0; row[x*4 + 3] = 0;
+                            } else {
+                                row[x*4 + 0] = 255; row[x*4 + 1] = 255; row[x*4 + 2] = 255; row[x*4 + 3] = outa;
+                            }
+                            if (outa != 0) ++nonzeroOut;
+                        }
+                    }
+                    try { moonlight_xbox_dx::Utils::Logf("CombineMaskWithRoundedRect: output nonzero coverage=%llu/%u\n", nonzeroOut, width*height); } catch(...) {}
+                    // Save mask for inspection (non-blocking)
+                    try { SaveSoftwareBitmapToLocalPngAsync(out, ref new Platform::String(L"combined_mask_fast.png")); } catch(...) {}
+                    try { SaveMaskVisualToLocalPngAsync(out, ref new Platform::String(L"combined_mask_fast_vis.png")); } catch(...) {}
+                    wroteFast = true;
+                    return out;
+                }
+            }
+
+            // Fallback: if direct buffer access isn't available, build a temporary buffer and CopyFromBuffer
+            try {
+                auto outDesc = outBuf->GetPlaneDescription(0);
+                std::vector<uint8_t> tmp((size_t)height * (size_t)outDesc.Stride);
+                uint64_t nonzeroOut = 0;
+                for (unsigned int y = 0; y < height; ++y) {
+                    uint8_t* row = tmp.data() + y * outDesc.Stride;
+                    for (unsigned int x = 0; x < width; ++x) {
+                        uint8_t a = alphaA[y*width + x];
+                        uint8_t b = alphaB[y*width + x];
+                        uint8_t outa = (uint8_t)((uint16_t)a * (uint16_t)b / 255);
+                        if (outa == 0) {
+                            row[x*4 + 0] = 0; row[x*4 + 1] = 0; row[x*4 + 2] = 0; row[x*4 + 3] = 0;
+                        } else {
+                            row[x*4 + 0] = 255; row[x*4 + 1] = 255; row[x*4 + 2] = 255; row[x*4 + 3] = outa;
+                        }
+                        if (outa != 0) ++nonzeroOut;
+                    }
+                    if (outDesc.Stride > width*4) memset(tmp.data() + y*outDesc.Stride + width*4, 0, outDesc.Stride - width*4);
+                }
+                // Release locks then copy
+                outRef = nullptr; outBuf = nullptr;
+                try {
+                    auto writer = ref new Windows::Storage::Streams::DataWriter();
+                    writer->WriteBytes(Platform::ArrayReference<uint8_t>(tmp.data(), (unsigned int)tmp.size()));
+                    auto buf = writer->DetachBuffer();
+                    out->CopyFromBuffer(buf);
+                    try { moonlight_xbox_dx::Utils::Logf("CombineMaskWithRoundedRect: fallback output nonzero coverage=%llu/%u\n", nonzeroOut, width*height); } catch(...) {}
+                    try { SaveSoftwareBitmapToLocalPngAsync(out, ref new Platform::String(L"combined_mask_fallback.png")); } catch(...) {}
+                    try { SaveMaskVisualToLocalPngAsync(out, ref new Platform::String(L"combined_mask_fallback_vis.png")); } catch(...) {}
+                    return out;
+                } catch(...) {
+                    try { moonlight_xbox_dx::Utils::Log("CombineMaskWithRoundedRect: fallback CopyFromBuffer failed\n"); } catch(...) {}
+                }
+            } catch(...) {}
+        } catch(...) {}
+
+        return nullptr;
+    } catch(...) {
+        return nullptr;
+    }
+}
+
+concurrency::task<void> ImageHelpers::SaveSoftwareBitmapToLocalPngAsync(SoftwareBitmap^ bmp, Platform::String^ filename) {
+    if (bmp == nullptr || filename == nullptr) return concurrency::task_from_result();
+    return concurrency::create_task([bmp, filename]() {
+        try {
+            auto local = ApplicationData::Current->LocalFolder;
+            // Use GenerateUniqueName to avoid file-in-use collisions during repeated saves
+            StorageFile^ file = concurrency::create_task(local->CreateFileAsync(filename, CreationCollisionOption::GenerateUniqueName)).get();
+            try {
+                IRandomAccessStream^ stream = concurrency::create_task(file->OpenAsync(FileAccessMode::ReadWrite)).get();
+                BitmapEncoder^ encoder = concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, stream)).get();
+
+            SoftwareBitmap^ toEncode = bmp;
+            try {
+                if (bmp->BitmapPixelFormat != BitmapPixelFormat::Bgra8 || bmp->BitmapAlphaMode != BitmapAlphaMode::Straight) {
+                    toEncode = SoftwareBitmap::Convert(bmp, BitmapPixelFormat::Bgra8, BitmapAlphaMode::Straight);
+                }
+            } catch(...) { toEncode = bmp; }
+
+                try { encoder->SetSoftwareBitmap(toEncode); } catch(...) {}
+                concurrency::create_task(encoder->FlushAsync()).get();
+                try { moonlight_xbox_dx::Utils::Logf("SaveSoftwareBitmapToLocalPngAsync: saved %S\n", file->Name->Data()); } catch(...) {}
+            } catch (Platform::Exception^ ex) {
+                try { moonlight_xbox_dx::Utils::Logf("SaveSoftwareBitmapToLocalPngAsync: file open/encode failed %ls (%08x)\n", ex->Message->Data(), ex->HResult); } catch(...) {}
+            }
+        } catch (Platform::Exception^ ex) {
+            try { moonlight_xbox_dx::Utils::Logf("SaveSoftwareBitmapToLocalPngAsync: exception %ls\n", ex->Message->Data()); } catch(...) {}
+        } catch (...) {
+            try { moonlight_xbox_dx::Utils::Log("SaveSoftwareBitmapToLocalPngAsync: unknown exception\n"); } catch(...) {}
+        }
+    });
+}
+
+concurrency::task<void> ImageHelpers::SaveMaskVisualToLocalPngAsync(SoftwareBitmap^ mask, Platform::String^ filename) {
+    if (mask == nullptr || filename == nullptr) return concurrency::task_from_result();
+    return concurrency::create_task([mask, filename]() {
+        try {
+            SoftwareBitmap^ m = EnsureBgra8Premultiplied(mask);
+            unsigned int w = m->PixelWidth; unsigned int h = m->PixelHeight;
+            auto buf = m->LockBuffer(BitmapBufferAccessMode::Read);
+            auto desc = buf->GetPlaneDescription(0);
+            std::vector<uint8_t> src((size_t)h * desc.Stride);
+            try {
+                auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)src.size());
+                m->CopyToBuffer(ib);
+                auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+                reader->ReadBytes(Platform::ArrayReference<uint8_t>(src.data(), (unsigned int)src.size()));
+            } catch(...) { return; }
+
+            // Create a visual bitmap where RGB = alpha, alpha = 255
+            auto vis = ref new SoftwareBitmap(BitmapPixelFormat::Bgra8, (int)w, (int)h, BitmapAlphaMode::Premultiplied);
+            auto outBuf = vis->LockBuffer(BitmapBufferAccessMode::Write);
+            auto outDesc = outBuf->GetPlaneDescription(0);
+            std::vector<uint8_t> tmp((size_t)h * outDesc.Stride);
+            for (unsigned int y = 0; y < h; ++y) {
+                uint8_t* row = src.data() + y * desc.Stride;
+                uint8_t* dst = tmp.data() + y * outDesc.Stride;
+                for (unsigned int x = 0; x < w; ++x) {
+                    uint8_t a = row[x*4 + 3];
+                    dst[x*4 + 0] = a; dst[x*4 + 1] = a; dst[x*4 + 2] = a; dst[x*4 + 3] = 255;
+                }
+            }
+            try {
+                auto writer = ref new Windows::Storage::Streams::DataWriter();
+                writer->WriteBytes(Platform::ArrayReference<uint8_t>(tmp.data(), (unsigned int)tmp.size()));
+                auto bufOut = writer->DetachBuffer();
+                outBuf = nullptr; // release
+                vis->CopyFromBuffer(bufOut);
+                // Save vis
+                auto local = ApplicationData::Current->LocalFolder;
+                StorageFile^ file = concurrency::create_task(local->CreateFileAsync(filename, CreationCollisionOption::GenerateUniqueName)).get();
+                IRandomAccessStream^ stream = concurrency::create_task(file->OpenAsync(FileAccessMode::ReadWrite)).get();
+                BitmapEncoder^ encoder = concurrency::create_task(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId, stream)).get();
+                try { encoder->SetSoftwareBitmap(vis); } catch(...) {}
+                concurrency::create_task(encoder->FlushAsync()).get();
+            } catch(...) {}
+        } catch(...) {}
+    });
+}
+
+
 SoftwareBitmap^ ImageHelpers::ResizeSoftwareBitmap(SoftwareBitmap^ src, unsigned int width, unsigned int height) {
     if (src == nullptr) return nullptr;
     try {
@@ -883,5 +1197,67 @@ SoftwareBitmap^ ImageHelpers::CreateRoundedRectMask(unsigned int width, unsigned
         }
     } catch(...) {
         return nullptr;
+    }
+}
+
+concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ImageHelpers::CreateMaskedBlurredPngStreamAsync(
+    SoftwareBitmap^ src,
+    SoftwareBitmap^ mask,
+    unsigned int targetW,
+    unsigned int targetH,
+    double dpi,
+    float blurDip) {
+    if (src == nullptr) return task_from_result<IRandomAccessStream^>(nullptr);
+
+    try {
+        // Determine target size
+        unsigned int tW = targetW != 0 ? targetW : src->PixelWidth;
+        unsigned int tH = targetH != 0 ? targetH : src->PixelHeight;
+
+        // Resize source to target if needed
+        auto raster = ResizeSoftwareBitmapUniformToFill(src, tW, tH);
+        if (raster != nullptr) src = raster;
+
+        // Compute blur radius in pixels from DIP
+        unsigned int radiusPx = 0;
+        try { radiusPx = (unsigned int)std::round((double)blurDip * dpi / 96.0); } catch(...) { radiusPx = (unsigned int)std::round((double)blurDip); }
+
+        // Apply mask if provided, otherwise generate rounded rect mask
+        SoftwareBitmap^ preBlurBitmap = src;
+        if (mask != nullptr) {
+            unsigned int ml=0, mt=0, mw=0, mh=0;
+            // Try to detect non-empty alpha bounds in mask by reusing CompositeWithMask path (it checks sizes)
+			// preBlurBitmap = CompositeWithMask(src, mask, radiusPx);
+        } else {
+            auto maskGen = CreateRoundedRectMask(src->PixelWidth, src->PixelHeight, (float)radiusPx);
+            if (maskGen != nullptr) {
+				// preBlurBitmap = CompositeWithMask(src, maskGen, radiusPx);
+            }
+        }
+
+        // Try GPU blur first
+        try {
+            auto gpuResult = ::EffectsLibrary::GpuBoxBlurSoftwareBitmap(preBlurBitmap, (int)radiusPx, false, true);
+            if (gpuResult != nullptr) {
+                return create_task(EncodeSoftwareBitmapToPngStreamAsync(gpuResult)).then([](IRandomAccessStream^ s) -> IRandomAccessStream^ {
+                    if (s != nullptr) { try { s->Seek(0); } catch(...) {} }
+                    return s;
+                });
+            }
+        } catch(...) {}
+
+        // CPU fallback
+        try {
+            auto cpuTarget = preBlurBitmap;
+            ::EffectsLibrary::BoxBlurSoftwareBitmap(cpuTarget, (int)radiusPx);
+            return create_task(EncodeSoftwareBitmapToPngStreamAsync(cpuTarget)).then([](IRandomAccessStream^ s) -> IRandomAccessStream^ {
+                if (s != nullptr) { try { s->Seek(0); } catch(...) {} }
+                return s;
+            });
+        } catch(...) {}
+
+        return task_from_result<IRandomAccessStream^>(nullptr);
+    } catch(...) {
+        return task_from_result<IRandomAccessStream^>(nullptr);
     }
 }

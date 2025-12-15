@@ -338,6 +338,7 @@
     </ClInclude>
     <ClInclude Include="Converters\MultiplyConverter.h" />
     <ClInclude Include="Converters\UniformThicknessConverter.h" />
+    <ClInclude Include="Converters\BlurPaddingConverter.h" />
     <ClInclude Include="MoonlightWelcome.xaml.h">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
@@ -406,6 +407,7 @@
     </ClCompile>
     <ClCompile Include="Converters\MultiplyConverter.cpp" />
     <ClCompile Include="Converters\UniformThicknessConverter.cpp" />
+    <ClCompile Include="Converters\BlurPaddingConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />
     <ClCompile Include="Keyboard\kbda3.cpp" />

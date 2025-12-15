@@ -31,4 +31,28 @@ Windows::Graphics::Imaging::SoftwareBitmap^ ResizeSoftwareBitmapUniformToFill(Wi
 // (0 outside, 255 inside). Radius is in pixel units.
 Windows::Graphics::Imaging::SoftwareBitmap^ CreateRoundedRectMask(unsigned int width, unsigned int height, float radiusPx);
 
+// High-level helper: perform mask + blur pipeline and return encoded PNG stream.
+// Parameters:
+// - src: SoftwareBitmap source image (may be resized by the helper)
+// - mask: optional SoftwareBitmap mask (may be null)
+// - targetW/targetH: desired output pixel dimensions (0 to use source)
+// - dpi: display dpi used to convert DIP->px for blur radius
+// - blurDip: blur radius in DIP units
+// Returns an in-memory PNG stream or null on failure.
+concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> CreateMaskedBlurredPngStreamAsync(
+	Windows::Graphics::Imaging::SoftwareBitmap^ src,
+	Windows::Graphics::Imaging::SoftwareBitmap^ mask,
+	unsigned int targetW,
+	unsigned int targetH,
+	double dpi,
+	float blurDip);
+
+// Combine an existing mask with a rounded-rect mask by multiplying alpha channels.
+// If `mask` is null, returns a rounded rect mask. Returned bitmap is BGRA8 Premultiplied.
+Windows::Graphics::Imaging::SoftwareBitmap^ CombineMaskWithRoundedRect(Windows::Graphics::Imaging::SoftwareBitmap^ mask, unsigned int width, unsigned int height, float radiusPx);
+ 
+concurrency::task<void> SaveSoftwareBitmapToLocalPngAsync(Windows::Graphics::Imaging::SoftwareBitmap^ bmp, Platform::String^ filename);
+// Save a visualization of the mask where alpha is encoded into RGB and made fully opaque
+concurrency::task<void> SaveMaskVisualToLocalPngAsync(Windows::Graphics::Imaging::SoftwareBitmap^ mask, Platform::String^ filename);
+
 }

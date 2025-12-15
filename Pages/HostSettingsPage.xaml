@@ -20,7 +20,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
+            <Button Grid.Column="0" Margin="0 0 0 16" Name="backButton" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
@@ -31,7 +31,10 @@
                 <TextBlock Text="{x:Bind Host.LastHostname}" />
             </StackPanel>
 
-            <Button Grid.Column="2" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center">Open Global Settings</Button>
+            <Button Grid.Column="2" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    XYFocusDown="{x:Bind DisplayTab}">
+                Open Global Settings
+            </Button>
         </Grid>
 
         <local:TabsLayout x:Name="rightTabs" Grid.Row="1">
@@ -147,9 +150,14 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DisplayPanel" x:Name="DisplayTab" Content="Display" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind ResolutionSelector}" />
-                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="AudioPanel" x:Name="AudioTab" Content="Audio" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind AudioConfigs}" />
-                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" x:Name="StreamTab" Content="Stream" HorizontalAlignment="Stretch" XYFocusRight="{x:Bind AutoStartSelector}" />
+                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DisplayPanel" x:Name="DisplayTab" Content="Display" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind AudioTab}"
+                            XYFocusRight="{x:Bind ResolutionSelector}" />
+                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="AudioPanel" x:Name="AudioTab" Content="Audio" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind StreamTab}"
+                            XYFocusRight="{x:Bind AudioConfigs}" />
+                    <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" x:Name="StreamTab" Content="Stream" HorizontalAlignment="Stretch" 
+                            XYFocusRight="{x:Bind AutoStartSelector}" />
                 </Grid>
             </local:TabsLayout.TabsContent>
         </local:TabsLayout>

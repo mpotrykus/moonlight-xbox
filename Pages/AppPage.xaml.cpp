@@ -20,25 +20,6 @@ using namespace Windows::Foundation;
 using namespace Windows::Graphics::Imaging;
 using namespace Windows::Graphics::Display;
 using namespace Windows::ApplicationModel::Core;
-
-void moonlight_xbox_dx::AppPage::AppImageReflectionRect_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e)
-{
-    try
-    {
-        auto rect = dynamic_cast<Windows::UI::Xaml::Shapes::Rectangle^>(sender);
-        if (rect)
-        {
-            auto w = rect->ActualWidth;
-            auto h = rect->ActualHeight;
-            ::moonlight_xbox_dx::Utils::Logf("AppImageReflectionRect_SizeChanged: ActualWidth=%.2f ActualHeight=%.2f FillHash=%llu",
-                        w, h, (unsigned long long)(rect->Fill ? rect->Fill->GetHashCode() : 0));
-        }
-    }
-    catch (...)
-    {
-        ::moonlight_xbox_dx::Utils::Log("AppImageReflectionRect_SizeChanged: exception in handler");
-    }
-}
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
@@ -49,169 +30,27 @@ using namespace concurrency;
 using namespace Windows::UI::Xaml::Hosting;
 using namespace Windows::UI::Composition;
 using namespace Windows::UI::Xaml::Media::Imaging;
-using namespace Windows::Graphics::Imaging;
 using namespace Windows::Storage::Streams;
 using namespace Windows::Storage;
 
 namespace moonlight_xbox_dx {
 
-// Helper to access buffer bytes for SoftwareBitmap
-struct DECLSPEC_UUID("5B0D3235-4DBA-4D44-865E-8F1D0ED9F3E4") IMemoryBufferByteAccess : IUnknown {
-    virtual HRESULT STDMETHODCALLTYPE GetBuffer(BYTE** value, UINT32* capacity) = 0;
-};
+// Forward declarations for helper functions used below
+static FrameworkElement^ FindChildByName(DependencyObject^ parent, String^ name);
 
-static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
-// Forward declare multi-child finder and selection visuals helper (updated to include reflection)
-static void FindElementChildren(DependencyObject^ container, UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName, UIElement^& outBlur, UIElement^& outReflection);
-static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, bool selected);
-static bool SoftwareBitmapAlphaBounds(Windows::Graphics::Imaging::SoftwareBitmap^ bmp, unsigned int &outLeft, unsigned int &outTop, unsigned int &outWidth, unsigned int &outHeight) {
-    if (bmp == nullptr) return false;
-    // Canonicalize to Bgra8 Premultiplied for reliable inspection
-    auto src = ImageHelpers::EnsureBgra8Premultiplied(bmp);
-    if (src == nullptr) return false;
-    try {
-        auto buffer = src->LockBuffer(Windows::Graphics::Imaging::BitmapBufferAccessMode::Read);
-        if (buffer == nullptr) return false;
-        auto reference = buffer->CreateReference();
-        if (reference == nullptr) return false;
-        Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> mb;
-        auto unknown = reinterpret_cast<IUnknown*>(reference);
-        if (unknown == nullptr) return false;
-        if (FAILED(unknown->QueryInterface(__uuidof(IMemoryBufferByteAccess), reinterpret_cast<void**>(mb.GetAddressOf())))) return false;
-        BYTE* data = nullptr; UINT32 capacity = 0;
-        if (FAILED(mb->GetBuffer(&data, &capacity))) return false;
-        auto desc = buffer->GetPlaneDescription(0);
-        unsigned int w = desc.Width; unsigned int h = desc.Height; unsigned int stride = desc.Stride; unsigned int start = desc.StartIndex;
-
-        // Log diagnostics about buffer layout and a few sample pixels
-        unsigned int rowPitch = stride;
-        ::moonlight_xbox_dx::Utils::Logf("SoftwareBitmapAlphaBounds: canonicalized bmp=%u x %u Start=%u Stride=%u capacity=%u\n", w, h, start, stride, capacity);
-        auto sample = [&](unsigned int x, unsigned int y) -> std::tuple<int,int,int,int> {
-            if (x >= w) x = w ? w-1 : 0;
-            if (y >= h) y = h ? h-1 : 0;
-            size_t off = (size_t)start + (size_t)y * rowPitch + (size_t)x * 4;
-            if (off + 3 >= capacity) return {0,0,0,0};
-            int b = data[off + 0]; int g = data[off + 1]; int r = data[off + 2]; int a = data[off + 3];
-            return {b,g,r,a};
-        };
-        auto [b00,g00,r00,a00] = sample(0,0);
-        auto [bc,gc,rc,ac] = sample(w/2, h/2);
-        auto [bw,gw,rw,aw] = sample(w? w-1:0, 0);
-        auto [bl,gl,rl,al] = sample(0, h? h-1:0);
-        ::moonlight_xbox_dx::Utils::Logf("SoftwareBitmapAlphaBounds: samples (0,0) BGRA=%d,%d,%d,%d (center) BGRA=%d,%d,%d,%d (w-1,0) BGRA=%d,%d,%d,%d (0,h-1) BGRA=%d,%d,%d,%d\n",
-            b00,g00,r00,a00, bc,gc,rc,ac, bw,gw,rw,aw, bl,gl,rl,al);
-
-        unsigned int left = w, top = h, right = 0, bottom = 0;
-        // conservative scan: detect any pixel with alpha != 255 (not fully opaque)
-        for (unsigned int yy = 0; yy < h; ++yy) {
-            size_t rowBase = (size_t)start + (size_t)yy * rowPitch;
-            for (unsigned int xx = 0; xx < w; ++xx) {
-                size_t px = rowBase + (size_t)xx * 4;
-                if (px + 3 >= capacity) continue;
-                uint8_t a = data[px + 3];
-                if (a != 255) {
-                    if (xx < left) left = xx;
-                    if (yy < top) top = yy;
-                    if (xx > right) right = xx;
-                    if (yy > bottom) bottom = yy;
-                }
-            }
-        }
-        if (left > right || top > bottom) {
-            outLeft = outTop = outWidth = outHeight = 0;
-            return false;
-        }
-        outLeft = left; outTop = top; outWidth = (right - left) + 1; outHeight = (bottom - top) + 1;
-        return true;
-    } catch(...) {
-        return false;
-    }
-}
-
-// Diagnostic: log alpha coverage and first/center pixel BGRA bytes for a SoftwareBitmap (non-throwing)
-static void LogSoftwareBitmapAlphaSample(Windows::Graphics::Imaging::SoftwareBitmap^ bmp, const char* tag) {
-    try {
-        if (bmp == nullptr) {
-            ::moonlight_xbox_dx::Utils::Logf("%s: SoftwareBitmap is null\n", tag);
-            return;
-        }
-        // Canonicalize format to Bgra8 Premultiplied for consistent inspection
-        auto s = ImageHelpers::EnsureBgra8Premultiplied(bmp);
-        if (s == nullptr) {
-            ::moonlight_xbox_dx::Utils::Logf("%s: EnsureBgra8Premultiplied returned null (orig fmt=%d alpha=%d)\n", tag, (int)bmp->BitmapPixelFormat, (int)bmp->BitmapAlphaMode);
-            return;
-        }
-        unsigned int left=0, top=0, w=0, h=0;
-        bool has = SoftwareBitmapAlphaBounds(s, left, top, w, h);
-        ::moonlight_xbox_dx::Utils::Logf("%s: alpha bounds has=%d (%u x %u at %u,%u) bmp=%u x %u (canonicalized)\n", tag, has?1:0, w, h, left, top, s->PixelWidth, s->PixelHeight);
-
-        auto buf = s->LockBuffer(Windows::Graphics::Imaging::BitmapBufferAccessMode::Read);
-        if (buf == nullptr) { ::moonlight_xbox_dx::Utils::Logf("%s: LockBuffer returned null\n", tag); return; }
-        auto ref = buf->CreateReference();
-        if (ref == nullptr) { ::moonlight_xbox_dx::Utils::Logf("%s: CreateReference returned null\n", tag); return; }
-
-        Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> mb;
-        IUnknown* unk = reinterpret_cast<IUnknown*>(ref);
-        if (unk == nullptr) { ::moonlight_xbox_dx::Utils::Logf("%s: reference cast to IUnknown returned null\n", tag); return; }
-        if (FAILED(unk->QueryInterface(__uuidof(IMemoryBufferByteAccess), reinterpret_cast<void**>(mb.GetAddressOf())))) {
-            ::moonlight_xbox_dx::Utils::Logf("%s: QueryInterface(IMemoryBufferByteAccess) failed\n", tag);
-            return;
-        }
-        BYTE* data = nullptr; UINT32 cap = 0;
-        if (FAILED(mb->GetBuffer(&data, &cap)) || data == nullptr) { ::moonlight_xbox_dx::Utils::Logf("%s: GetBuffer failed or returned null\n", tag); return; }
-
-        auto desc = buf->GetPlaneDescription(0);
-        unsigned int width = desc.Width; unsigned int height = desc.Height; unsigned int stride = desc.Stride; unsigned int start = desc.StartIndex;
-
-        auto sample = [&](unsigned int x, unsigned int y) -> std::tuple<int,int,int,int> {
-            if (x >= width) x = width ? width-1 : 0;
-            if (y >= height) y = height ? height-1 : 0;
-            size_t off = (size_t)start + (size_t)y * stride + (size_t)x * 4;
-            if (off + 3 >= cap) return {0,0,0,0};
-            int b = data[off + 0]; int g = data[off + 1]; int r = data[off + 2]; int a = data[off + 3];
-            return {b,g,r,a};
-        };
-
-        auto [b00,g00,r00,a00] = sample(0,0);
-        auto [bc,gc,rc,ac] = sample(width/2, height/2);
-        auto [bw,gw,rw,aw] = sample(width? width-1:0, 0);
-        auto [bl,gl,rl,al] = sample(0, height? height-1:0);
-        ::moonlight_xbox_dx::Utils::Logf("%s: samples (0,0) BGRA=%d,%d,%d,%d (center) BGRA=%d,%d,%d,%d (w-1,0) BGRA=%d,%d,%d,%d (0,h-1) BGRA=%d,%d,%d,%d\n",
-            tag, b00,g00,r00,a00, bc,gc,rc,ac, bw,gw,rw,aw, bl,gl,rl,al);
-    } catch(...) { ::moonlight_xbox_dx::Utils::Logf("%s: exception in LogSoftwareBitmapAlphaSample\n", tag); }
-}
-
-static concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> CaptureXamlElementAsync(Windows::UI::Xaml::FrameworkElement^ element) {
-    concurrency::task_completion_event<Windows::Graphics::Imaging::SoftwareBitmap^> tce;
+static concurrency::task<SoftwareBitmap^> CaptureXamlElementAsync(FrameworkElement^ element) {
+    concurrency::task_completion_event<SoftwareBitmap^> tce;
     if (element == nullptr) {
         tce.set(nullptr);
         return concurrency::create_task(tce);
     }
 
-    auto dispatched = ref new Windows::UI::Core::DispatchedHandler([element, tce]() mutable {
+    auto dispatched = ref new DispatchedHandler([element, tce]() mutable {
         try {
-            moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: dispatched handler running\n");
-            try {
-                double aw = element->ActualWidth;
-                double ah = element->ActualHeight;
-                Platform::String^ nm = nullptr;
-                try { nm = element->Name; } catch(...) { nm = nullptr; }
-                std::string nameStr = nm == nullptr ? std::string("(unnamed)") : moonlight_xbox_dx::Utils::PlatformStringToStdString(nm);
-                // Log element name and actual size in DIPs
-                moonlight_xbox_dx::Utils::Logf("CaptureXamlElementAsync: element name='%s' ActualWidth=%.2f ActualHeight=%.2f\n", nameStr.c_str(), aw, ah);
-                try {
-                    auto di = Windows::Graphics::Display::DisplayInformation::GetForCurrentView();
-                    double dpi = di != nullptr ? di->LogicalDpi : 96.0;
-                    unsigned int expW = static_cast<unsigned int>(std::round(aw * dpi / 96.0));
-                    unsigned int expH = static_cast<unsigned int>(std::round(ah * dpi / 96.0));
-                    moonlight_xbox_dx::Utils::Logf("CaptureXamlElementAsync: expected pixels from ActualWidth/Height (dpi=%.2f) => expected=%u x %u\n", dpi, expW, expH);
-                } catch(...) {}
-            } catch(...) {}
-            auto rtb = ref new Windows::UI::Xaml::Media::Imaging::RenderTargetBitmap();
+            auto rtb = ref new RenderTargetBitmap();
             create_task(rtb->RenderAsync(element)).then([rtb]() {
-                moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: RenderAsync completed\n");
                 return rtb->GetPixelsAsync();
-            }).then([rtb, tce](concurrency::task<Windows::Storage::Streams::IBuffer^> prev) {
+            }).then([rtb, tce](concurrency::task<IBuffer^> prev) {
                 try {
                     auto pixels = prev.get();
                     if (pixels == nullptr) {
@@ -221,14 +60,12 @@ static concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> CaptureXam
                     }
                     unsigned int w = rtb->PixelWidth;
                     unsigned int h = rtb->PixelHeight;
-                    moonlight_xbox_dx::Utils::Logf("CaptureXamlElementAsync: pixels received width=%u height=%u\n", w, h);
                     if (w == 0 || h == 0) {
                         moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: RenderTargetBitmap reported zero width/height\n");
                         tce.set(nullptr);
                         return;
                     }
-                    auto sb = Windows::Graphics::Imaging::SoftwareBitmap::CreateCopyFromBuffer(pixels, Windows::Graphics::Imaging::BitmapPixelFormat::Bgra8, w, h, Windows::Graphics::Imaging::BitmapAlphaMode::Premultiplied);
-                    moonlight_xbox_dx::Utils::Log("CaptureXamlElementAsync: SoftwareBitmap created from pixels\n");
+                    auto sb = SoftwareBitmap::CreateCopyFromBuffer(pixels, BitmapPixelFormat::Bgra8, w, h, BitmapAlphaMode::Premultiplied);
                     tce.set(sb);
                     return;
                 } catch(...) {
@@ -244,7 +81,7 @@ static concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> CaptureXam
     });
 
     try {
-        Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, dispatched);
+        CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, dispatched);
     } catch(...) {
         // If dispatcher invocation fails, return null
         tce.set(nullptr);
@@ -253,41 +90,8 @@ static concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap^> CaptureXam
     return concurrency::create_task(tce);
 }
 
-//static IAsyncOperation<SoftwareBitmap^>^ CaptureXamlElementAsync(FrameworkElement^ element) {
-//	if (element == nullptr)
-//		co_return nullptr;
-//
-//	auto dispatcher = Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher;
-//	co_await dispatcher->RunAsync(
-//	    Windows::UI::Core::CoreDispatcherPriority::Normal,
-//	    ref new Windows::UI::Core::DispatchedHandler([]() { /* no-op */ }));
-//
-//	auto rtb = ref new RenderTargetBitmap();
-//	co_await rtb->RenderAsync(element);
-//
-//	auto pixels = co_await rtb->GetPixelsAsync();
-//	if (pixels == nullptr)
-//		co_return nullptr;
-//
-//	int width = rtb->PixelWidth;
-//	int height = rtb->PixelHeight;
-//	if (width == 0 || height == 0)
-//		co_return nullptr;
-//
-//	// auto sb = Windows::Graphics::Imaging::SoftwareBitmap::CreateCopyFromBuffer(pixels, Windows::Graphics::Imaging::BitmapPixelFormat::Bgra8, w, h, Windows::Graphics::Imaging::BitmapAlphaMode::Premultiplied);
-//	auto sb = SoftwareBitmap::CreateCopyFromBuffer(
-//	    pixels,
-//	    BitmapPixelFormat::Bgra8,
-//	    width,
-//	    height,
-//        BitmapAlphaMode::Premultiplied);
-//
-//	co_return sb;
-//}
-
-
-concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, float blurDip) {
-	if (app == nullptr) return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream ^>(nullptr);
+concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, float blurDip) {
+    if (app == nullptr) return concurrency::task_from_result<IRandomAccessStream ^>(nullptr);
 
 	Platform::String ^ path = nullptr;
 	try {
@@ -302,8 +106,8 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
     /*----MASK----*/ 
 
 
-    return concurrency::create_task(ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync(path)).then([this, app, blurDip](Windows::Graphics::Imaging::SoftwareBitmap^ softwareBitmap) -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> {
-		if (softwareBitmap == nullptr) return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream ^>(nullptr);
+    return concurrency::create_task(ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync(path)).then([this, app, blurDip](SoftwareBitmap^ softwareBitmap) -> concurrency::task<IRandomAccessStream^> {
+        if (softwareBitmap == nullptr) return concurrency::task_from_result<IRandomAccessStream ^>(nullptr);
 
 
 
@@ -312,7 +116,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
         unsigned int ui_targetW = 0, ui_targetH = 0;
         double ui_dpi = 96.0;
         try {
-            auto fe_for_size = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(this->FindName("AppImageRect"));
+            auto fe_for_size = dynamic_cast<FrameworkElement ^>(this->FindName("AppImageRect"));
 
 
             /*----IMPORTANT FOR MASK SIZING----*/
@@ -322,7 +126,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
                     if (container != nullptr) {
                         auto found = FindChildByName(container, ref new Platform::String(L"AppImageRect"));
                         if (found == nullptr) found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-                        fe_for_size = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
+                        fe_for_size = dynamic_cast<FrameworkElement ^>(found);
                     }
                 }
             }
@@ -338,7 +142,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
                             if (container != nullptr) {
                                 // Try AppAspectRatioBox inside the container
                                 auto foundAR = FindChildByName(container, ref new Platform::String(L"AppAspectRatioBox"));
-                                auto feAR = dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(foundAR);
+                                auto feAR = dynamic_cast<FrameworkElement^>(foundAR);
                                 if (feAR != nullptr) {
                                     try { if (aw <= 0) aw = feAR->ActualWidth; } catch(...) {}
                                     try { if (ah <= 0) ah = feAR->ActualHeight; } catch(...) {}
@@ -347,7 +151,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
                                 // Try ItemGrid
                                 if ((aw <= 0 || ah <= 0)) {
                                     auto foundIG = FindChildByName(container, ref new Platform::String(L"ItemGrid"));
-                                    auto feIG = dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(foundIG);
+                                    auto feIG = dynamic_cast<FrameworkElement^>(foundIG);
                                     if (feIG != nullptr) {
                                         try { if (aw <= 0) aw = feIG->ActualWidth; } catch(...) {}
                                         try { if (ah <= 0) ah = feIG->ActualHeight; } catch(...) {}
@@ -357,7 +161,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
                                 // Try the blur rect inside the container
                                 if ((aw <= 0 || ah <= 0)) {
                                     auto foundBlur = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-                                    auto feB = dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(foundBlur);
+                                    auto feB = dynamic_cast<FrameworkElement^>(foundBlur);
                                     if (feB != nullptr) {
                                         try { if (aw <= 0) aw = feB->ActualWidth; } catch(...) {}
                                         try { if (ah <= 0) ah = feB->ActualHeight; } catch(...) {}
@@ -379,7 +183,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 
                     if (aw > 0 && ah > 0) {
                         try {
-                            auto di = Windows::Graphics::Display::DisplayInformation::GetForCurrentView();
+                            auto di = DisplayInformation::GetForCurrentView();
                             double dpi = di != nullptr ? di->LogicalDpi : 96.0;
                             ui_dpi = dpi;
                             ui_targetW = (unsigned int)std::max(1u, (unsigned int)std::round(aw * dpi / 96.0));
@@ -394,9 +198,9 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 
         /*----PREPARE IMAGE CAPTURE----*/
 
-		Windows::UI::Xaml::FrameworkElement ^ imageFe = nullptr;
+        FrameworkElement ^ imageFe = nullptr;
 		try {
-			imageFe = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(this->FindName("AppImageRect"));
+            imageFe = dynamic_cast<FrameworkElement ^>(this->FindName("AppImageRect"));
 		} catch (...) {
 			imageFe = nullptr;
 		}
@@ -409,7 +213,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 						try {
 							auto found = FindChildByName(container, ref new Platform::String(L"AppImageRect"));
 							if (found == nullptr) found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-							imageFe = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
+                            imageFe = dynamic_cast<FrameworkElement ^>(found);
 						} catch (...) {
 							imageFe = nullptr;
 						}
@@ -420,16 +224,16 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 			}
 		}
 
-        concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^> imageCaptureTask = imageFe != nullptr ? CaptureXamlElementAsync(imageFe) : concurrency::task_from_result<Windows::Graphics::Imaging::SoftwareBitmap ^>(nullptr);
+        concurrency::task<SoftwareBitmap ^> imageCaptureTask = imageFe != nullptr ? CaptureXamlElementAsync(imageFe) : concurrency::task_from_result<SoftwareBitmap ^>(nullptr);
 
         
 
         /*----PREPARE MASK CAPTURE----*/
 
 		SoftwareBitmap ^ nullMask = nullptr;
-		Windows::UI::Xaml::FrameworkElement ^ maskFe = nullptr;
+        FrameworkElement ^ maskFe = nullptr;
 		try {
-			maskFe = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(this->FindName("AppImageBlurRect"));
+                maskFe = dynamic_cast<FrameworkElement ^>(this->FindName("AppImageBlurRect"));
 		} catch (...) {
 			maskFe = nullptr;
 		}
@@ -440,7 +244,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 					if (container != nullptr) {
 						try {
 							auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-							maskFe = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
+                            maskFe = dynamic_cast<FrameworkElement ^>(found);
 						} catch (...) {
 							maskFe = nullptr;
 						}
@@ -451,123 +255,39 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> AppPage::App
 			}
 		}
 
-		concurrency::task<Windows::Graphics::Imaging::SoftwareBitmap ^> maskCaptureTask = maskFe != nullptr ? CaptureXamlElementAsync(maskFe) : concurrency::task_from_result<Windows::Graphics::Imaging::SoftwareBitmap ^>(nullMask);
+		concurrency::task<SoftwareBitmap ^> maskCaptureTask = maskFe != nullptr ? CaptureXamlElementAsync(maskFe) : concurrency::task_from_result<SoftwareBitmap ^>(nullMask);
 
 
+        /*----RASTERIZE----*/ 
 
-		/*----RASTERIZE----*/ 
-
-        return imageCaptureTask.then([this, app, softwareBitmap, maskCaptureTask, ui_targetW, ui_targetH, ui_dpi, blurDip](Windows::Graphics::Imaging::SoftwareBitmap ^ capturedImage) mutable -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> {
-            return maskCaptureTask.then([this, app, softwareBitmap, ui_targetW, ui_targetH, ui_dpi, blurDip](Windows::Graphics::Imaging::SoftwareBitmap ^ maskFromXaml) mutable -> concurrency::task<Windows::Storage::Streams::IRandomAccessStream ^> {
-
-                // Determine desired raster target pixels and resize the source to the displayed size
+        return imageCaptureTask.then([this, app, softwareBitmap, maskCaptureTask, ui_targetW, ui_targetH, ui_dpi, blurDip, imageFe, maskFe](SoftwareBitmap ^ capturedImage) mutable -> concurrency::task<IRandomAccessStream ^> {
+            return maskCaptureTask.then([this, app, softwareBitmap, ui_targetW, ui_targetH, ui_dpi, blurDip, imageFe, maskFe](SoftwareBitmap ^ maskFromXaml) mutable -> concurrency::task<IRandomAccessStream ^> {
+                // Apply rounded-corner mask composition before rasterizing.
                 unsigned int targetW = ui_targetW != 0 ? ui_targetW : softwareBitmap->PixelWidth;
                 unsigned int targetH = ui_targetH != 0 ? ui_targetH : softwareBitmap->PixelHeight;
-                moonlight_xbox_dx::Utils::Logf("ApplyBlur: raster target pixels=%u x %u (from UI capture or fallback)\n", targetW, targetH);
+                // Compute corner radius (use 8 DIP as baseline, scalable by DPI). This can be adjusted.
+                unsigned int cornerRadiusPx = 0;
+                try { cornerRadiusPx = (unsigned int)std::round(8.0 * ui_dpi / 96.0); } catch(...) { cornerRadiusPx = 16; }
 
-                auto raster = ImageHelpers::ResizeSoftwareBitmapUniformToFill(softwareBitmap, targetW, targetH);
-                if (raster != nullptr) {
-                    softwareBitmap = raster; // use the resized raster as the source for masking/blur
-                }
+                try { moonlight_xbox_dx::Utils::Logf("ApplyBlur: maskFromXaml=%p pixelSize=%u x %u target=%u x %u dpi=%.2f radiusPx=%u\n", maskFromXaml, maskFromXaml ? maskFromXaml->PixelWidth : 0, maskFromXaml ? maskFromXaml->PixelHeight : 0, ui_targetW, ui_targetH, ui_dpi, cornerRadiusPx); } catch(...) {}
 
+                // We clipped the XAML element prior to capture, so the captured mask already has rounded corners.
+                try { if (maskFromXaml) moonlight_xbox_dx::Utils::Logf("ApplyBlur: captured mask=%p size=%u x %u\n", maskFromXaml, maskFromXaml->PixelWidth, maskFromXaml->PixelHeight); else moonlight_xbox_dx::Utils::Log("ApplyBlur: captured mask is null\n"); } catch(...) {}
 
-                /*----APPLY MASK----*/ 
+                // No runtime clip restore needed; rounded corners handled in XAML
 
-                // Apply mask BEFORE blurring so the masked image gets blurred (mask -> render -> blur)
-                Windows::Graphics::Imaging::SoftwareBitmap^ preBlurBitmap = softwareBitmap;
-                unsigned int radiusPx = 0;
-                try {
-                    radiusPx = (unsigned int)std::round((double)blurDip * ui_dpi / 96.0);
-                    // If we have a captured XAML mask and it contains alpha, use it; otherwise generate a programmatic rounded rect mask
-                    if (maskFromXaml != nullptr) {
-                        unsigned int ml=0, mt=0, mw=0, mh=0;
-                        if (SoftwareBitmapAlphaBounds(maskFromXaml, ml, mt, mw, mh) && mw > 0 && mh > 0) {
-                            try { ::moonlight_xbox_dx::Utils::Logf("ApplyBlur: applying captured XAML mask (mask=%u x %u)\n", maskFromXaml->PixelWidth, maskFromXaml->PixelHeight); } catch(...) {}
-                            preBlurBitmap = ImageHelpers::CompositeWithMask(softwareBitmap, maskFromXaml, 16);
-                        } else {
-                            try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: captured XAML mask empty, falling back to programmatic mask before blur\n"); } catch(...) {}
-                            auto maskGen = ImageHelpers::CreateRoundedRectMask(softwareBitmap->PixelWidth, softwareBitmap->PixelHeight, (float)radiusPx);
-                            if (maskGen != nullptr) {
-                                try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: programmatic mask generated (pre-blur), compositing now\n"); } catch(...) {}
-                                preBlurBitmap = ImageHelpers::CompositeWithMask(softwareBitmap, maskGen, 16);
-                            }
-                        }
-                    } else {
-                        try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: no XAML mask, generating programmatic mask before blur\n"); } catch(...) {}
-                        auto maskGen = ImageHelpers::CreateRoundedRectMask(softwareBitmap->PixelWidth, softwareBitmap->PixelHeight, (float)radiusPx);
-                        if (maskGen != nullptr) {
-                            try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: programmatic mask generated (pre-blur), compositing now\n"); } catch(...) {}
-                            preBlurBitmap = ImageHelpers::CompositeWithMask(softwareBitmap, maskGen, 16);
-                        }
-                    }
-                } catch(...) {}
-
-
-
-
-
-
-                
-                /* -- DIVERT BLURS HERE -- */
-
-
-
-
-
-                /*----BLUR----*/ 
-
-
-                // Try GPU blur first on the masked (preBlurBitmap) image
-                try {
-                    try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: attempting GPU blur path (pre-masked)\n"); } catch(...) {}
-                    auto gpuResult = ::EffectsLibrary::GpuBoxBlurSoftwareBitmap(preBlurBitmap, (int)radiusPx, false, true);
-                    if (gpuResult != nullptr) {
-                        try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: GPU blur produced a result\n"); } catch(...) {}
-                        return concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(gpuResult)).then([](Windows::Storage::Streams::IRandomAccessStream ^ newStream) -> Windows::Storage::Streams::IRandomAccessStream ^ {
-                            try { if (newStream != nullptr) ::moonlight_xbox_dx::Utils::Logf("ApplyBlur: returning encoded stream size=%llu (GPU)\n", newStream->Size); } catch(...) {}
-                            if (newStream != nullptr) {
-                                try { newStream->Seek(0); } catch (...) {}
-                            }
-                            return newStream;
-                        });
-                    } else {
-                        try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: GPU blur returned null, will try CPU fallback\n"); } catch(...) {}
-                    }
-                } catch (...) {
-                    try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: GPU blur threw an exception, will try CPU fallback\n"); } catch(...) {}
-                }
-
-                // CPU fallback: blur the pre-masked bitmap and return encoded result
-                try {
-                    try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: attempting CPU blur fallback (pre-masked)\n"); } catch(...) {}
-                    auto cpuTarget = preBlurBitmap;
-                    ::EffectsLibrary::BoxBlurSoftwareBitmap(cpuTarget, (int)radiusPx);
-                    return concurrency::create_task(ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync(cpuTarget)).then([](Windows::Storage::Streams::IRandomAccessStream ^ newStream) -> Windows::Storage::Streams::IRandomAccessStream ^ {
-                        try { if (newStream != nullptr) ::moonlight_xbox_dx::Utils::Logf("ApplyBlur: returning encoded stream size=%llu (CPU)\n", newStream->Size); } catch(...) {}
-                        if (newStream != nullptr) {
-                            try { newStream->Seek(0); } catch (...) {}
-                        }
-                        return newStream;
-                    });
-                } catch (...) {
-                    try { ::moonlight_xbox_dx::Utils::Log("ApplyBlur: CPU blur threw an exception\n"); } catch(...) {}
-                }
-                return concurrency::task_from_result<Windows::Storage::Streams::IRandomAccessStream ^>(nullptr);
+                return ImageHelpers::CreateMaskedBlurredPngStreamAsync(softwareBitmap, maskFromXaml, targetW, targetH, ui_dpi, blurDip);
 			});
 		});
 	});
 }
 
-static bool allowScaleTransitions = true;
-static bool allowOpacityTransitions = true;
-
 static constexpr float kDesaturatorOpacityUnselected = 0.7f;
 static constexpr float kBlurOpacitySelected = 0.5f; // 0.35f;
 static constexpr float kBlurAmount = 16.0f;
 
-static constexpr float kReflectionOpacitySelected = 0.045f; // 0.3f;
+static constexpr float kReflectionOpacitySelected = .03f; // 0.3f;
 static constexpr float kReflectionOpacityUnselected = 0.0f;
-
 
 static constexpr float kSelectedScale = 1.0f;
 static constexpr float kUnselectedScale = 0.8f;
@@ -638,10 +358,10 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
 
         if (container != nullptr && sv != nullptr) {
             try {
-                Windows::Foundation::Point pt{0,0};
+                Point pt{0,0};
                 try {
                     auto trans = container->TransformToVisual(sv);
-                    if (trans != nullptr) pt = trans->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                    if (trans != nullptr) pt = trans->TransformPoint(Point{ 0, 0 });
                     else Utils::Log("CenterSelectedItem: TransformToVisual returned null\n");
                 } catch(...) { Utils::Log("CenterSelectedItem: TransformToVisual/TransformPoint threw\n"); }
                 double containerCenter = pt.X + container->ActualWidth / 2.0;
@@ -705,10 +425,10 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                             try { swLU = sv->ScrollableWidth; } catch(...) { swLU = 0.0; }
                             if (swLU > 1.0) {
                                 try {
-                                    Windows::Foundation::Point ptLU{0,0};
+                                    Point ptLU{0,0};
                                     try {
                                         auto transLU = container->TransformToVisual(sv);
-                                        if (transLU != nullptr) ptLU = transLU->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                        if (transLU != nullptr) ptLU = transLU->TransformPoint(Point{ 0, 0 });
                                         else Utils::Log("CenterSelectedItem (LayoutUpdated): TransformToVisual returned null\n");
                                     } catch(...) { Utils::Log("CenterSelectedItem (LayoutUpdated): TransformToVisual/TransformPoint threw\n"); }
                                     double containerCenterLU = ptLU.X + container->ActualWidth / 2.0;
@@ -751,7 +471,7 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                                 if (that->m_itemsPanel != nullptr) {
                                     auto vis = ElementCompositionPreview::GetElementVisual(that->m_itemsPanel);
                                     (void)vis;
-                                    auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(that->m_itemsPanel->RenderTransform);
+                                    auto tt = dynamic_cast<TranslateTransform^>(that->m_itemsPanel->RenderTransform);
                                     (void)tt;
                                 }
                             } catch(...) {}
@@ -765,10 +485,10 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                         if (sw > 1.0) {
                             // recompute desired in case sizes changed
                             try {
-                                Windows::Foundation::Point pt2{0,0};
+                                Point pt2{0,0};
                                 try {
                                     auto trans2 = containerRef->TransformToVisual(svRef);
-                                    if (trans2 != nullptr) pt2 = trans2->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                    if (trans2 != nullptr) pt2 = trans2->TransformPoint(Point{ 0, 0 });
                                     else Utils::Log("CenterSelectedItem (polling): TransformToVisual returned null\n");
                                 } catch(...) { Utils::Log("CenterSelectedItem (polling): TransformToVisual/TransformPoint threw\n"); }
                                 double containerCenter2 = pt2.X + containerRef->ActualWidth / 2.0;
@@ -786,6 +506,7 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
         } else {
             // container or sv is null; nothing to do
         }
+        // prevImageClip/prevMaskClip removed; rounded corners handled in XAML
 
         // If container is not yet realized, retry shortly up to `attempts` times.
         if (attempts > 0) {
@@ -838,13 +559,13 @@ static void FindElementChildren(DependencyObject^ container, UIElement^& outDesa
 
 // Helper: apply visuals for selected/unselected state to a realized container
 static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, bool selected) {
+
     try {
-        // Idempotency: if the container has a Tag storing the last-applied selected state,
-        // avoid reapplying visuals unnecessarily to reduce flicker.
         try {
+            
             ListViewItem^ container = nullptr;
+            
             try {
-                // Walk up the visual tree from nameTxt to find the enclosing ListViewItem
                 DependencyObject^ current = dynamic_cast<DependencyObject^>(nameTxt);
                 while (current != nullptr && container == nullptr) {
                     container = dynamic_cast<ListViewItem^>(current);
@@ -854,68 +575,66 @@ static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nam
             } catch(...) { container = nullptr; }
 
             if (container != nullptr) {
-                bool prev = false; bool hasPrev = false;
+
+                bool prev = false;
+                bool hasPrev = false;
+                
                 try {
                     auto tag = container->Tag;
                     if (tag != nullptr) {
                         try { prev = safe_cast<Platform::IBox<bool>^>(tag)->Value; hasPrev = true; } catch(...) { hasPrev = false; }
                     }
                 } catch(...) { hasPrev = false; }
+
                 if (hasPrev && prev == selected) {
-                    // already in desired state, skip
                     return;
                 }
+
                 try { container->Tag = safe_cast<Platform::Object^>(ref new Platform::Box<bool>(selected)); } catch(...) {}
             }
+
         } catch(...) {}
+
         if (img != nullptr) {
-            if (allowScaleTransitions) AnimateElementScale(img, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-            else SetElementScaleImmediate(img, selected ? kSelectedScale : kUnselectedScale);
+            AnimateElementScale(img, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
         }
+
         if (des != nullptr) {
-            if (allowScaleTransitions) AnimateElementScale(des, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-            else SetElementScaleImmediate(des, selected ? kSelectedScale : kUnselectedScale);
-
-            if (allowOpacityTransitions) AnimateElementOpacity(des, selected ? 0.0f : kDesaturatorOpacityUnselected, kAnimationDurationMs);
-            else SetElementOpacityImmediate(des, selected ? 0.0f : kDesaturatorOpacityUnselected);
+            AnimateElementScale(des, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+            AnimateElementOpacity(des, selected ? 0.0f : kDesaturatorOpacityUnselected, kAnimationDurationMs);
         }
-        // Blur rectangle should mirror selection: visible (0.35) when selected, hidden (0) when unselected
+
         if (blur != nullptr) {
-            if (allowScaleTransitions) AnimateElementScale(blur, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-            else SetElementScaleImmediate(blur, selected ? kSelectedScale : kUnselectedScale);
-
-            float targetBlurOpacity = selected ? kBlurOpacitySelected : 0.0f;
-            if (allowOpacityTransitions) AnimateElementOpacity(blur, targetBlurOpacity, kAnimationDurationMs);
-            else SetElementOpacityImmediate(blur, targetBlurOpacity);
+            AnimateElementScale(blur, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+			AnimateElementOpacity(blur, selected ? kBlurOpacitySelected : 0.0f, kAnimationDurationMs);
         }
-        // Reflection rectangle should mirror selection but with very low opacity
+
         if (reflection != nullptr) {
-            if (allowScaleTransitions) AnimateElementScale(reflection, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-            else SetElementScaleImmediate(reflection, selected ? kSelectedScale : kUnselectedScale);
-
-            float targetReflectionOpacity = selected ? kReflectionOpacitySelected : kReflectionOpacityUnselected;
-            if (allowOpacityTransitions) AnimateElementOpacity(reflection, targetReflectionOpacity, kAnimationDurationMs);
-            else SetElementOpacityImmediate(reflection, targetReflectionOpacity);
+            AnimateElementScale(reflection, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+			AnimateElementOpacity(reflection, selected ? kReflectionOpacitySelected : kReflectionOpacityUnselected, kAnimationDurationMs);
         }
+
         if (nameTxt != nullptr) {
-            if (allowOpacityTransitions) AnimateElementOpacity(nameTxt, selected ? 1.0f : 0.0f, kAnimationDurationMs);
-            else SetElementOpacityImmediate(nameTxt, selected ? 1.0f : 0.0f);
+            AnimateElementOpacity(nameTxt, selected ? 1.0f : 0.0f, kAnimationDurationMs);
         }
     } catch(...) {}
 }
 
-// Apply visuals to a ListViewItem container without modifying ListView selection.
 void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
     if (container == nullptr) return;
     try {
-        UIElement^ des = nullptr; UIElement^ img = nullptr; UIElement^ nameTxt = nullptr; UIElement^ blur = nullptr; UIElement^ reflection = nullptr;
+        UIElement^ des = nullptr; 
+        UIElement^ img = nullptr; 
+        UIElement^ nameTxt = nullptr; 
+        UIElement^ blur = nullptr; 
+        UIElement^ reflection = nullptr;
+
         FindElementChildren(container, des, img, nameTxt, blur, reflection);
         ApplySelectionVisuals(des, img, nameTxt, blur, reflection, selected);
     } catch(...) {}
 }
 
-// Helper implementation: set widths on realized container and fade-in blur/reflection rectangles
-void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img) {
+void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, BitmapImage^ img) {
     try {
         if (app == nullptr || img == nullptr) return;
         // Only act if this app is currently selected
@@ -935,25 +654,41 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Windo
 
             // Determine target width similar to existing logic
             double targetWidth = 0.0;
+            auto itemGridFE = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(FindChildByName(container, ref new Platform::String(L"ItemGrid")));
             try {
-                auto itemGridFE = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(FindChildByName(container, ref new Platform::String(L"ItemGrid")));
                 if (itemGridFE != nullptr) { try { targetWidth = itemGridFE->ActualWidth; } catch(...) { targetWidth = 0.0; } }
                 if (targetWidth <= 0.0) { try { targetWidth = container->ActualWidth; } catch(...) { targetWidth = 0.0; } }
                 if (targetWidth <= 0.0 && this->AppsGrid != nullptr) { try { targetWidth = this->AppsGrid->ActualWidth; } catch(...) { targetWidth = 0.0; } }
             } catch(...) { targetWidth = 0.0; }
 
+            double targetHeight = 0.0;
+            try {
+                if (itemGridFE != nullptr) { try { targetHeight = itemGridFE->ActualHeight; } catch(...) { targetHeight = 0.0; } }
+                if (targetHeight <= 0.0) { try { targetHeight = container->ActualHeight; } catch(...) { targetHeight = 0.0; } }
+                if (targetHeight <= 0.0 && this->AppsGrid != nullptr) { try { targetHeight = this->AppsGrid->ActualHeight; } catch(...) { targetHeight = 0.0; } }
+            } catch(...) { targetHeight = 0.0; }
+
             // Set widths and fade-in when elements are present
             try {
                 int tarWidth = 0;
+                int tarHeight = 0;
 
                 auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
                 auto blurFE = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
                 if (blurFE != nullptr && img->PixelHeight > 0) {
-                    try { tarWidth = img->PixelWidth * (blurFE->ActualHeight / img->PixelHeight); } catch(...) { tarWidth = 0; }
+					try {
+						tarWidth = targetWidth + (kBlurAmount * 2); /*(blurFE->ActualHeight / img->PixelHeight);*/
+						tarHeight = targetHeight;                   // + (kBlurAmount * 1); /*(blurFE->ActualHeight / img->PixelHeight);*/
+					} catch (...) {
+						tarWidth = 0;
+						tarHeight = 0;
+					}
                     if (tarWidth <= 0 && targetWidth > 0) tarWidth = (int)std::round(targetWidth);
-                    if (tarWidth > 0) {
+                    if (tarHeight <= 0 && targetHeight > 0) tarHeight = (int)std::round(targetHeight);
+                    if (tarWidth > 0 && tarHeight > 0) {
                         try { blurFE->Opacity = 0.0; } catch(...) {}
-                        // try { blurFE->Width = tarWidth; } catch(...) {}
+                        try { blurFE->Width = img->PixelWidth; } catch(...) {}
+                        try { blurFE->Height = img->PixelHeight; } catch(...) {}
                         try { AnimateElementOpacity(blurFE, kBlurOpacitySelected, kAnimationDurationMs); } catch(...) {}
                     }
                 }
@@ -964,7 +699,7 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Windo
                     try {
                         if (reflFE != nullptr) {
                             try { reflFE->Opacity = 0.0; } catch(...) {}
-                            try { reflFE->Width = tarWidth; } catch(...) {}
+                            //try { reflFE->Width = tarWidth; } catch(...) {}
                             try { AnimateElementOpacity(reflFE, kReflectionOpacitySelected, kAnimationDurationMs); } catch(...) {}
                         }
                     } catch(...) {}
@@ -1003,7 +738,7 @@ static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int d
             auto dbl = ref new DoubleAnimation();
             dbl->To = ref new Platform::Box<double>((double)targetOpacity);
             TimeSpan ts2; ts2.Duration = (int64_t)durationMs * 10000LL;
-            dbl->Duration = Windows::UI::Xaml::DurationHelper::FromTimeSpan(ts2);
+            dbl->Duration = DurationHelper::FromTimeSpan(ts2);
             auto sb = ref new Storyboard();
             sb->Children->Append(dbl);
             Storyboard::SetTarget(dbl, element);
@@ -1165,7 +900,7 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                             if (sb != nullptr) {
                                 sb->Begin();
                             } else {
-                                if (allowOpacityTransitions && m_compositionReady) {
+                                if (m_compositionReady) {
                                     AnimateElementOpacity(this->SelectedAppBox, 0.0f, kAnimationDurationMs);
                                     AnimateElementOpacity(this->SelectedAppText, 0.0f, kAnimationDurationMs);
                                 } else {
@@ -1233,10 +968,10 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                                         if (!m_isGridLayout) {
                                             auto sv = m_scrollViewer == nullptr ? FindScrollViewer(this->AppsGrid) : m_scrollViewer;
                                             if (sv != nullptr) {
-                                                Windows::Foundation::Point pt{0,0};
+                                                Point pt{0,0};
                                                 try {
                                                     auto trans2 = container->TransformToVisual(sv);
-                                                    if (trans2 != nullptr) pt = trans2->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+                                                    if (trans2 != nullptr) pt = trans2->TransformPoint(Point{ 0, 0 });
                                                     else Utils::Log("OnNavigatedTo center: TransformToVisual returned null\n");
                                                 } catch(...) { Utils::Log("OnNavigatedTo center: TransformToVisual/TransformPoint threw\n"); }
                                                 double containerCenter = pt.X + container->ActualWidth / 2.0;
@@ -1612,94 +1347,137 @@ void AppPage::helpButton_Click(Platform::Object^, Windows::UI::Xaml::RoutedEvent
     });
 }
 
-void AppPage::Blur_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-    try {
-        if (this->host == nullptr || this->host->Apps == nullptr) return;
-        for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
-            auto app = this->host->Apps->GetAt(i);
-            if (app == nullptr) continue;
-            Platform::WeakReference weakThis(this);
-            try {
-                // ApplyBlur already performs capture -> mask -> pre-mask blur pipeline and returns an in-memory PNG stream.
-                ApplyBlur(app, kBlurAmount).then([app, weakThis](Windows::Storage::Streams::IRandomAccessStream^ stream) {
-                    try {
-                        if (stream == nullptr) {
-                            try { Utils::Logf("[AppPage] Blur_Click: ApplyBlur returned null stream for app id=%d\n", app->Id); } catch(...) {}
-                            return;
-                        }
-                        auto that = weakThis.Resolve<AppPage>();
-                        if (that == nullptr) return;
-                        that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, stream, weakThis]() {
-                            try {
-                                auto thatInner = weakThis.Resolve<AppPage>();
-                                if (thatInner == nullptr) return;
-                                if (app == nullptr) return;
-                                auto img = ref new Windows::UI::Xaml::Media::Imaging::BitmapImage();
-                                // Set the stream as the BitmapImage source and assign to app->BlurredImage when ready
-                                concurrency::create_task(img->SetSourceAsync(stream)).then([weakThis, app, img, stream]() {
-                                    try {
-                                        try { Utils::Logf("[AppPage] Blur_Click: SetSourceAsync completed for app id=%d\n", app->Id); } catch(...) {}
-                                        auto thatCont = weakThis.Resolve<AppPage>();
-                                        if (thatCont == nullptr) return;
-                                        // Assign the resulting BitmapImage to the app's BlurredImage property on UI thread
-                                        
-                                        thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([thatCont, app, img]() {
-                                            try {
-                                                app->BlurredImage = img;
+void AppPage::BlurAppImage(MoonlightApp ^ selApp) {
+	try {
+		if (selApp->BlurredImage == nullptr) {
+			Platform::WeakReference weakThis(this);
+			try {
+				ApplyBlur(selApp, kBlurAmount).then([selApp, weakThis](Windows::Storage::Streams::IRandomAccessStream ^ stream) {
+					try {
+						if (stream == nullptr) {
+							try {
+								::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: ApplyBlur returned null stream for app id=%d\n", selApp->Id);
+							} catch (...) {
+							}
+							return;
+						}
+						auto that = weakThis.Resolve<AppPage>();
+						if (that == nullptr) return;
+						that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([selApp, stream, weakThis]() {
+						    try {
+							    auto thatInner = weakThis.Resolve<AppPage>();
+							    if (thatInner == nullptr) return;
+							    if (selApp == nullptr) return;
+							    auto img = ref new BitmapImage();
+							    concurrency::create_task(img->SetSourceAsync(stream)).then([weakThis, selApp, img, stream]() {
+								    try {
+									    try {
+										    ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: SetSourceAsync completed for app id=%d\n", selApp->Id);
+									    } catch (...) {
+									    }
+									    auto thatCont = weakThis.Resolve<AppPage>();
+									    if (thatCont == nullptr) return;
+									    // Assign the resulting BitmapImage to the app's properties on UI thread
+									    thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([thatCont, selApp, img]() {
+										    try {
 
-                                                /*SET WIDTH TO CONTAINER HERE*/
-                                                try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] Blur_Click: assigned BlurredImage for app id=%d\n", app->Id); } catch(...) {}
-                                            
-                                                
-                                                // Attempt to size and fade-in blur/reflection for the selected app
-                                                try { thatCont->FadeInRealizedBlurAndReflectionIfSelected(app, img); } catch(...) {}
+											    selApp->BlurredImage = img;
+											    try {
+												    ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: assigned BlurredImage for app id=%d\n", selApp->Id);
+											    } catch (...) {
+											    }
+											    // Attempt to size and fade-in blur/reflection for the selected app
+											    try {
+												    thatCont->FadeInRealizedBlurAndReflectionIfSelected(selApp, img);
+											    } catch (...) {
+											    }
 
-                                            
-                                            
-                                            } catch(Platform::Exception^ ex) {
-                                                try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception assigning BlurredImage id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-                                            } catch(...) {
-                                                try { Utils::Logf("[AppPage] Blur_Click: unknown exception assigning BlurredImage for app id=%d\n", app->Id); } catch(...) {}
-                                            }
-                                        }));
+										    } catch (Platform::Exception ^ ex) {
+											    try {
+												    Utils::Logf("[AppPage] SelectionChanged: Platform::Exception assigning BlurredImage id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+											    } catch (...) {
+											    }
+										    } catch (...) {
+											    try {
+												    Utils::Logf("[AppPage] SelectionChanged: unknown exception assigning BlurredImage for app id=%d\n", selApp->Id);
+											    } catch (...) {
+											    }
+										    }
+									    }));
 
-                                        thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([app, img]() {
-                                            try {
-                                                app->ReflectionImage = img;
-                                                /*SET WIDTH TO CONTAINER HERE*/
-                                                try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] Blur_Click: assigned ReflectionImage for app id=%d\n", app->Id); } catch(...) {}
-                                            } catch(Platform::Exception^ ex) {
-                                                try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception assigning ReflectionImage id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-                                            } catch(...) {
-                                                try { Utils::Logf("[AppPage] Blur_Click: unknown exception assigning ReflectionImage for app id=%d\n", app->Id); } catch(...) {}
-                                            }
-                                        }));
+									    // Also assign ReflectionImage
+									    thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([selApp, img]() {
+										    try {
+											    selApp->ReflectionImage = img;
+											    try {
+												    ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: assigned ReflectionImage for app id=%d\n", selApp->Id);
+											    } catch (...) {
+											    }
+										    } catch (Platform::Exception ^ ex) {
+											    try {
+												    Utils::Logf("[AppPage] SelectionChanged: Platform::Exception assigning ReflectionImage id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+											    } catch (...) {
+											    }
+										    } catch (...) {
+											    try {
+												    Utils::Logf("[AppPage] SelectionChanged: unknown exception assigning ReflectionImage for app id=%d\n", selApp->Id);
+											    } catch (...) {
+											    }
+										    }
+									    }));
 
-                                    } catch(Platform::Exception^ ex) {
-                                        try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception in SetSourceAsync continuation id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-                                    } catch(...) {
-                                        try { Utils::Logf("[AppPage] Blur_Click: unknown exception in SetSourceAsync continuation for app id=%d\n", app->Id); } catch(...) {}
-                                    }
-                                }, concurrency::task_continuation_context::use_arbitrary());
-                            } catch(Platform::Exception^ ex) {
-                                try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception dispatching to UI for app id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-                            } catch(...) {
-                                try { Utils::Logf("[AppPage] Blur_Click: unknown exception dispatching to UI for app id=%d\n", app->Id); } catch(...) {}
-                            }
-                        }));
-                    } catch(Platform::Exception^ ex) {
-                        try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception in ApplyBlur continuation id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-                    } catch(...) {
-                        try { Utils::Logf("[AppPage] Blur_Click: unknown exception in ApplyBlur continuation for app id=%d\n", app->Id); } catch(...) {}
-                    }
-                }, concurrency::task_continuation_context::use_current());
-            } catch(Platform::Exception^ ex) {
-                try { Utils::Logf("[AppPage] Blur_Click: Platform::Exception starting ApplyBlur for app id=%d msg=%S\n", app->Id, ex->Message->Data()); } catch(...) {}
-            } catch(...) {
-                try { Utils::Logf("[AppPage] Blur_Click: unknown exception starting ApplyBlur for app id=%d\n", app->Id); } catch(...) {}
-            }
-        }
-    } catch(...) {}
+								    } catch (Platform::Exception ^ ex) {
+									    try {
+										    Utils::Logf("[AppPage] SelectionChanged: Platform::Exception in SetSourceAsync continuation id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+									    } catch (...) {
+									    }
+								    } catch (...) {
+									    try {
+										    Utils::Logf("[AppPage] SelectionChanged: unknown exception in SetSourceAsync continuation for app id=%d\n", selApp->Id);
+									    } catch (...) {
+									    }
+								    }
+							    },
+								concurrency::task_continuation_context::use_arbitrary());
+						    } catch (Platform::Exception ^ ex) {
+							    try {
+								    Utils::Logf("[AppPage] SelectionChanged: Platform::Exception dispatching to UI for app id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+							    } catch (...) {
+							    }
+						    } catch (...) {
+							    try {
+								    Utils::Logf("[AppPage] SelectionChanged: unknown exception dispatching to UI for app id=%d\n", selApp->Id);
+							    } catch (...) {
+							    }
+						    }
+					    }));
+					} catch (Platform::Exception ^ ex) {
+						try {
+							Utils::Logf("[AppPage] SelectionChanged: Platform::Exception in ApplyBlur continuation id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+						} catch (...) {
+						}
+					} catch (...) {
+						try {
+							Utils::Logf("[AppPage] SelectionChanged: unknown exception in ApplyBlur continuation for app id=%d\n", selApp->Id);
+						} catch (...) {
+						}
+					}
+				},
+                concurrency::task_continuation_context::use_current());
+			} catch (Platform::Exception ^ ex) {
+				try {
+					Utils::Logf("[AppPage] SelectionChanged: Platform::Exception starting ApplyBlur for app id=%d msg=%S\n", selApp->Id, ex->Message->Data());
+				} catch (...) {
+				}
+			} catch (...) {
+				try {
+					Utils::Logf("[AppPage] SelectionChanged: unknown exception starting ApplyBlur for app id=%d\n", selApp->Id);
+				} catch (...) {
+				}
+			}
+		}
+	} catch (...) {
+	}
 }
 
 void AppPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackRequestedEventArgs ^ args) {
@@ -1734,7 +1512,7 @@ void AppPage::AppsGrid_ItemsChanged(Platform::Object^ sender, Platform::Object^ 
 
 void AppPage::PageRoot_SizeChanged(Platform::Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
     // Trigger an immediate update of item heights so AspectRatioBox.Height bindings re-evaluate.
-    UpdateItemHeights();
+    // UpdateItemHeights();
 }
 
 void AppPage::UpdateItemHeights() {
@@ -1912,10 +1690,9 @@ void AppPage::OnFirstRender(Object^ sender, Object^ e) {
     
     Utils::Log("AppPage::OnFirstRender: first render occurred\n");
     try {
-		this->Blur_Click(nullptr, nullptr);
-		this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
-		this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-		this->CenterSelectedItem(1, true);
+        AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
+		AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
+		// this->CenterSelectedItem(1, true);
     } catch(...) {}
 }
 
@@ -1948,10 +1725,10 @@ static ScrollViewer^ FindScrollViewer(DependencyObject^ parent) {
 void AppPage::TryVerticalCentering(Windows::UI::Xaml::Controls::ScrollViewer^ sv, Windows::UI::Xaml::Controls::ListViewItem^ container, int retries, AppPage^ page) {
     if (sv == nullptr || container == nullptr || page == nullptr) return;
     try {
-        Windows::Foundation::Point pt{0,0};
+        Point pt{0,0};
         try {
             auto trans = container->TransformToVisual(sv);
-            if (trans != nullptr) pt = trans->TransformPoint(Windows::Foundation::Point{ 0, 0 });
+            if (trans != nullptr) pt = trans->TransformPoint(Point{ 0, 0 });
             else Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual returned null\n");
         } catch(...) { Utils::Log("ApplyCenteringTransformIfNeeded: TransformToVisual/TransformPoint threw\n"); }
         double containerCenterY = pt.Y + container->ActualHeight / 2.0;
@@ -2015,13 +1792,18 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
         }
     } catch(...) { prevItem = nullptr; }
 
+    try{
+		auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(lv->SelectedItem);
+		if (selApp != nullptr) {
+			BlurAppImage(selApp);
+		}
+	} catch (...) {
+	}
+
     EnsureRealizedContainersInitialized(lv);
 
     if (lv->SelectedIndex < 0) return;
-    try { this->HandleSelectionChangedAsync(lv, prevItem); } catch(...) {}
-}
 
-void AppPage::HandleSelectionChangedAsync(Windows::UI::Xaml::Controls::ListView^ lv, Platform::Object^ prevItem) {
     if (lv == nullptr) return;
     auto item = lv->SelectedItem;
     if (item == nullptr) return;
@@ -2065,84 +1847,6 @@ void AppPage::HandleSelectionChangedAsync(Windows::UI::Xaml::Controls::ListView^
         auto res = this->Resources;
         if (selApp != nullptr) {
             
-            // If this app does not yet have a blurred/reflection image, generate it now.
-            try {
-                    if (selApp->BlurredImage == nullptr) {
-                        Platform::WeakReference weakThis(this);
-                        try {
-                            ApplyBlur(selApp, kBlurAmount).then([selApp, weakThis](Windows::Storage::Streams::IRandomAccessStream^ stream) {
-                                try {
-                                    if (stream == nullptr) {
-                                        try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: ApplyBlur returned null stream for app id=%d\n", selApp->Id); } catch(...) {}
-                                        return;
-                                    }
-                                    auto that = weakThis.Resolve<AppPage>();
-                                    if (that == nullptr) return;
-                                    that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([selApp, stream, weakThis]() {
-                                        try {
-                                            auto thatInner = weakThis.Resolve<AppPage>();
-                                            if (thatInner == nullptr) return;
-                                            if (selApp == nullptr) return;
-                                            auto img = ref new Windows::UI::Xaml::Media::Imaging::BitmapImage();
-                                            concurrency::create_task(img->SetSourceAsync(stream)).then([weakThis, selApp, img, stream]() {
-                                                try {
-                                                    try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: SetSourceAsync completed for app id=%d\n", selApp->Id); } catch(...) {}
-                                                    auto thatCont = weakThis.Resolve<AppPage>();
-                                                    if (thatCont == nullptr) return;
-                                                    // Assign the resulting BitmapImage to the app's properties on UI thread
-                                                    thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([thatCont, selApp, img]() {
-                                                        try {
-
-                                                            selApp->BlurredImage = img;
-                                                            try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: assigned BlurredImage for app id=%d\n", selApp->Id); } catch(...) {}
-                                                            // Attempt to size and fade-in blur/reflection for the selected app
-                                                            try { thatCont->FadeInRealizedBlurAndReflectionIfSelected(selApp, img); } catch(...) {}
-
-                                                        } catch(Platform::Exception^ ex) {
-                                                            try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception assigning BlurredImage id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                                                        } catch(...) {
-                                                            try { Utils::Logf("[AppPage] SelectionChanged: unknown exception assigning BlurredImage for app id=%d\n", selApp->Id); } catch(...) {}
-                                                        }
-                                                    }));
-
-                                                    // Also assign ReflectionImage
-                                                    thatCont->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([selApp, img]() {
-                                                        try {
-                                                            selApp->ReflectionImage = img;
-                                                            try { ::moonlight_xbox_dx::Utils::Logf("[AppPage] SelectionChanged: assigned ReflectionImage for app id=%d\n", selApp->Id); } catch(...) {}
-                                                        } catch(Platform::Exception^ ex) {
-                                                            try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception assigning ReflectionImage id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                                                        } catch(...) {
-                                                            try { Utils::Logf("[AppPage] SelectionChanged: unknown exception assigning ReflectionImage for app id=%d\n", selApp->Id); } catch(...) {}
-                                                        }
-                                                    }));
-
-                                                } catch(Platform::Exception^ ex) {
-                                                    try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception in SetSourceAsync continuation id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                                                } catch(...) {
-                                                    try { Utils::Logf("[AppPage] SelectionChanged: unknown exception in SetSourceAsync continuation for app id=%d\n", selApp->Id); } catch(...) {}
-                                                }
-                                            }, concurrency::task_continuation_context::use_arbitrary());
-                                        } catch(Platform::Exception^ ex) {
-                                            try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception dispatching to UI for app id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                                        } catch(...) {
-                                            try { Utils::Logf("[AppPage] SelectionChanged: unknown exception dispatching to UI for app id=%d\n", selApp->Id); } catch(...) {}
-                                        }
-                                    }));
-                                } catch(Platform::Exception^ ex) {
-                                    try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception in ApplyBlur continuation id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                                } catch(...) {
-                                    try { Utils::Logf("[AppPage] SelectionChanged: unknown exception in ApplyBlur continuation for app id=%d\n", selApp->Id); } catch(...) {}
-                                }
-                            }, concurrency::task_continuation_context::use_current());
-                        } catch(Platform::Exception^ ex) {
-                            try { Utils::Logf("[AppPage] SelectionChanged: Platform::Exception starting ApplyBlur for app id=%d msg=%S\n", selApp->Id, ex->Message->Data()); } catch(...) {}
-                        } catch(...) {
-                            try { Utils::Logf("[AppPage] SelectionChanged: unknown exception starting ApplyBlur for app id=%d\n", selApp->Id); } catch(...) {}
-                        }
-                    }
-                } catch(...) {}
-    
             if (this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
                 this->SelectedAppText->Text = selApp->Name;
                 this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
@@ -2162,7 +1866,7 @@ void AppPage::HandleSelectionChangedAsync(Windows::UI::Xaml::Controls::ListView^
                     auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(sbObj);
                     if (sb != nullptr) sb->Begin();
                     else {
-                        if (allowOpacityTransitions && m_compositionReady) {
+                        if (m_compositionReady) {
                             AnimateElementOpacity(this->SelectedAppBox, 0.0f, kAnimationDurationMs);
                             AnimateElementOpacity(this->SelectedAppText, 0.0f, kAnimationDurationMs);
                         } else {
@@ -2297,55 +2001,54 @@ void moonlight_xbox_dx::AppPage::OnScrollViewerViewChanged(Platform::Object^ sen
                     }
                 } catch(...) { isSelected = false; }
 
-                if (allowScaleTransitions || ::moonlight_xbox_dx::allowOpacityTransitions) {
-                    if (img != nullptr) {
-                        auto imgVis = ElementCompositionPreview::GetElementVisual(img);
-                        if (imgVis != nullptr) {
-                            try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
-                            // For initial load keep baseline immediate; only animate when composition visuals are marked ready
-                            if (allowScaleTransitions && m_compositionReady) {
-                                AnimateElementScale(img, ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
-                            } else {
-                                Windows::Foundation::Numerics::float3 s; s.x = ::moonlight_xbox_dx::kUnselectedScale; s.y = s.x; s.z = 0.0f;
-                                imgVis->Scale = s;
-                            }
-                            auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
-                            if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
-                                Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
-                                imgVis->CenterPoint = cp;
-                            }
+                if (img != nullptr) {
+                    auto imgVis = ElementCompositionPreview::GetElementVisual(img);
+                    if (imgVis != nullptr) {
+                        try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
+                        // For initial load keep baseline immediate; only animate when composition visuals are marked ready
+                        if (m_compositionReady) {
+                            AnimateElementScale(img, ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
+                        } else {
+                            Windows::Foundation::Numerics::float3 s; s.x = ::moonlight_xbox_dx::kUnselectedScale; s.y = s.x; s.z = 0.0f;
+                            imgVis->Scale = s;
+                        }
+                        auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
+                        if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
+                            Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
+                            imgVis->CenterPoint = cp;
                         }
                     }
-                    if (des != nullptr) {
-                        auto desVis = ElementCompositionPreview::GetElementVisual(des);
-                        if (desVis != nullptr) {
-                            try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
-                            // Set desaturator baseline for all realized items. Keep immediate on first load
-                            if (allowScaleTransitions && m_compositionReady) {
-                                AnimateElementScale(dynamic_cast<UIElement^>(des), ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
+                }
+
+                if (des != nullptr) {
+                    auto desVis = ElementCompositionPreview::GetElementVisual(des);
+                    if (desVis != nullptr) {
+                        try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
+
+                        if (m_compositionReady) {
+                            AnimateElementScale(dynamic_cast<UIElement^>(des), ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
+                            AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
+                        } else {
+                            desVis->Opacity = kDesaturatorOpacityUnselected;
+                            Windows::Foundation::Numerics::float3 s2; s2.x = ::moonlight_xbox_dx::kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
+                            desVis->Scale = s2;
+                        }
+
+                        // Init name opacity for scroll update
+                        if (nameTxt != nullptr) {
+                            if (m_compositionReady) {
+                                AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
                             } else {
-                                Windows::Foundation::Numerics::float3 s2; s2.x = ::moonlight_xbox_dx::kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
-                                desVis->Scale = s2;
-                            }
-                            if (allowOpacityTransitions && m_compositionReady) {
-                                AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
-                            } else {
-                                desVis->Opacity = kDesaturatorOpacityUnselected;
-                            }
-                            // Init name opacity for scroll update
-                            if (nameTxt != nullptr) {
-                                if (allowOpacityTransitions && m_compositionReady) {
-                                    AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
-                                } else {
-                                    SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
-                                }
-                            }
-                            auto desFE2 = dynamic_cast<FrameworkElement^>(des);
-                            if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
-                                Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
-                                desVis->CenterPoint = cp2;
+                                SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
                             }
                         }
+
+                        auto desFE2 = dynamic_cast<FrameworkElement^>(des);
+                        if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
+                            Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
+                            desVis->CenterPoint = cp2;
+                        }
+
                     }
                 } else {
                     if (img != nullptr) SetElementScaleImmediate(img, isSelected ? kSelectedScale : kUnselectedScale);
@@ -2536,7 +2239,7 @@ void AppPage::OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::U
             // toggle layout
             this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
                 try {
-					this->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                    this->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
                 } catch(...) {}
             }));
             args->Handled = true;
@@ -2623,100 +2326,97 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                      }
                  } catch(...) { isSelected = false; }
 
-                 if (allowScaleTransitions || allowOpacityTransitions) {
-                     // Initialize composition visual properties so animations operate from the correct baseline.
-                     try {
-                         if (img != nullptr) {
-                             auto imgVis = ElementCompositionPreview::GetElementVisual(img);
-                             if (imgVis != nullptr) {
-                                 try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
-                                 // Initialize to unselected baseline for all realized items. Keep immediate on first load
-                                 if (allowScaleTransitions && m_compositionReady) {
-                                     AnimateElementScale(img, kUnselectedScale, kAnimationDurationMs);
-                                 } else {
-                                     Windows::Foundation::Numerics::float3 s; s.x = kUnselectedScale; s.y = s.x; s.z = 0.0f;
-                                     imgVis->Scale = s;
-                                 }
-                                 auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
-                                 if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
-                                     Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
-                                     imgVis->CenterPoint = cp;
-                                 }
-                             }
-                         }
-						 if (blur != nullptr) {
-							 auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
-							 if (blurVis != nullptr) {
-								 try {
-									 blurVis->StopAnimation("Scale.X");
-									 blurVis->StopAnimation("Scale.Y");
-								 } catch (...) {
-								 }
-								 // Initialize to unselected baseline for all realized items. Keep immediate on first load
-								 if (allowScaleTransitions && m_compositionReady) {
-									 AnimateElementScale(blur, kUnselectedScale, kAnimationDurationMs);
-								 } else {
-									 Windows::Foundation::Numerics::float3 s;
-									 s.x = kUnselectedScale;
-									 s.y = s.x;
-									 s.z = 0.0f;
-									 blurVis->Scale = s;
-								 }
-								 auto blurFE2 = dynamic_cast<FrameworkElement ^>(blur);
-								 if (blurFE2 != nullptr && blurFE2->ActualWidth > 0 && blurFE2->ActualHeight > 0) {
-									 Windows::Foundation::Numerics::float3 cp;
-									 cp.x = (float)blurFE2->ActualWidth * 0.5f;
-									 cp.y = (float)blurFE2->ActualHeight * 0.5f;
-									 cp.z = 0.0f;
-									 blurVis->CenterPoint = cp;
-								 }
-							 }
-						 }
-                         if (des != nullptr) {
-                             auto desVis = ElementCompositionPreview::GetElementVisual(des);
-                             auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
-                             if (desVis != nullptr) {
-                                 try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
-                                 // Set desaturator baseline for all realized items. Keep immediate on first load
-                                 if (allowScaleTransitions && m_compositionReady) {
-                                     AnimateElementScale(dynamic_cast<UIElement^>(des), kUnselectedScale, kAnimationDurationMs);
-                                     AnimateElementScale(dynamic_cast<UIElement^>(blur), kUnselectedScale, kAnimationDurationMs);
-                                 } else {
-                                     Windows::Foundation::Numerics::float3 s2; s2.x = kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
-                                     desVis->Scale = s2;
-                                 }
-                                 if (allowOpacityTransitions && m_compositionReady) {
-                                     AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
-                                     AnimateElementOpacity(blur, 0, kAnimationDurationMs);
-                                 } else {
-                                     desVis->Opacity = kDesaturatorOpacityUnselected;
-									 blurVis->Opacity = 0;
-                                 }
-                                 // Init name opacity for scroll update
-                                 if (nameTxt != nullptr) {
-                                     if (allowOpacityTransitions && m_compositionReady) {
-                                         AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
-                                     } else {
-                                         SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
-                                     }
-                                 }
-                                 auto desFE2 = dynamic_cast<FrameworkElement^>(des);
-                                 if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
-                                     Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
-                                     desVis->CenterPoint = cp2;
-                                 }
-                             }
-                         }
-                     } catch(...) {}
-                 } else {
-                     if (img != nullptr) SetElementScaleImmediate(img, isSelected ? kSelectedScale : kUnselectedScale);
-                     if (des != nullptr) { SetElementScaleImmediate(des, isSelected ? kSelectedScale : kUnselectedScale); SetElementOpacityImmediate(des, isSelected ? 0.0f : kDesaturatorOpacityUnselected); }
-                     if (blur != nullptr) { SetElementScaleImmediate(blur, isSelected ? kSelectedScale : kUnselectedScale); SetElementOpacityImmediate(blur, isSelected ? kBlurOpacitySelected : 0.0f); }
-                 }
+                // Initialize composition visual properties so animations operate from the correct baseline.
+                try {
+                    if (img != nullptr) {
+                        auto imgVis = ElementCompositionPreview::GetElementVisual(img);
+                        if (imgVis != nullptr) {
+                            try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
+                            // Initialize to unselected baseline for all realized items. Keep immediate on first load
+                            if (m_compositionReady) {
+                                AnimateElementScale(img, kUnselectedScale, kAnimationDurationMs);
+                            } else {
+                                Windows::Foundation::Numerics::float3 s; s.x = kUnselectedScale; s.y = s.x; s.z = 0.0f;
+                                imgVis->Scale = s;
+                            }
+                            auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
+                            if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
+                                Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
+                                imgVis->CenterPoint = cp;
+                            }
+                        }
+                    }
+					if (blur != nullptr) {
+						auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
+						if (blurVis != nullptr) {
+
+							try {
+								blurVis->StopAnimation("Scale.X");
+								blurVis->StopAnimation("Scale.Y");
+							} catch (...) {
+							}
+
+							// Initialize to unselected baseline for all realized items. Keep immediate on first load
+							if (m_compositionReady) {
+								AnimateElementScale(blur, kUnselectedScale, kAnimationDurationMs);
+							} else {
+								Windows::Foundation::Numerics::float3 s;
+								s.x = kUnselectedScale;
+								s.y = s.x;
+								s.z = 0.0f;
+								blurVis->Scale = s;
+							}
+
+							auto blurFE2 = dynamic_cast<FrameworkElement ^>(blur);
+							if (blurFE2 != nullptr && blurFE2->ActualWidth > 0 && blurFE2->ActualHeight > 0) {
+								Windows::Foundation::Numerics::float3 cp;
+								cp.x = (float)blurFE2->ActualWidth * 0.5f;
+								cp.y = (float)blurFE2->ActualHeight * 0.5f;
+								cp.z = 0.0f;
+								blurVis->CenterPoint = cp;
+							}
+						}
+					}
+                    if (des != nullptr) {
+                        auto desVis = ElementCompositionPreview::GetElementVisual(des);
+                        auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
+                        if (desVis != nullptr) {
+
+                            try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
+                            
+                            if (m_compositionReady) {
+                                AnimateElementScale(dynamic_cast<UIElement^>(des), kUnselectedScale, kAnimationDurationMs);
+                                AnimateElementScale(dynamic_cast<UIElement^>(blur), kUnselectedScale, kAnimationDurationMs);
+
+                                AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
+                                AnimateElementOpacity(blur, 0, kAnimationDurationMs);
+                            } else {
+                                Windows::Foundation::Numerics::float3 s2; s2.x = kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
+                                desVis->Scale = s2;
+                                desVis->Opacity = kDesaturatorOpacityUnselected;
+								blurVis->Opacity = 0;
+                            }
+
+                            // Init name opacity for scroll update
+                            if (nameTxt != nullptr) {
+                                if (m_compositionReady) {
+                                    AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
+                                } else {
+                                    SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
+                                }
+                            }
+
+                            auto desFE2 = dynamic_cast<FrameworkElement^>(des);
+                            if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
+                                Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
+                                desVis->CenterPoint = cp2;
+                            }
+                        }
+                    }
+                } catch(...) {}
              } catch(...) {}
         }
     } catch(...) {}
 }
 
-} // namespace moonlight_xbox_dx
-
+} 
