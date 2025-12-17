@@ -11,7 +11,6 @@
 #include <vector>
 #include <wrl.h>
 #include <ppltasks.h>
-#include "../Common/EffectsLibrary.h"
 #include "Common/ImageHelpers.h"
 
 using namespace Microsoft::WRL;
@@ -35,7 +34,36 @@ using namespace Windows::Storage;
 
 namespace moonlight_xbox_dx {
 
-// Forward declarations for helper functions used below
+// OPACITY
+static constexpr float kDesaturatorOpacityUnselected = 0.8f;
+static constexpr float kEmbossOpacitySelected = 0.2f;
+static constexpr float kBlurOpacitySelected = 0.4f;
+static constexpr float kReflectionOpacitySelected = 0.2f;
+
+// SCALE
+static constexpr float kSelectedScale = 1.0f;
+static constexpr float kUnselectedScale = 0.8f;
+
+static constexpr double kAppsGridHeightFactor = 0.7;
+static constexpr int kAnimationDurationMs = 150;
+
+static constexpr float kBlurAmount = 8.0f;
+
+// Blur amount depends on layout mode: smaller blur in grid, larger in list
+static constexpr float kBlurAmountGrid = 8.0f;
+static constexpr float kBlurAmountList = 16.0f;
+static inline float GetBlurAmountFor(bool isGridLayout) {
+    return isGridLayout ? kBlurAmountGrid : kBlurAmountList;
+}
+
+// Forward declare helper used below
+static ScrollViewer ^ FindScrollViewer(DependencyObject ^ parent);
+static FrameworkElement ^ FindChildByName(DependencyObject ^ parent, Platform::String ^ name);
+static void AnimateElementOpacity(UIElement ^ element, float targetOpacity, int durationMs);
+static void AnimateElementWidth(FrameworkElement ^ element, double targetWidth, int durationMs);
+static void SetElementOpacityImmediate(UIElement ^ element, float value);
+static void SetElementScaleImmediate(UIElement ^ element, float scale);
+static void AnimateElementScale(UIElement ^ element, float targetScale, int durationMs);
 static FrameworkElement^ FindChildByName(DependencyObject^ parent, String^ name);
 
 static concurrency::task<SoftwareBitmap^> CaptureXamlElementAsync(FrameworkElement^ element) {
@@ -282,30 +310,6 @@ concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, 
 	});
 }
 
-// OPACITY
-static constexpr float kDesaturatorOpacityUnselected = 0.7f;
-static constexpr float kBlurOpacitySelected = 0.4f;
-static constexpr float kReflectionOpacitySelected = 0.2f;
-
-// SCALE
-static constexpr float kSelectedScale = 1.0f;
-static constexpr float kUnselectedScale = 0.8f;
-
-
-static constexpr double kAppsGridHeightFactor = 0.7;
-static constexpr int kAnimationDurationMs = 150;
-
-static constexpr float kBlurAmount = 16.0f;
-
-// Forward declare helper used below
-static ScrollViewer^ FindScrollViewer(DependencyObject^ parent);
-static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name);
-static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs);
-static void AnimateElementWidth(FrameworkElement ^ element, double targetWidth, int durationMs);
-static void SetElementOpacityImmediate(UIElement^ element, float value);
-static void SetElementScaleImmediate(UIElement^ element, float scale);
-static void AnimateElementScale(UIElement^ element, float targetScale, int durationMs);
-
 void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     auto lv = this->AppsGrid;
     if (lv == nullptr) return;
@@ -516,7 +520,6 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     } catch (...) {}
 }
 
-// Recursive find child by name
 static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name) {
     if (parent == nullptr) return nullptr;
     int count = VisualTreeHelper::GetChildrenCount(parent);
@@ -530,9 +533,8 @@ static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::Str
     return nullptr;
 }
 
-// Helper: find multiple named children (Desaturator, AppImageRect, AppName) inside a container
-static void FindElementChildren(DependencyObject^ container, UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName, UIElement^& outBlur, UIElement^& outReflection) {
-    outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outReflection = nullptr;
+static void FindElementChildren(DependencyObject^ container, UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName, UIElement^& outBlur, UIElement^& outReflection, UIElement^& outEmboss) {
+    outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outReflection = nullptr; outEmboss = nullptr;
     if (container == nullptr) return;
     try {
         outDesaturator = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Desaturator")));
@@ -540,46 +542,13 @@ static void FindElementChildren(DependencyObject^ container, UIElement^& outDesa
         outName = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppName")));
         outBlur = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")));
         outReflection = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageReflectionRect")));
-    } catch(...) { outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; }
+        outEmboss = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Emboss")));
+    } catch(...) { outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outEmboss = nullptr; }
 }
 
-// Helper: apply visuals for selected/unselected state to a realized container
-static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, bool selected) {
+static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, UIElement^ emboss, bool selected, bool isGridLayout) {
 
     try {
-        try {
-            
-            ListViewItem^ container = nullptr;
-            
-            try {
-                DependencyObject^ current = dynamic_cast<DependencyObject^>(nameTxt);
-                while (current != nullptr && container == nullptr) {
-                    container = dynamic_cast<ListViewItem^>(current);
-                    if (container != nullptr) break;
-                    try { current = VisualTreeHelper::GetParent(current); } catch(...) { current = nullptr; }
-                }
-            } catch(...) { container = nullptr; }
-
-            if (container != nullptr) {
-
-                bool prev = false;
-                bool hasPrev = false;
-                
-                try {
-                    auto tag = container->Tag;
-                    if (tag != nullptr) {
-                        try { prev = safe_cast<Platform::IBox<bool>^>(tag)->Value; hasPrev = true; } catch(...) { hasPrev = false; }
-                    }
-                } catch(...) { hasPrev = false; }
-
-                if (hasPrev && prev == selected) {
-                    return;
-                }
-
-                try { container->Tag = safe_cast<Platform::Object^>(ref new Platform::Box<bool>(selected)); } catch(...) {}
-            }
-
-        } catch(...) {}
 
         if (img != nullptr) {
             AnimateElementScale(img, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
@@ -590,21 +559,26 @@ static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nam
             AnimateElementOpacity(des, selected ? 0.0f : kDesaturatorOpacityUnselected, kAnimationDurationMs);
         }
 
+        if (emboss != nullptr) {
+            AnimateElementScale(emboss, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+			AnimateElementOpacity(emboss, selected ? kEmbossOpacitySelected : 0.0f, kAnimationDurationMs);
+        }
+
         if (blur != nullptr) {
 			if (selected) {
 				blur->Visibility = Windows::UI::Xaml::Visibility::Visible;
-				AnimateElementScale(blur, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-				AnimateElementOpacity(blur, selected ? kBlurOpacitySelected : 0.0f, kAnimationDurationMs);
+				AnimateElementScale(blur, kSelectedScale, kAnimationDurationMs);
+				AnimateElementOpacity(blur, kBlurOpacitySelected, kAnimationDurationMs);
 			} else {
 				blur->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 			}
         }
 
         if (reflection != nullptr) {
-			if (selected) {
+			if (selected && !isGridLayout) {
 				reflection->Visibility = Windows::UI::Xaml::Visibility::Visible;
-				AnimateElementScale(reflection, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
-				AnimateElementOpacity(reflection, selected ? kReflectionOpacitySelected : 0.0f, kAnimationDurationMs);
+				AnimateElementScale(reflection, kSelectedScale, kAnimationDurationMs);
+				AnimateElementOpacity(reflection, kReflectionOpacitySelected, kAnimationDurationMs);
 			} else {
                 reflection->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
             }
@@ -613,6 +587,7 @@ static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nam
         if (nameTxt != nullptr) {
             AnimateElementOpacity(nameTxt, selected ? 1.0f : 0.0f, kAnimationDurationMs);
         }
+
     } catch(...) {}
 }
 
@@ -624,9 +599,10 @@ void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
         UIElement^ nameTxt = nullptr; 
         UIElement^ blur = nullptr; 
         UIElement^ reflection = nullptr;
+        UIElement^ emboss = nullptr;
 
-        FindElementChildren(container, des, img, nameTxt, blur, reflection);
-        ApplySelectionVisuals(des, img, nameTxt, blur, reflection, selected);
+        FindElementChildren(container, des, img, nameTxt, blur, reflection, emboss);
+        ApplySelectionVisuals(des, img, nameTxt, blur, reflection, emboss, selected, this->m_isGridLayout);
     } catch(...) {}
 }
 
@@ -671,11 +647,12 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
                 auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
                 auto blurFE = dynamic_cast<Windows::UI::Xaml::FrameworkElement ^>(found);
                 if (blurFE != nullptr && img->PixelHeight > 0) {
-					try {
-						tarWidth = targetWidth + (kBlurAmount * 2);
-					} catch (...) {
-						tarWidth = 0;
-					}
+                    try {
+                        float blurAmountLocal = GetBlurAmountFor(this->m_isGridLayout);
+                        tarWidth = targetWidth + (int)(blurAmountLocal * 2);
+                    } catch (...) {
+                        tarWidth = 0;
+                    }
 
                     if (tarWidth <= 0 && targetWidth > 0) tarWidth = (int)std::round(targetWidth);
 
@@ -719,8 +696,13 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
 							}
 							if (displayW <= 0.0) displayW = (double)tarWidth;
 
-							double paddedW = displayW + (kBlurAmount * 2);
-                            AnimateElementWidth(blurFE, paddedW, kAnimationDurationMs);
+                            try {
+                                float blurAmountLocal = GetBlurAmountFor(this->m_isGridLayout);
+                                double paddedW = displayW + (blurAmountLocal * 2);
+                                AnimateElementWidth(blurFE, paddedW, kAnimationDurationMs);
+                            } catch(...) {
+                                AnimateElementWidth(blurFE, (double)tarWidth, kAnimationDurationMs);
+                            }
                         } catch (...) {
                             AnimateElementWidth(blurFE, (double)tarWidth, kAnimationDurationMs);
                         }
@@ -745,7 +727,6 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
     } catch(...) {}
 }
 
-// Animate a UIElement's opacity using the Composition Visual for smooth fades
 static void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs = kAnimationDurationMs) {
     if (element == nullptr) return;
     try {
@@ -1101,7 +1082,7 @@ bool AppPage::ApplyAppFilter(Platform::String ^ filter) {
 							try {
 								for (unsigned int i = 0; i < that->AppsGrid->Items->Size; ++i) {
 									auto c = dynamic_cast<ListViewItem ^>(that->AppsGrid->ContainerFromIndex(i));
-									if (c != nullptr) ApplyVisualsToContainer(c, false);
+                                    if (c != nullptr) that->ApplyVisualsToContainer(c, false);
 								}
 							} catch (...) {
 							}
@@ -1111,8 +1092,8 @@ bool AppPage::ApplyAppFilter(Platform::String ^ filter) {
 								// Ensure it's realized
 								that->AppsGrid->ScrollIntoView(firstItem);
 								auto container = dynamic_cast<ListViewItem ^>(that->AppsGrid->ContainerFromItem(firstItem));
-								if (container != nullptr) {
-									ApplyVisualsToContainer(container, true);
+                                if (container != nullptr) {
+                                    that->ApplyVisualsToContainer(container, true);
 
 									// Update the shared SelectedAppText/SelectedAppBox to mirror selection visuals
 									try {
@@ -1392,7 +1373,7 @@ void AppPage::SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml:
         if (tb == nullptr) return;
         bool collectionChanged = !ApplyAppFilter(tb->Text);
 		if (collectionChanged) {
-			this->EnsureRealizedContainersInitialized(this->AppsGrid);
+			// this->EnsureRealizedContainersInitialized(this->AppsGrid);
 			this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
 			this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
 			// this->CenterSelectedItem(1, true);
@@ -1542,7 +1523,7 @@ void AppPage::BlurAppImage(MoonlightApp ^ selApp) {
 		if (selApp->BlurredImage == nullptr) {
 			Platform::WeakReference weakThis(this);
 			try {
-				ApplyBlur(selApp, kBlurAmount).then([selApp, weakThis](Windows::Storage::Streams::IRandomAccessStream ^ stream) {
+                ApplyBlur(selApp, GetBlurAmountFor(this->m_isGridLayout)).then([selApp, weakThis](Windows::Storage::Streams::IRandomAccessStream ^ stream) {
 					try {
 						if (stream == nullptr) {
 							try {
@@ -1682,27 +1663,15 @@ void AppPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackReque
 }
 
 void AppPage::AppsGrid_SizeChanged(Platform::Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
-    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_SizeChanged\n"); } catch(...) {}
-    // No-op: disable adjusting ItemsPanel margin which previously caused unexpected clipping/blank-first-item.
-    (void)sender; (void)e;
 }
 
 void AppPage::AppsGrid_Unloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_Unloaded\n"); } catch(...) {}
-    // Intentionally empty: lifecycle hook for AppsGrid Unloaded
-    (void)sender; (void)e;
 }
 
 void AppPage::AppsGrid_StatusChanged(Platform::Object^ sender, Platform::Object^ args) {
-    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_StatusChanged\n"); } catch(...) {}
-    // Intentionally empty: lifecycle hook for AppsGrid status changes
-    (void)sender; (void)args;
 }
 
 void AppPage::AppsGrid_ItemsChanged(Platform::Object^ sender, Platform::Object^ args) {
-    try { Utils::Logf("[AppPage] Handler Enter: AppsGrid_ItemsChanged\n"); } catch(...) {}
-    // Intentionally empty: lifecycle hook for AppsGrid items changed
-    (void)sender; (void)args;
 }
 
 void AppPage::PageRoot_SizeChanged(Platform::Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
@@ -1911,14 +1880,15 @@ void AppPage::OnUnloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEve
 }
 
 void AppPage::OnFirstRender(Object^ sender, Object^ e) {
+
+    Utils::Log("AppPage::OnFirstRender: first render occurred\n");
+    
     // Unsubscribe so it only runs once
     try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= m_rendering_token; } catch(...) {}
     
-    Utils::Log("AppPage::OnFirstRender: first render occurred\n");
     try {
         AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
 		AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-		// this->CenterSelectedItem(1, true);
     } catch(...) {}
 }
 
@@ -2065,22 +2035,26 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
     // Sets centerpoints
     EnsureRealizedContainersInitialized(lv);
 
+    // Get blur
     try{
-		auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
-		if (selApp != nullptr) {
-            if (selApp->BlurredImage == nullptr)
-            {
-			    BlurAppImage(selApp);
-            } else {
-				FadeInRealizedBlurAndReflectionIfSelected(selApp, selApp->BlurredImage);
-            }
-		}
+		// if (!m_isGridLayout) {
+		    auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
+		    if (selApp != nullptr) {
+                if (selApp->BlurredImage == nullptr)
+                {
+			        BlurAppImage(selApp);
+                } else {
+				    FadeInRealizedBlurAndReflectionIfSelected(selApp, selApp->BlurredImage);
+                }
+		    }
+		//}
 	} catch (...) {
 	}
 
+    // Animate
     try {
-        if (container != nullptr) ApplyVisualsToContainer(container, true);
-        if (prevContainer != nullptr) ApplyVisualsToContainer(prevContainer, false);
+        if (container != nullptr) this->ApplyVisualsToContainer(container, true);
+        if (prevContainer != nullptr) this->ApplyVisualsToContainer(prevContainer, false);
     } catch(...) {}
 
     // Update the shared SelectedApp text overlay
@@ -2161,153 +2135,18 @@ void AppPage::AppsGrid_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Rout
 }
 
 void AppPage::AppsGrid_ContextRequested(Windows::UI::Xaml::UIElement^ sender, Windows::UI::Xaml::Input::ContextRequestedEventArgs^ e) {
-    try {
-        Utils::Log("AppPage::AppsGrid_ContextRequested invoked\n");
-        // Determine original source and set currentApp similar to RightTapped handler
-        auto original = dynamic_cast<FrameworkElement^>(e->OriginalSource);
-        FrameworkElement^ anchor = this->AppsGrid;
-        if (original != nullptr) {
-            auto gvItem = dynamic_cast<ListViewItem^>(original);
-            if (gvItem != nullptr) {
-                currentApp = (MoonlightApp^)gvItem->Content;
-                anchor = gvItem;
-            } else {
-                auto dc = original->DataContext;
-                if (dc != nullptr) currentApp = (MoonlightApp^)dc;
-            }
-        }
-
-        // Configure flyout buttons based on running state
-        this->resumeAppButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        this->closeAppButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        this->closeAndStartButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        bool anyRunning = false; MoonlightApp^ runningApp = nullptr;
-        if (this->host != nullptr) {
-            for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
-                auto candidate = this->host->Apps->GetAt(i);
-                if (candidate != nullptr && candidate->CurrentlyRunning) { anyRunning = true; runningApp = candidate; break; }
-            }
-        }
-        if (!anyRunning) {
-            this->resumeAppButton->Text = "Open App";
-            this->resumeAppButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-        } else {
-            if (currentApp != nullptr && currentApp->CurrentlyRunning) {
-                this->resumeAppButton->Text = "Resume App";
-                this->resumeAppButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-                this->closeAppButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-            } else {
-                if (currentApp != nullptr) this->closeAndStartButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-            }
-        }
-
-        if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor);
-        else this->ActionsFlyout->ShowAt(this->AppsGrid);
-
-        e->Handled = true;
-    } catch (...) {}
 }
 
 void AppPage::AppsGrid_ContainerContentChanging(ListViewBase ^ sender, ContainerContentChangingEventArgs ^ args) {
-	try {
-       
-    } catch (...) {
-    }
 }
 
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ args) {
-	try {
-
-	} catch (...) {
-	}
 }
 
 void AppPage::AppsGrid_ScrollChanged(Platform::Object^ sender, Platform::Object^ args) {
-    // Intentionally empty: lifecycle hook for scroll changes
-    (void)sender; (void)args;
 }
 
 void moonlight_xbox_dx::AppPage::OnScrollViewerViewChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs^ e) {
-    try {
-        // Only act when scrolling has completed (not during inertia)
-
-        // Iterate realized containers and ensure composition visuals are initialized
-        if (this->AppsGrid == nullptr) return;
-        for (unsigned int i = 0; i < this->AppsGrid->Items->Size; ++i) {
-            auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromIndex(i));
-            if (container == nullptr) continue;
-            // Force initialization via same logic used in ContainerContentChanging
-            try {
-                auto desFE = FindChildByName(container, "Desaturator");
-                auto des = dynamic_cast<UIElement^>(desFE);
-                auto imgFE = FindChildByName(container, "AppImageRect");
-                auto img = dynamic_cast<UIElement^>(imgFE);
-                auto nameFE = FindChildByName(container, "AppName");
-                auto nameTxt = dynamic_cast<UIElement^>(nameFE);
-                bool isSelected = false;
-                try {
-                    if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-                        int idx = this->AppsGrid->IndexFromContainer(container);
-                        if (idx == this->AppsGrid->SelectedIndex) isSelected = true;
-                    }
-                } catch(...) { isSelected = false; }
-
-                if (img != nullptr) {
-                    auto imgVis = ElementCompositionPreview::GetElementVisual(img);
-                    if (imgVis != nullptr) {
-                        try { imgVis->StopAnimation("Scale.X"); imgVis->StopAnimation("Scale.Y"); } catch(...) {}
-                        // For initial load keep baseline immediate; only animate when composition visuals are marked ready
-                        if (m_compositionReady) {
-                            AnimateElementScale(img, ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
-                        } else {
-                            Windows::Foundation::Numerics::float3 s; s.x = ::moonlight_xbox_dx::kUnselectedScale; s.y = s.x; s.z = 0.0f;
-                            imgVis->Scale = s;
-                        }
-                        auto imgFE2 = dynamic_cast<FrameworkElement^>(img);
-                        if (imgFE2 != nullptr && imgFE2->ActualWidth > 0 && imgFE2->ActualHeight > 0) {
-                            Windows::Foundation::Numerics::float3 cp; cp.x = (float)imgFE2->ActualWidth * 0.5f; cp.y = (float)imgFE2->ActualHeight * 0.5f; cp.z = 0.0f;
-                            imgVis->CenterPoint = cp;
-                        }
-                    }
-                }
-
-                if (des != nullptr) {
-                    auto desVis = ElementCompositionPreview::GetElementVisual(des);
-                    if (desVis != nullptr) {
-                        try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
-
-                        if (m_compositionReady) {
-                            AnimateElementScale(dynamic_cast<UIElement^>(des), ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
-                            AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
-                        } else {
-                            desVis->Opacity = kDesaturatorOpacityUnselected;
-                            Windows::Foundation::Numerics::float3 s2; s2.x = ::moonlight_xbox_dx::kUnselectedScale; s2.y = s2.x; s2.z = 0.0f;
-                            desVis->Scale = s2;
-                        }
-
-                        // Init name opacity for scroll update
-                        if (nameTxt != nullptr) {
-                            if (m_compositionReady) {
-                                AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
-                            } else {
-                                SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
-                            }
-                        }
-
-                        auto desFE2 = dynamic_cast<FrameworkElement^>(des);
-                        if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
-                            Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
-                            desVis->CenterPoint = cp2;
-                        }
-
-                    }
-                } else {
-                    if (img != nullptr) SetElementScaleImmediate(img, isSelected ? kSelectedScale : kUnselectedScale);
-                    if (des != nullptr) { SetElementScaleImmediate(des, isSelected ? kSelectedScale : kUnselectedScale); SetElementOpacityImmediate(des, isSelected ? 0.0f : kDesaturatorOpacityUnselected); }
-                }
-            } catch(...) {}
-        }
-    } catch(...) {}
 }
 
 // Keep qualified definitions outside namespace
@@ -2428,55 +2267,60 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, Windows::UI::Xa
     try {
         auto toggle = dynamic_cast<Windows::UI::Xaml::Controls::Primitives::ToggleButton^>(sender);
         bool wantGrid = false;
+
         if (toggle != nullptr) {
             wantGrid = (toggle->IsChecked != nullptr && toggle->IsChecked->Value);
         }
-        // If already in desired state, nothing to do
+
         if (m_isGridLayout == wantGrid) return;
         m_isGridLayout = wantGrid;
 
-        // Switch the ItemsPanel template on the ListView
         if (this->AppsGrid != nullptr) {
+
+            auto res = this->Resources;
+
             if (m_isGridLayout) {
-                auto res = this->Resources;
+
                 if (res != nullptr) {
                     auto panel = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"GridItemsPanelTemplate")));
                     if (panel != nullptr) this->AppsGrid->ItemsPanel = panel;
                 }
-                // enable vertical scrolling and show scrollbars when needed
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::HorizontalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Disabled); } catch(...) {}
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Enabled); } catch(...) {}
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollBarVisibilityProperty, Windows::UI::Xaml::Controls::ScrollBarVisibility::Auto); } catch(...) {}
+
+				this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::HorizontalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Disabled);
+                this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Enabled);
+                this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollBarVisibilityProperty, Windows::UI::Xaml::Controls::ScrollBarVisibility::Auto);
+
             } else {
-                // restore horizontal ItemsPanel template from resources
-                try {
-                    auto res = this->Resources;
-                    if (res != nullptr) {
-                        auto original = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"HorizontalItemsPanelTemplate")));
-                        if (original != nullptr) this->AppsGrid->ItemsPanel = original;
-                    }
-                } catch(...) {}
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::HorizontalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Enabled); } catch(...) {}
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Disabled); } catch(...) {}
-                try { this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollBarVisibilityProperty, Windows::UI::Xaml::Controls::ScrollBarVisibility::Disabled); } catch(...) {}
+
+                if (res != nullptr) {
+                    auto original = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"HorizontalItemsPanelTemplate")));
+                    if (original != nullptr) this->AppsGrid->ItemsPanel = original;
+                }
+
+                this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::HorizontalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Enabled);
+                this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollModeProperty, Windows::UI::Xaml::Controls::ScrollMode::Disabled);
+                this->AppsGrid->SetValue(Windows::UI::Xaml::Controls::ScrollViewer::VerticalScrollBarVisibilityProperty, Windows::UI::Xaml::Controls::ScrollBarVisibility::Disabled);
+
             }
-            // Update item heights immediately for grid layout to size items correctly
-            try { this->UpdateItemHeights(); } catch(...) {}
-            // Reset cached panel/scrollviewer so centering logic finds the new items host
-            try { m_itemsPanel = nullptr; } catch(...) {}
-            try { m_scrollViewer = nullptr; } catch(...) {}
-            // After toggling, ensure selected item is centered/realized
-            try {
+
+
+            m_itemsPanel = nullptr;
+            m_scrollViewer = nullptr;
+
+            for (int i = 0; i < this->Host->Apps->Size; i++) {
+				auto app = this->Host->Apps->GetAt(i);
+				app->BlurredImage = nullptr;
+                app->ReflectionImage = nullptr;
+				this->Host->Apps->SetAt(i, app);
+            }
+
+            this->UpdateItemHeights();
+
+            if (this->AppsGrid->SelectedIndex >= 0) {
                 this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([this]() {
-                    try {
-                        if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-							EnsureRealizedContainersInitialized(this->AppsGrid);
-							this->CenterSelectedItem(1, true);
-							this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-                        }
-                    } catch(...) {}
+					AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
                 }));
-            } catch(...) {}
+            }
         }
     } catch(...) {}
 }
@@ -2484,10 +2328,9 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, Windows::UI::Xa
 void AppPage::OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args) {
     try {
         auto key = args->VirtualKey;
-        // Xbox controller 'Y' maps to VirtualKey::GamepadY or VirtualKey::Y depending on input routing
+
         using namespace Windows::System;
         if (key == VirtualKey::GamepadY) {
-            // toggle layout
             {
                 auto weakThis = WeakReference(this);
                 this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
@@ -2502,7 +2345,6 @@ void AppPage::OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::U
         }
 
         if (key == VirtualKey::GamepadX) {
-			// toggle layout
             {
                 auto weakThis = WeakReference(this);
                 this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
@@ -2676,6 +2518,25 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                                 desVis->Scale = s2;
                                 desVis->Opacity = kDesaturatorOpacityUnselected;
                             }
+                            // Initialize Emboss to be invisible/unselected by default
+                            try {
+                                auto embossFE = FindChildByName(container, "Emboss");
+                                auto emboss = dynamic_cast<UIElement^>(embossFE);
+                                if (emboss != nullptr) {
+                                    auto embossVis = ElementCompositionPreview::GetElementVisual(emboss);
+                                    if (embossVis != nullptr) {
+                                        try { embossVis->StopAnimation("Scale.X"); embossVis->StopAnimation("Scale.Y"); embossVis->StopAnimation("Opacity"); } catch(...) {}
+                                        if (m_compositionReady) {
+                                            AnimateElementScale(emboss, kUnselectedScale, kAnimationDurationMs);
+                                            AnimateElementOpacity(emboss, 0.0f, kAnimationDurationMs);
+                                        } else {
+                                            Windows::Foundation::Numerics::float3 s4; s4.x = kUnselectedScale; s4.y = s4.x; s4.z = 0.0f;
+                                            embossVis->Scale = s4;
+                                            embossVis->Opacity = 0.0f;
+                                        }
+                                    }
+                                }
+                            } catch(...) {}
 
                             if (nameTxt != nullptr) {
                                 if (m_compositionReady) {
@@ -2690,6 +2551,30 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                                 Windows::Foundation::Numerics::float3 cp2; cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
                                 desVis->CenterPoint = cp2;
                             }
+                            // Also initialize Emboss element if present
+                            try {
+                                auto embossFE = FindChildByName(container, "Emboss");
+                                auto emboss = dynamic_cast<UIElement^>(embossFE);
+                                if (emboss != nullptr) {
+                                    auto embossVis = ElementCompositionPreview::GetElementVisual(emboss);
+                                    if (embossVis != nullptr) {
+                                        try { embossVis->StopAnimation("Scale.X"); embossVis->StopAnimation("Scale.Y"); embossVis->StopAnimation("Opacity"); } catch(...) {}
+                                        if (m_compositionReady) {
+                                            AnimateElementScale(emboss, ::moonlight_xbox_dx::kUnselectedScale, kAnimationDurationMs);
+                                            AnimateElementOpacity(emboss, 0.0f, kAnimationDurationMs);
+                                        } else {
+                                            embossVis->Opacity = 0.0f;
+                                            Windows::Foundation::Numerics::float3 s3; s3.x = ::moonlight_xbox_dx::kUnselectedScale; s3.y = s3.x; s3.z = 0.0f;
+                                            embossVis->Scale = s3;
+                                        }
+                                        auto embossFE2 = dynamic_cast<FrameworkElement^>(emboss);
+                                        if (embossFE2 != nullptr && embossFE2->ActualWidth > 0 && embossFE2->ActualHeight > 0) {
+                                            Windows::Foundation::Numerics::float3 cp3; cp3.x = (float)embossFE2->ActualWidth * 0.5f; cp3.y = (float)embossFE2->ActualHeight * 0.5f; cp3.z = 0.0f;
+                                            embossVis->CenterPoint = cp3;
+                                        }
+                                    }
+                                }
+                            } catch(...) {}
                         }
                     }
                 } catch(...) {}

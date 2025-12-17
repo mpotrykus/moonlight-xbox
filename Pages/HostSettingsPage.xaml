@@ -5,9 +5,14 @@
     xmlns:local="using:moonlight_xbox_dx"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-    <Grid Padding="8,16,8,8">
+    mc:Ignorable="d">
+    <Page.Resources>
+        <LinearGradientBrush x:Key="UserAccentToBlackBrush" Opacity="0" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Offset="0" Color="Black" />
+            <GradientStop Offset="1" Color="{ThemeResource SystemAccentColor}" />
+        </LinearGradientBrush>
+    </Page.Resources>
+    <Grid Padding="8,16,8,8" Background="{StaticResource UserAccentToBlackBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -134,6 +139,80 @@
                             <CheckBox Grid.Row="2" Grid.Column="1" x:Name="EnableGraphsCheckbox" IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}" IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" Margin="0,4,0,4" />
                         </Grid>
                     </StackPanel>
+                    
+                    <!-- Controls -->
+
+                    <StackPanel x:Name="ControlsPanel" Visibility="Collapsed">
+                        <Grid Margin="0,4,0,4">
+                            <ScrollViewer HorizontalAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="8" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="8" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+
+                                    <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Margin="0,6,0,4"><Bold>Useful Shortcuts:</Bold></TextBlock>
+
+                                    <!-- In-stream menu -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xEDE3; &#xEECA;</TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">In-stream menu</TextBlock>
+
+                                    <!-- Spacer -->
+                                    <!-- Mouse mode header -->
+                                    <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,6,0,4"><Bold>Mouse mode:</Bold></TextBlock>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF093;</TextBlock>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" VerticalAlignment="Center">Left click</TextBlock>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF096;</TextBlock>
+                                    <TextBlock Grid.Row="5" Grid.Column="1" VerticalAlignment="Center">Right click</TextBlock>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF095;</TextBlock>
+                                    <TextBlock Grid.Row="6" Grid.Column="1" VerticalAlignment="Center">Show Keyboard</TextBlock>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF094;</TextBlock>
+                                    <TextBlock Grid.Row="7" Grid.Column="1" VerticalAlignment="Center">Guide/Xbox button</TextBlock>
+
+                                    <!-- Keyboard mode header -->
+                                    <TextBlock Grid.Row="9" Grid.ColumnSpan="2" Margin="0,8,0,4"><Bold>Keyboard mode:</Bold></TextBlock>
+
+                                    <TextBlock Grid.Row="10" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF094;</TextBlock>
+                                    <TextBlock Grid.Row="10" Grid.Column="1" VerticalAlignment="Center">Close</TextBlock>
+
+                                    <TextBlock Grid.Row="11" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF10A;</TextBlock>
+                                    <TextBlock Grid.Row="11" Grid.Column="1" VerticalAlignment="Center">Left Click</TextBlock>
+
+                                    <TextBlock Grid.Row="12" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF10B;</TextBlock>
+                                    <TextBlock Grid.Row="12" Grid.Column="1" VerticalAlignment="Center">Right Click</TextBlock>
+
+                                    <TextBlock Grid.Row="13" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF109;</TextBlock>
+                                    <TextBlock Grid.Row="13" Grid.Column="1" VerticalAlignment="Center">Move / Drag</TextBlock>
+
+                                    <TextBlock Grid.Row="14" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center">&#xF108;</TextBlock>
+                                    <TextBlock Grid.Row="14" Grid.Column="1" VerticalAlignment="Center">Press to Scroll</TextBlock>
+                                </Grid>
+                            </ScrollViewer>
+                        </Grid>
+                    </StackPanel>
+
                 </Grid>
             </local:TabsLayout.LeftContent>
 
@@ -142,6 +221,7 @@
             <local:TabsLayout.TabsContent>
                 <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -157,7 +237,10 @@
                             XYFocusDown="{x:Bind StreamTab}"
                             XYFocusRight="{x:Bind AudioConfigs}" />
                     <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" x:Name="StreamTab" Content="Stream" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind ControlsTab}"
                             XYFocusRight="{x:Bind AutoStartSelector}" />
+                    <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind DisplayTab}"/>
                 </Grid>
             </local:TabsLayout.TabsContent>
         </local:TabsLayout>
