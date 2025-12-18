@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "AppPage.Xaml.h"
+#include "Controls\SlidingMenu.xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include "HostSettingsPage.xaml.h"
 #include "State\MoonlightClient.h"
@@ -12,6 +13,8 @@
 #include <wrl.h>
 #include <ppltasks.h>
 #include "Common/ImageHelpers.h"
+#include <thread>
+#include <chrono>
 
 using namespace Microsoft::WRL;
 using namespace Platform;
@@ -520,6 +523,17 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     } catch (...) {}
 }
 
+void AppPage::OnSampleActionClicked() {
+    try {
+        Utils::Log("OnSampleActionClicked invoked\n");
+        if (this->SelectedAppText != nullptr) {
+            this->SelectedAppText->Text = ref new Platform::String(L"Sample Action triggered");
+            auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(this->Resources->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
+            if (sb != nullptr) sb->Begin();
+        }
+    } catch(...) {}
+}
+
 static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name) {
     if (parent == nullptr) return nullptr;
     int count = VisualTreeHelper::GetChildrenCount(parent);
@@ -943,6 +957,21 @@ AppPage::AppPage() {
             this->m_appsgird_unloaded_token = ulToken;
 
             // LayoutUpdated -> store token via add and assign to m_layoutUpdated_token
+
+    try {
+        if (this->LeftMenu != nullptr) {
+            auto weakThis = WeakReference(this);
+            auto sample = ref new moonlight_xbox_dx::MenuItem(
+                ref new Platform::String(L"Sample Action"),
+                ref new Platform::String(L"\uE710"),
+                ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^ s, Platform::Object^ e) {
+                    auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                    try { that->OnSampleActionClicked(); } catch(...) {}
+                })
+            );
+            this->LeftMenu->AddPageItem(sample);
+        }
+    } catch(...) {}
             auto luToken = this->AppsGrid->LayoutUpdated += ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^ s, Platform::Object^ e) {
                 auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return; try { that->AppsGrid_LayoutUpdated(s, nullptr); } catch(...) {}
             });
@@ -1360,11 +1389,97 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
 		}
 	}
 
-	if (anchor != nullptr) {
-		this->ActionsFlyout->ShowAt(anchor);
-	} else {
-		this->ActionsFlyout->ShowAt(this->AppsGrid);
-	}
+    // Always show the flyout at the center of the window for consistent placement
+    try {
+        // Compute center point in coordinates relative to the root visual
+        auto window = Windows::UI::Xaml::Window::Current;
+        if (window != nullptr && window->Content != nullptr) {
+            auto root = dynamic_cast<FrameworkElement^>(window->Content);
+            if (root != nullptr) {
+                double cx = 0.0, cy = 0.0;
+                try { cx = root->ActualWidth / 2.0; } catch(...) { cx = 0.0; }
+                try { cy = root->ActualHeight / 2.0; } catch(...) { cy = 0.0; }
+                // Transform center point to the coordinate space of the anchor (if anchor exists)
+                Windows::Foundation::Point centerPoint(cx, cy);
+                UIElement^ placementTarget = this->AppsGrid;
+                if (anchor != nullptr) placementTarget = anchor;
+                try {
+                    auto trans = root->TransformToVisual(placementTarget);
+                    if (trans != nullptr) centerPoint = trans->TransformPoint(centerPoint);
+                } catch(...) {}
+                try {
+                    // Show the left sliding menu instead of the flyout and populate page items
+                        {
+                            auto leftMenuObj_center = this->FindName(Platform::StringReference(L"LeftMenu"));
+                            auto leftMenu_center = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj_center);
+                            if (leftMenu_center) {
+                                try {
+                                    leftMenu_center->ClearPageItems();
+                                    Platform::WeakReference weakThis(this);
+
+                                    // If the tapped app is running -> Resume + Close
+                                    if (this->currentApp != nullptr && this->currentApp->CurrentlyRunning) {
+                                        auto resumeItem = ref new moonlight_xbox_dx::MenuItem(
+                                            ref new Platform::String(L"Resume App"),
+                                            ref new Platform::String(L"\uE7C6"),
+                                            ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+                                                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                                                try { that->resumeAppButton_Click(nullptr, nullptr); } catch(...) {}
+                                            })
+                                        );
+                                        leftMenu_center->AddPageItem(resumeItem);
+
+                                        auto closeItem = ref new moonlight_xbox_dx::MenuItem(
+                                            ref new Platform::String(L"Close App"),
+                                            ref new Platform::String(L"\uE711"),
+                                            ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+                                                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                                                try { that->closeAppButton_Click(nullptr, nullptr); } catch(...) {}
+                                            })
+                                        );
+                                        leftMenu_center->AddPageItem(closeItem);
+
+                                    // Another app is running -> Close and Start
+                                    } else if (anyRunning && runningApp != nullptr && runningApp->CurrentlyRunning && this->currentApp != nullptr && !this->currentApp->CurrentlyRunning) {
+                                        auto casItem = ref new moonlight_xbox_dx::MenuItem(
+                                            ref new Platform::String(L"Close and Start App"),
+                                            ref new Platform::String(L"\uE8BB"),
+                                            ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+                                                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                                                try { that->closeAndStartButton_Click(nullptr, nullptr); } catch(...) {}
+                                            })
+                                        );
+                                        leftMenu_center->AddPageItem(casItem);
+
+                                    // No app running -> Start App
+                                    } else {
+                                        auto startItem = ref new moonlight_xbox_dx::MenuItem(
+                                            ref new Platform::String(L"Start App"),
+                                            ref new Platform::String(L"\uE768"),
+                                            ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+                                                auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                                                try { that->resumeAppButton_Click(nullptr, nullptr); } catch(...) {}
+                                            })
+                                        );
+                                        leftMenu_center->AddPageItem(startItem);
+                                    }
+
+                                    leftMenu_center->Open();
+                                } catch(...) {}
+                            }
+                        }
+                } catch(...) {
+                    // Fallback: do nothing here (original flyout suppressed)
+                }
+            } else {
+                if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor); else this->ActionsFlyout->ShowAt(this->AppsGrid);
+            }
+        } else {
+            if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor); else this->ActionsFlyout->ShowAt(this->AppsGrid);
+        }
+    } catch(...) {
+        if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor); else this->ActionsFlyout->ShowAt(this->AppsGrid);
+    }
 }
 
 void AppPage::SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e) {
@@ -1505,7 +1620,22 @@ void AppPage::backButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::Rou
 }
 
 void AppPage::settingsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
+    try {
+        auto leftMenuObj_settings = this->FindName(Platform::StringReference(L"LeftMenu"));
+        auto leftMenu_settings = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj_settings);
+        if (leftMenu_settings) leftMenu_settings->Open();
+    } catch(...) {
+        bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
+    }
+}
+
+void AppPage::Page_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e) {
+    try {
+        auto leftMenuObj_righttap = this->FindName(Platform::StringReference(L"LeftMenu"));
+        auto leftMenu_righttap = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj_righttap);
+        if (leftMenu_righttap) leftMenu_righttap->Open();
+        e->Handled = true;
+    } catch(...) { }
 }
 
 void AppPage::helpButton_Click(Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^)
@@ -2036,9 +2166,8 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
     EnsureRealizedContainersInitialized(lv);
 
     // Get blur
-    try{
-		// if (!m_isGridLayout) {
-		    auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
+    try {
+            auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp ^>(item);
 		    if (selApp != nullptr) {
                 if (selApp->BlurredImage == nullptr)
                 {

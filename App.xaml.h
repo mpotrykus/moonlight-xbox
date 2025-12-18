@@ -10,6 +10,12 @@
 #include "Converters\UniformThicknessConverter.h"
 #include "Converters\BlurPaddingConverter.h"
 #include <Pages\HostSelectorPage.xaml.h>
+#include "Common\MenuItem.h"
+#include <collection.h>
+#include <vector>
+#include <ppltasks.h>
+#include <collection.h>
+#include <windows.foundation.collections.h>
 
 namespace moonlight_xbox_dx
 {
@@ -20,6 +26,8 @@ namespace moonlight_xbox_dx
 	{
 	public:
 		App();
+
+		property Windows::Foundation::Collections::IObservableVector<moonlight_xbox_dx::MenuItem^>^ GlobalMenuItems;
 		virtual void OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e) override;
 		void OnStateLoaded();
 	private:

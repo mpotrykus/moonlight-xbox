@@ -338,6 +338,10 @@
     <ClInclude Include="Controls\TabsLayout.xaml.h">
       <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Controls\SlidingMenu.xaml.h">
+      <DependentUpon>Controls\SlidingMenu.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Common\MenuItem.h" />
     <ClInclude Include="Converters\MultiplyConverter.h" />
     <ClInclude Include="Converters\UniformThicknessConverter.h" />
     <ClInclude Include="Converters\BlurPaddingConverter.h" />
@@ -527,6 +531,10 @@
     <ClCompile Include="Pages\AppPage.xaml.cpp">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Controls\SlidingMenu.xaml.cpp">
+      <DependentUpon>Controls\SlidingMenu.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Common\MenuItem.cpp" />
     <ClCompile Include="Pages\HostSelectorPage.xaml.cpp">
       <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
     </ClCompile>
@@ -699,6 +707,7 @@
     <Page Include="Common\ModalDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Include="Controls\SlidingMenu.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Pages\HelpDialog.xaml">

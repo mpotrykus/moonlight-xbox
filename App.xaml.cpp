@@ -6,6 +6,7 @@
 #include "pch.h"
 #include <Utils.hpp>
 #include "MoonlightWelcome.xaml.h"
+#include "Pages\MoonlightSettings.xaml.h"
 #include <windows.h>
 
 static LONG WINAPI MoonlightUnhandledExceptionFilter(EXCEPTION_POINTERS* ep) {
@@ -66,6 +67,21 @@ App::App()
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 	displayRequest = ref new Windows::System::Display::DisplayRequest();
+
+	// Initialize global menu items
+	GlobalMenuItems = ref new Platform::Collections::Vector<moonlight_xbox_dx::MenuItem^>();
+	GlobalMenuItems->Append(ref new moonlight_xbox_dx::MenuItem(
+		ref new Platform::String(L"Settings"),
+		ref new Platform::String(L"\uE713"),
+		ref new Windows::Foundation::EventHandler<Platform::Object^>([](Platform::Object^ s, Platform::Object^ e) {
+			try {
+				auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
+				if (rootFrame != nullptr) {
+					rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+				}
+			} catch(...) {}
+		})
+	));
 }
 
 /// <summary>
