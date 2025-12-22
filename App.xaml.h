@@ -7,6 +7,7 @@
 
 #include "App.g.h"
 #include "Converters\MultiplyConverter.h"
+#include "Converters\BoolToVisibilityConverter.h"
 #include "Converters\UniformThicknessConverter.h"
 #include "Converters\BlurPaddingConverter.h"
 #include <Pages\HostSelectorPage.xaml.h>

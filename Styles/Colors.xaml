@@ -1,0 +1,37 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Static Variables -->
+    <Color x:Key="BrandRed">#FF0000</Color>
+
+    <!-- Theme variables -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- Light theme -->
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#DDD"/>
+            <SolidColorBrush x:Key="ButtonBackgroundColor" Color="#FFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#000"/>
+            <SolidColorBrush x:Key="ButtonFocusedColor" Color="#CCC"/>
+        </ResourceDictionary>
+
+        <!-- Dark theme -->
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#000"/>
+            <SolidColorBrush x:Key="ButtonBackgroundColor" Color="#111"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFF"/>
+            <SolidColorBrush x:Key="ButtonFocusedColor" Color="#333"/>
+        </ResourceDictionary>
+
+        <!-- HighContrast -->
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#000"/>
+            <SolidColorBrush x:Key="ButtonBackgroundColor" Color="#000"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFF"/>
+            <SolidColorBrush x:Key="ButtonFocusedColor" Color="Purple"/>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

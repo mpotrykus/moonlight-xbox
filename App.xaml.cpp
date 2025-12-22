@@ -71,7 +71,7 @@ App::App()
 	// Initialize global menu items
 	GlobalMenuItems = ref new Platform::Collections::Vector<moonlight_xbox_dx::MenuItem^>();
 	GlobalMenuItems->Append(ref new moonlight_xbox_dx::MenuItem(
-		ref new Platform::String(L"Settings"),
+		ref new Platform::String(L"App Settings"),
 		ref new Platform::String(L"\uE713"),
 		ref new Windows::Foundation::EventHandler<Platform::Object^>([](Platform::Object^ s, Platform::Object^ e) {
 			try {

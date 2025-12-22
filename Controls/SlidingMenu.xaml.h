@@ -21,11 +21,16 @@ namespace moonlight_xbox_dx::Controls
 
         void Open();
         void Close();
+        property bool IsOpen { bool get(); }
         event Windows::Foundation::TypedEventHandler<Platform::Object^, moonlight_xbox_dx::MenuItem^>^ MenuItemInvoked;
-        void SetOverlayActive(bool active);
+    private:
+        Platform::Object^ m_prevFocusedElement = nullptr;
+    protected:
+        virtual void OnApplyTemplate() override;
     private:
         void OnMenuItemClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void Overlay_Tapped(Platform::Object^ sender, Windows::UI::Xaml::Input::TappedRoutedEventArgs^ e);
     private:
+        bool m_isOpen = false;
     };
 }

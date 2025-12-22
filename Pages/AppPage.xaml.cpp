@@ -80,7 +80,7 @@ static concurrency::task<SoftwareBitmap^> CaptureXamlElementAsync(FrameworkEleme
         try {
             auto rtb = ref new RenderTargetBitmap();
             create_task(rtb->RenderAsync(element)).then([rtb]() {
-                return rtb->GetPixelsAsync();
+                return create_task(rtb->GetPixelsAsync());
             }).then([rtb, tce](concurrency::task<IBuffer^> prev) {
                 try {
                     auto pixels = prev.get();
@@ -292,7 +292,7 @@ concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, 
         /*----RASTERIZE----*/ 
 
         return imageCaptureTask.then([this, app, softwareBitmap, maskCaptureTask, ui_targetW, ui_targetH, ui_dpi, blurDip, imageFe, maskFe](SoftwareBitmap ^ capturedImage) mutable -> concurrency::task<IRandomAccessStream ^> {
-            return maskCaptureTask.then([this, app, softwareBitmap, ui_targetW, ui_targetH, ui_dpi, blurDip, imageFe, maskFe](SoftwareBitmap ^ maskFromXaml) mutable -> concurrency::task<IRandomAccessStream ^> {
+            return maskCaptureTask.then([this, app, softwareBitmap, ui_targetW, ui_targetH, ui_dpi, blurDip, imageFe, maskFe, capturedImage](SoftwareBitmap ^ maskFromXaml) mutable -> concurrency::task<IRandomAccessStream ^> {
                 // Apply rounded-corner mask composition before rasterizing.
                 unsigned int targetW = ui_targetW != 0 ? ui_targetW : softwareBitmap->PixelWidth;
                 unsigned int targetH = ui_targetH != 0 ? ui_targetH : softwareBitmap->PixelHeight;
@@ -305,8 +305,37 @@ concurrency::task<IRandomAccessStream ^> AppPage::ApplyBlur(MoonlightApp ^ app, 
                 // We clipped the XAML element prior to capture, so the captured mask already has rounded corners.
                 try { if (maskFromXaml) moonlight_xbox_dx::Utils::Logf("ApplyBlur: captured mask=%p size=%u x %u\n", maskFromXaml, maskFromXaml->PixelWidth, maskFromXaml->PixelHeight); else moonlight_xbox_dx::Utils::Log("ApplyBlur: captured mask is null\n"); } catch(...) {}
 
-                // No runtime clip restore needed; rounded corners handled in XAML
 
+                // No runtime clip restore needed; rounded corners handled in XAML
+                try {
+                    // Compute average color from captured image if available, otherwise from the loaded softwareBitmap
+                    unsigned int avg = 0;
+                    try {
+                        if (capturedImage != nullptr) {
+                            avg = ImageHelpers::CreateAverageColorArgb(capturedImage);
+                        } else if (softwareBitmap != nullptr) {
+                            avg = ImageHelpers::CreateAverageColorArgb(softwareBitmap);
+                        }
+                    } catch(...) { avg = 0xFF000000; }
+
+                    // Store into model and update overlay on UI thread
+                    try {
+                        if (app != nullptr) {
+                            app->AverageColorArgb = avg;
+                        }
+                        auto weakThis = WeakReference(this);
+                        this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new DispatchedHandler([weakThis, app]() {
+                            auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
+                            try { that->UpdateAverageColorOverlay(app); } catch(...) {}
+                        }));
+                    } catch(...) {}
+                } catch(...) {}
+
+                // Optionally adjust saturation on the source before blurring (CPU fallback for environments without Win2D)
+                try {
+                    // multiplier: 1.0 = no change. Tune this value or expose via settings if needed.
+                    ImageHelpers::AdjustSaturation(softwareBitmap, 3.0f);
+                } catch(...) {}
                 return ImageHelpers::CreateMaskedBlurredPngStreamAsync(softwareBitmap, maskFromXaml, targetW, targetH, ui_dpi, blurDip);
 			});
 		});
@@ -547,8 +576,72 @@ static FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::Str
     return nullptr;
 }
 
-static void FindElementChildren(DependencyObject^ container, UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName, UIElement^& outBlur, UIElement^& outReflection, UIElement^& outEmboss) {
-    outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outReflection = nullptr; outEmboss = nullptr;
+// Color utilities: RGB <-> HSL conversion and simple adjuster
+static void RGBtoHSL(uint8_t r, uint8_t g, uint8_t b, double &outH, double &outS, double &outL) {
+    double rd = r / 255.0;
+    double gd = g / 255.0;
+    double bd = b / 255.0;
+    double maxv = std::max(rd, std::max(gd, bd));
+    double minv = std::min(rd, std::min(gd, bd));
+    double delta = maxv - minv;
+    outL = (maxv + minv) / 2.0;
+    if (delta < 1e-6) {
+        outH = 0.0;
+        outS = 0.0;
+        return;
+    }
+    if (outL < 0.5) outS = delta / (maxv + minv);
+    else outS = delta / (2.0 - maxv - minv);
+
+    if (maxv == rd) {
+        outH = (gd - bd) / delta;
+    } else if (maxv == gd) {
+        outH = 2.0 + (bd - rd) / delta;
+    } else {
+        outH = 4.0 + (rd - gd) / delta;
+    }
+    outH *= 60.0;
+    if (outH < 0.0) outH += 360.0;
+}
+
+static double hue2rgb(double p, double q, double t) {
+    if (t < 0.0) t += 1.0;
+    if (t > 1.0) t -= 1.0;
+    if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+    if (t < 1.0/2.0) return q;
+    if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+    return p;
+}
+
+static void HSLtoRGB(double h, double s, double l, uint8_t &outR, uint8_t &outG, uint8_t &outB) {
+    double rd = 0.0, gd = 0.0, bd = 0.0;
+    if (s <= 1e-6) {
+        rd = gd = bd = l; // achromatic
+    } else {
+        double hh = h / 360.0;
+        double q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+        double p = 2.0 * l - q;
+        rd = hue2rgb(p, q, hh + 1.0/3.0);
+        gd = hue2rgb(p, q, hh);
+        bd = hue2rgb(p, q, hh - 1.0/3.0);
+    }
+    outR = (uint8_t)std::round(std::max(0.0, std::min(1.0, rd)) * 255.0);
+    outG = (uint8_t)std::round(std::max(0.0, std::min(1.0, gd)) * 255.0);
+    outB = (uint8_t)std::round(std::max(0.0, std::min(1.0, bd)) * 255.0);
+}
+
+static Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, double lightMul) {
+    double h=0, s=0, l=0;
+    RGBtoHSL(in.R, in.G, in.B, h, s, l);
+    s = std::max(0.0, std::min(1.0, s * satMul));
+    l = std::max(0.0, std::min(1.0, l * lightMul));
+    uint8_t r=0,g=0,b=0;
+    HSLtoRGB(h, s, l, r, g, b);
+    Windows::UI::Color out; out.A = in.A; out.R = r; out.G = g; out.B = b; return out;
+}
+
+static void FindElementChildren(DependencyObject^ container, UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName, UIElement^& outBlur, UIElement^& outReflection, UIElement^& outPlay, UIElement^& outEmboss) {
+    outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outReflection = nullptr; outPlay = nullptr; outEmboss = nullptr;
     if (container == nullptr) return;
     try {
         outDesaturator = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Desaturator")));
@@ -556,11 +649,12 @@ static void FindElementChildren(DependencyObject^ container, UIElement^& outDesa
         outName = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppName")));
         outBlur = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")));
         outReflection = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageReflectionRect")));
+        outPlay = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Play")));
         outEmboss = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Emboss")));
     } catch(...) { outDesaturator = nullptr; outImage = nullptr; outName = nullptr; outBlur = nullptr; outEmboss = nullptr; }
 }
 
-static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, UIElement^ emboss, bool selected, bool isGridLayout) {
+static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt, UIElement^ blur, UIElement^ reflection, UIElement^ play, UIElement^ emboss, bool selected, bool isGridLayout) {
 
     try {
 
@@ -571,6 +665,12 @@ static void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nam
         if (des != nullptr) {
             AnimateElementScale(des, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
             AnimateElementOpacity(des, selected ? 0.0f : kDesaturatorOpacityUnselected, kAnimationDurationMs);
+        }
+
+        // Play icon: scale like other elements so it pops when running/selected
+        if (play != nullptr) {
+            AnimateElementScale(play, selected ? kSelectedScale : kUnselectedScale, kAnimationDurationMs);
+            // Keep Play visibility controlled by XAML binding; we only animate scale here
         }
 
         if (emboss != nullptr) {
@@ -613,10 +713,11 @@ void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
         UIElement^ nameTxt = nullptr; 
         UIElement^ blur = nullptr; 
         UIElement^ reflection = nullptr;
+        UIElement^ play = nullptr;
         UIElement^ emboss = nullptr;
 
-        FindElementChildren(container, des, img, nameTxt, blur, reflection, emboss);
-        ApplySelectionVisuals(des, img, nameTxt, blur, reflection, emboss, selected, this->m_isGridLayout);
+        FindElementChildren(container, des, img, nameTxt, blur, reflection, play, emboss);
+        ApplySelectionVisuals(des, img, nameTxt, blur, reflection, play, emboss, selected, this->m_isGridLayout);
     } catch(...) {}
 }
 
@@ -736,6 +837,94 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
                     } catch(...) {}
                 }
 
+				UpdateAverageColorOverlay(app);
+
+            } catch(...) {}
+        } catch(...) {}
+    } catch(...) {}
+}
+
+void AppPage::UpdateAverageColorOverlay(MoonlightApp^ app) {
+    try {
+        double sat = 3.0;
+		double lum = 0.25;
+
+        // Convert stored ARGB into a Color and update the model's AverageBrush to notify bound XAML.
+        unsigned int argb = 0xFF000000;
+        if (app != nullptr) {
+            try { argb = app->AverageColorArgb; } catch(...) { argb = 0xFF000000; }
+        }
+        uint8_t a = (uint8_t)((argb >> 24) & 0xFF);
+        uint8_t r = (uint8_t)((argb >> 16) & 0xFF);
+        uint8_t g = (uint8_t)((argb >> 8) & 0xFF);
+        uint8_t b = (uint8_t)(argb & 0xFF);
+        Windows::UI::Color centerColor; centerColor.A = a; centerColor.R = r; centerColor.G = g; centerColor.B = b;
+
+        try {
+            Windows::UI::Color adjustedCenter = AdjustColorHSLLightSat(centerColor, sat, lum);
+            if (app != nullptr && app->AverageBrush != nullptr) {
+                try { app->AverageBrush->Color = adjustedCenter; } catch(...) {}
+            }
+
+            try {
+                //auto existingLg = dynamic_cast<Windows::UI::Xaml::Media::LinearGradientBrush^>(this->PageRoot->Background);
+                //if (existingLg != nullptr && existingLg->GradientStops != nullptr && existingLg->GradientStops->Size >= 1) {
+                //    unsigned int midIndex = 0;
+                //    try {
+                //        midIndex = existingLg->GradientStops->Size >= 3 ? 1u : (existingLg->GradientStops->Size / 2u);
+                //    } catch(...) { midIndex = 0; }
+                //    try {
+                //        auto midStop = existingLg->GradientStops->GetAt(midIndex);
+                //        if (midStop != nullptr) {
+                //            using namespace Windows::UI::Xaml::Media::Animation;
+                //                auto colorAnim = ref new ColorAnimation();
+                //                colorAnim->To = ref new Platform::Box<Windows::UI::Color>(AdjustColorHSLLightSat(centerColor, sat, lum));
+                //            try { colorAnim->EnableDependentAnimation = true; } catch(...) {}
+                //            Windows::Foundation::TimeSpan ts; ts.Duration = (int64_t)kAnimationDurationMs * 10000LL; // 200ms
+                //            colorAnim->Duration = DurationHelper::FromTimeSpan(ts);
+                //            auto sb = ref new Storyboard();
+                //            sb->Children->Append(colorAnim);
+                //            Storyboard::SetTarget(colorAnim, midStop);
+                //            Storyboard::SetTargetProperty(colorAnim, ref new Platform::String(L"(GradientStop.Color)"));
+                //            try { sb->Begin(); } catch(...) {}
+                //        }
+                //    } catch(...) {}
+                //} else {
+                    // No existing gradient — create a new one and fade it in
+                    auto lg = ref new Windows::UI::Xaml::Media::LinearGradientBrush();
+                    lg->Opacity = 0.0;
+                    Windows::Foundation::Point sp; sp.X = 0; sp.Y = 0; lg->StartPoint = sp;
+                    Windows::Foundation::Point ep; ep.X = 1; ep.Y = 0; lg->EndPoint = ep;
+                    auto stop1 = ref new Windows::UI::Xaml::Media::GradientStop();
+					stop1->Color = AdjustColorHSLLightSat(centerColor, sat, .01); // Windows::UI::Colors::Black;
+                    stop1->Offset = 0.0;
+                    auto stop2 = ref new Windows::UI::Xaml::Media::GradientStop();
+                    // Slightly boost brightness so gradient reads over black background
+                    stop2->Color = AdjustColorHSLLightSat(centerColor, sat /*sat*/, lum /*light*/);
+                    stop2->Offset = 0.5;
+					auto stop3 = ref new Windows::UI::Xaml::Media::GradientStop();
+					stop3->Color = AdjustColorHSLLightSat(centerColor, sat, .01); // Windows::UI::Colors::Black;
+                    stop3->Offset = 1.0;
+                    lg->GradientStops->Append(stop1);
+                    lg->GradientStops->Append(stop2);
+                    lg->GradientStops->Append(stop3);
+                    try { this->PageRoot->Background = lg; } catch(...) {}
+
+                    try {
+                        using namespace Windows::UI::Xaml::Media::Animation;
+                        auto dbl = ref new DoubleAnimation();
+						dbl->To = ref new Platform::Box<double>(1.0); // Opacity
+                        // Opacity change may be treated as a dependent animation on some brushes
+                        try { dbl->EnableDependentAnimation = true; } catch(...) {}
+                        Windows::Foundation::TimeSpan ts; ts.Duration = (int64_t)kAnimationDurationMs * 10000LL;
+                        dbl->Duration = DurationHelper::FromTimeSpan(ts);
+                        auto sb = ref new Storyboard();
+                        sb->Children->Append(dbl);
+                        Storyboard::SetTarget(dbl, lg);
+                        Storyboard::SetTargetProperty(dbl, ref new Platform::String(L"(Brush.Opacity)"));
+                        try { sb->Begin(); } catch(...) {}
+                    } catch(...) {}
+                //}
             } catch(...) {}
         } catch(...) {}
     } catch(...) {}
@@ -1340,6 +1529,27 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
 	FrameworkElement ^ senderElement = (FrameworkElement ^) e->OriginalSource;
 	FrameworkElement ^ anchor = senderElement;
 
+    // If the sliding left menu is open, close it instead of showing flyout
+    try {
+        auto leftMenuObj_check = this->FindName(Platform::StringReference(L"LeftMenu"));
+        auto leftMenu_check = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj_check);
+        if (leftMenu_check != nullptr) {
+            try {
+                if (leftMenu_check->IsOpen) { leftMenu_check->Close(); return; }
+            } catch(...) {}
+        }
+    } catch(...) {}
+
+    // Track whether we closed an already-open menu so we don't reopen it below
+    bool wasMenuOpen = false;
+    try {
+        auto leftMenuObj_check2 = this->FindName(Platform::StringReference(L"LeftMenu"));
+        auto leftMenu_check2 = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj_check2);
+        if (leftMenu_check2 != nullptr) {
+            try { wasMenuOpen = leftMenu_check2->IsOpen; } catch(...) { wasMenuOpen = false; }
+        }
+    } catch(...) { wasMenuOpen = false; }
+
     if (senderElement != nullptr && senderElement->GetType()->FullName->Equals(ListViewItem::typeid->FullName)) {
         auto gi = (ListViewItem ^) senderElement;
         currentApp = (MoonlightApp ^)(gi->Content);
@@ -1375,7 +1585,7 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
 	this->closeAndStartButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 
 	if (!anyRunning) {
-		this->resumeAppButton->Text = "Open App";
+		this->resumeAppButton->Text = "Resume App";
 		this->resumeAppButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
 	} else {
 		if (currentApp != nullptr && currentApp->CurrentlyRunning) {
@@ -1421,7 +1631,7 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
                                     if (this->currentApp != nullptr && this->currentApp->CurrentlyRunning) {
                                         auto resumeItem = ref new moonlight_xbox_dx::MenuItem(
                                             ref new Platform::String(L"Resume App"),
-                                            ref new Platform::String(L"\uE7C6"),
+                                            ref new Platform::String(L"\uE768"),
                                             ref new Windows::Foundation::EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
                                                 auto that = weakThis.Resolve<AppPage>(); if (that == nullptr) return;
                                                 try { that->resumeAppButton_Click(nullptr, nullptr); } catch(...) {}
@@ -1462,9 +1672,27 @@ void AppPage::AppsGrid_RightTapped(Platform::Object ^ sender, Windows::UI::Xaml:
                                             })
                                         );
                                         leftMenu_center->AddPageItem(startItem);
-                                    }
+								    }
 
-                                    leftMenu_center->Open();
+                                    // Host Settings
+								    auto hostSettingsItem = ref new moonlight_xbox_dx::MenuItem(
+								        ref new Platform::String(L"Host Settings"),
+								        ref new Platform::String(L"\uE713"),
+								        ref new Windows::Foundation::EventHandler<Platform::Object ^>([](Platform::Object ^ s, Platform::Object ^ e) {
+									        try {
+										        auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame ^>(Windows::UI::Xaml::Window::Current->Content);
+										        if (rootFrame != nullptr) {
+											        rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid));
+										        }
+									        } catch (...) {
+									        }
+								        }));
+								    leftMenu_center->AddPageItem(hostSettingsItem);
+
+                                    // Only open the menu if it wasn't already open when the handler started.
+                                    if (!wasMenuOpen) {
+                                        leftMenu_center->Open();
+                                    }
                                 } catch(...) {}
                             }
                         }
@@ -1783,13 +2011,24 @@ void AppPage::BlurAppImage(MoonlightApp ^ selApp) {
 
 void AppPage::OnBackRequested(Platform::Object ^ e, Windows::UI::Core::BackRequestedEventArgs ^ args) {
     try { Utils::Logf("[AppPage] Handler Enter: OnBackRequested\n"); } catch(...) {}
-	// UWP on Xbox One triggers a back request whenever the B
-	// button is pressed which can result in the app being
-	// suspended if unhandled
-	if (this->Frame->CanGoBack) {
-		this->Frame->GoBack();
-		args->Handled = true;
-	}
+    // If SlidingMenu is open, close it first and consume the back event
+    try {
+        auto leftMenuObj = this->FindName(Platform::StringReference(L"LeftMenu"));
+        auto leftMenu = dynamic_cast<moonlight_xbox_dx::Controls::SlidingMenu^>(leftMenuObj);
+        if (leftMenu != nullptr) {
+            try {
+                if (leftMenu->IsOpen) { leftMenu->Close(); args->Handled = true; return; }
+            } catch(...) {}
+        }
+    } catch(...) {}
+
+    // UWP on Xbox One triggers a back request whenever the B
+    // button is pressed which can result in the app being
+    // suspended if unhandled
+    if (this->Frame->CanGoBack) {
+        this->Frame->GoBack();
+        args->Handled = true;
+    }
 }
 
 void AppPage::AppsGrid_SizeChanged(Platform::Object ^ sender, Windows::UI::Xaml::SizeChangedEventArgs ^ e) {
@@ -2192,6 +2431,33 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object ^ sender, Windows::UI::
         auto selApp = dynamic_cast<moonlight_xbox_dx::MoonlightApp^>(lv->SelectedItem);
         auto res = this->Resources;
         if (selApp != nullptr) {
+     //       // Bind page background to the selected app's AverageBrush so XAML can use it.
+     //       try {
+     //           if (selApp->AverageBrush != nullptr) {
+					//auto brush = ref new Windows::UI::Xaml::Media::LinearGradientBrush();
+					//brush->StartPoint = Windows::Foundation::Point(0, 0);
+					//brush->EndPoint = Windows::Foundation::Point(1, 1);
+					//brush->Opacity = 0.05;
+
+					//auto stop1 = ref new Windows::UI::Xaml::Media::GradientStop();
+					//stop1->Color = Windows::UI::Colors::Black; // or a darker/lighter variant
+					//stop1->Offset = 0.0;
+					//
+     //               auto stop2 = ref new Windows::UI::Xaml::Media::GradientStop();
+					//stop2->Color = selApp->AverageBrush->Color;
+					//stop2->Offset = 0.5;
+
+					//auto stop3 = ref new Windows::UI::Xaml::Media::GradientStop();
+					//stop3->Color = Windows::UI::Colors::Black; // or a darker/lighter variant
+					//stop3->Offset = 1.0;
+
+					//brush->GradientStops->Append(stop1);
+					//brush->GradientStops->Append(stop2);
+					//brush->GradientStops->Append(stop3);
+
+					//this->PageRoot->Background = brush;
+     //           }
+     //       } catch(...) {}
             
             if (this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
                 this->SelectedAppText->Text = selApp->Name;
@@ -2573,6 +2839,27 @@ void moonlight_xbox_dx::AppPage::EnsureRealizedContainersInitialized(Windows::UI
                             }
                         }
                     }
+                    // Initialize Play element scale/center if present
+                    try {
+                        auto playFE = FindChildByName(container, "Play");
+                        auto play = dynamic_cast<UIElement ^>(playFE);
+                        if (play != nullptr) {
+                            auto playVis = ElementCompositionPreview::GetElementVisual(play);
+                            if (playVis != nullptr) {
+                                try { playVis->StopAnimation("Scale.X"); playVis->StopAnimation("Scale.Y"); } catch(...) {}
+                                if (m_compositionReady) {
+                                    AnimateElementScale(play, kUnselectedScale, kAnimationDurationMs);
+                                } else {
+                                    Windows::Foundation::Numerics::float3 s; s.x = kUnselectedScale; s.y = s.x; s.z = 0.0f; playVis->Scale = s;
+                                }
+                                auto playFE2 = dynamic_cast<FrameworkElement ^>(play);
+                                if (playFE2 != nullptr && playFE2->ActualWidth > 0 && playFE2->ActualHeight > 0) {
+                                    Windows::Foundation::Numerics::float3 cp; cp.x = (float)playFE2->ActualWidth * 0.5f; cp.y = (float)playFE2->ActualHeight * 0.5f; cp.z = 0.0f;
+                                    playVis->CenterPoint = cp;
+                                }
+                            }
+                        }
+                    } catch(...) {}
 					if (blur != nullptr) {
 						auto blurVis = ElementCompositionPreview::GetElementVisual(blur);
 						if (blurVis != nullptr) {

@@ -1200,6 +1200,210 @@ SoftwareBitmap^ ImageHelpers::CreateRoundedRectMask(unsigned int width, unsigned
     }
 }
 
+unsigned int ImageHelpers::CreateAverageColorArgb(SoftwareBitmap^ src) {
+    if (src == nullptr) return 0;
+    try {
+        auto s = EnsureBgra8Premultiplied(src);
+        auto buf = s->LockBuffer(BitmapBufferAccessMode::Read);
+        auto desc = buf->GetPlaneDescription(0);
+        std::vector<uint8_t> data((size_t)s->PixelHeight * desc.Stride);
+        try {
+            auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)data.size());
+            s->CopyToBuffer(ib);
+            auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+            reader->ReadBytes(Platform::ArrayReference<uint8_t>(data.data(), (unsigned int)data.size()));
+        } catch(...) { return 0; }
+
+        uint64_t totalR = 0, totalG = 0, totalB = 0, totalA = 0;
+        uint64_t count = 0;
+        unsigned int w = s->PixelWidth; unsigned int h = s->PixelHeight;
+        for (unsigned int y = 0; y < h; ++y) {
+            uint8_t* row = data.data() + (size_t)y * desc.Stride;
+            for (unsigned int x = 0; x < w; ++x) {
+                uint8_t b = row[x*4 + 0];
+                uint8_t g = row[x*4 + 1];
+                uint8_t r = row[x*4 + 2];
+                uint8_t a = row[x*4 + 3];
+                // ignore fully transparent pixels from averaging
+                if (a == 0) continue;
+                // Un-premultiply to approximate original color
+                uint32_t ur = (uint32_t)r * 255 / std::max<unsigned int>(1, a);
+                uint32_t ug = (uint32_t)g * 255 / std::max<unsigned int>(1, a);
+                uint32_t ub = (uint32_t)b * 255 / std::max<unsigned int>(1, a);
+                totalR += ur; totalG += ug; totalB += ub; totalA += a; ++count;
+            }
+        }
+        if (count == 0) return 0xFF000000; // default black
+        uint8_t avgR = (uint8_t)std::min<uint64_t>(255, totalR / count);
+        uint8_t avgG = (uint8_t)std::min<uint64_t>(255, totalG / count);
+        uint8_t avgB = (uint8_t)std::min<uint64_t>(255, totalB / count);
+        // Use averaged alpha approximate (clamp to 255)
+        uint8_t avgA = (uint8_t)std::min<uint64_t>(255, totalA / count);
+        unsigned int argb = ((unsigned int)avgA << 24) | ((unsigned int)avgR << 16) | ((unsigned int)avgG << 8) | (unsigned int)avgB;
+        return argb;
+    } catch(...) { return 0; }
+}
+
+// Helper: convert RGB [0,255] to HSL (h in [0,360), s,l in [0,1])
+static void RgbToHsl(uint8_t r, uint8_t g, uint8_t b, float &h, float &s, float &l) {
+    float rf = r / 255.0f; float gf = g / 255.0f; float bf = b / 255.0f;
+    float maxv = std::max(std::max(rf, gf), bf);
+    float minv = std::min(std::min(rf, gf), bf);
+    l = (maxv + minv) * 0.5f;
+    if (maxv == minv) { h = 0.0f; s = 0.0f; return; }
+    float d = maxv - minv;
+    s = l > 0.5f ? d / (2.0f - maxv - minv) : d / (maxv + minv);
+    if (maxv == rf) h = (gf - bf) / d + (gf < bf ? 6.0f : 0.0f);
+    else if (maxv == gf) h = (bf - rf) / d + 2.0f;
+    else h = (rf - gf) / d + 4.0f;
+    h *= 60.0f;
+}
+
+static float HueToRgb(float p, float q, float t) {
+    if (t < 0.0f) t += 1.0f;
+    if (t > 1.0f) t -= 1.0f;
+    if (t < 1.0f/6.0f) return p + (q - p) * 6.0f * t;
+    if (t < 1.0f/2.0f) return q;
+    if (t < 2.0f/3.0f) return p + (q - p) * (2.0f/3.0f - t) * 6.0f;
+    return p;
+}
+
+static void HslToRgb(float h, float s, float l, uint8_t &r, uint8_t &g, uint8_t &b) {
+    if (s == 0.0f) {
+        uint8_t v = (uint8_t)std::round(l * 255.0f);
+        r = g = b = v; return;
+    }
+    float hf = h / 360.0f;
+    float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
+    float p = 2.0f * l - q;
+    float rf = HueToRgb(p, q, hf + 1.0f/3.0f);
+    float gf = HueToRgb(p, q, hf);
+    float bf = HueToRgb(p, q, hf - 1.0f/3.0f);
+    r = (uint8_t)std::round(std::min(1.0f, std::max(0.0f, rf)) * 255.0f);
+    g = (uint8_t)std::round(std::min(1.0f, std::max(0.0f, gf)) * 255.0f);
+    b = (uint8_t)std::round(std::min(1.0f, std::max(0.0f, bf)) * 255.0f);
+}
+
+bool ImageHelpers::AdjustSaturation(SoftwareBitmap^ bmp, float saturation) {
+    if (bmp == nullptr) return false;
+    try {
+        auto b = EnsureBgra8Premultiplied(bmp);
+        if (b == nullptr) return false;
+        auto buf = b->LockBuffer(BitmapBufferAccessMode::ReadWrite);
+        auto desc = buf->GetPlaneDescription(0);
+        unsigned int w = b->PixelWidth; unsigned int h = b->PixelHeight;
+        // Quick exit when saturation is identity
+        if (saturation == 1.0f) return true;
+
+        // We'll use a fast luma-interpolation approach instead of full HSL conversion.
+        // new = gray + sat*(orig - gray) where gray = 0.299*R + 0.587*G + 0.114*B
+        const float satf = saturation;
+
+        // Try fast-path direct memory access via IMemoryBufferByteAccess while buffer is locked
+        try {
+            auto ref = buf->CreateReference();
+            Microsoft::WRL::ComPtr<IMemoryBufferByteAccess> access;
+            IUnknown* unk = reinterpret_cast<IUnknown*>(ref);
+            if (unk != nullptr && SUCCEEDED(unk->QueryInterface(IID_PPV_ARGS(&access)))) {
+                BYTE* raw = nullptr; UINT32 cap = 0;
+                if (SUCCEEDED(access->GetBuffer(&raw, &cap)) && raw != nullptr) {
+                    for (unsigned int y = 0; y < h; ++y) {
+                        uint8_t* row = raw + desc.StartIndex + (size_t)y * desc.Stride;
+                        for (unsigned int x = 0; x < w; ++x) {
+                            uint8_t b_px = row[x*4 + 0];
+                            uint8_t g_px = row[x*4 + 1];
+                            uint8_t r_px = row[x*4 + 2];
+                            uint8_t a_px = row[x*4 + 3];
+                            if (a_px == 0) continue;
+
+                            // Un-premultiply
+                            unsigned int invA = std::max<unsigned int>(1, a_px);
+                            float ur = (float)((uint32_t)r_px * 255u) / (float)invA;
+                            float ug = (float)((uint32_t)g_px * 255u) / (float)invA;
+                            float ub = (float)((uint32_t)b_px * 255u) / (float)invA;
+
+                            // Luminance (perceptual)
+                            float gray = ur * 0.299f + ug * 0.587f + ub * 0.114f;
+
+                            // Interpolate towards/away from gray
+                            float nrf = gray + satf * (ur - gray);
+                            float ngf = gray + satf * (ug - gray);
+                            float nbf = gray + satf * (ub - gray);
+
+                            // Clamp and premultiply back
+                            int nri = (int)std::round(nrf);
+                            int ngi = (int)std::round(ngf);
+                            int nbi = (int)std::round(nbf);
+                            nri = nri < 0 ? 0 : (nri > 255 ? 255 : nri);
+                            ngi = ngi < 0 ? 0 : (ngi > 255 ? 255 : ngi);
+                            nbi = nbi < 0 ? 0 : (nbi > 255 ? 255 : nbi);
+
+                            uint8_t pr = (uint8_t)((uint32_t)nri * a_px / 255u);
+                            uint8_t pg = (uint8_t)((uint32_t)ngi * a_px / 255u);
+                            uint8_t pb = (uint8_t)((uint32_t)nbi * a_px / 255u);
+
+                            row[x*4 + 0] = pb; row[x*4 + 1] = pg; row[x*4 + 2] = pr; row[x*4 + 3] = a_px;
+                        }
+                    }
+                    return true;
+                }
+            }
+        } catch(...) {}
+
+        // Fallback: copy to a buffer, process, then copy back
+        try {
+            buf = nullptr; // release the lock before CopyToBuffer
+            std::vector<uint8_t> data((size_t)h * desc.Stride);
+            auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)data.size());
+            b->CopyToBuffer(ib);
+            auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
+            reader->ReadBytes(Platform::ArrayReference<uint8_t>(data.data(), (unsigned int)data.size()));
+
+            for (unsigned int y = 0; y < h; ++y) {
+                uint8_t* row = data.data() + (size_t)y * desc.Stride;
+                for (unsigned int x = 0; x < w; ++x) {
+                    uint8_t b_px = row[x*4 + 0];
+                    uint8_t g_px = row[x*4 + 1];
+                    uint8_t r_px = row[x*4 + 2];
+                    uint8_t a_px = row[x*4 + 3];
+                    if (a_px == 0) continue;
+
+                    unsigned int invA = std::max<unsigned int>(1, a_px);
+                    float ur = (float)((uint32_t)r_px * 255u) / (float)invA;
+                    float ug = (float)((uint32_t)g_px * 255u) / (float)invA;
+                    float ub = (float)((uint32_t)b_px * 255u) / (float)invA;
+
+                    float gray = ur * 0.299f + ug * 0.587f + ub * 0.114f;
+
+                    float nrf = gray + satf * (ur - gray);
+                    float ngf = gray + satf * (ug - gray);
+                    float nbf = gray + satf * (ub - gray);
+
+                    int nri = (int)std::round(nrf);
+                    int ngi = (int)std::round(ngf);
+                    int nbi = (int)std::round(nbf);
+                    nri = nri < 0 ? 0 : (nri > 255 ? 255 : nri);
+                    ngi = ngi < 0 ? 0 : (ngi > 255 ? 255 : ngi);
+                    nbi = nbi < 0 ? 0 : (nbi > 255 ? 255 : nbi);
+
+                    uint8_t pr = (uint8_t)((uint32_t)nri * a_px / 255u);
+                    uint8_t pg = (uint8_t)((uint32_t)ngi * a_px / 255u);
+                    uint8_t pb = (uint8_t)((uint32_t)nbi * a_px / 255u);
+
+                    row[x*4 + 0] = pb; row[x*4 + 1] = pg; row[x*4 + 2] = pr; row[x*4 + 3] = a_px;
+                }
+            }
+
+            // Write back without any locks
+            auto writer = ref new Windows::Storage::Streams::DataWriter();
+            writer->WriteBytes(Platform::ArrayReference<uint8_t>(data.data(), (unsigned int)data.size()));
+            auto outBuf = writer->DetachBuffer();
+            b->CopyFromBuffer(outBuf);
+            return true;
+        } catch(...) { return false; }
+    } catch(...) { return false; }
+}
+
 concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ImageHelpers::CreateMaskedBlurredPngStreamAsync(
     SoftwareBitmap^ src,
     SoftwareBitmap^ mask,
@@ -1239,6 +1443,8 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ImageHelpers:
         try {
             auto gpuResult = ::EffectsLibrary::GpuBoxBlurSoftwareBitmap(preBlurBitmap, (int)radiusPx, false, true);
             if (gpuResult != nullptr) {
+                // Adjust saturation on the blurred result to allow styling without Win2D
+                try { AdjustSaturation(gpuResult, 1.0f); } catch(...) {}
                 return create_task(EncodeSoftwareBitmapToPngStreamAsync(gpuResult)).then([](IRandomAccessStream^ s) -> IRandomAccessStream^ {
                     if (s != nullptr) { try { s->Seek(0); } catch(...) {} }
                     return s;
@@ -1250,6 +1456,7 @@ concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ImageHelpers:
         try {
             auto cpuTarget = preBlurBitmap;
             ::EffectsLibrary::BoxBlurSoftwareBitmap(cpuTarget, (int)radiusPx);
+            try { AdjustSaturation(cpuTarget, 1.0f); } catch(...) {}
             return create_task(EncodeSoftwareBitmapToPngStreamAsync(cpuTarget)).then([](IRandomAccessStream^ s) -> IRandomAccessStream^ {
                 if (s != nullptr) { try { s->Seek(0); } catch(...) {} }
                 return s;

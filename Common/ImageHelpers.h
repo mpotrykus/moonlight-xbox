@@ -31,6 +31,14 @@ Windows::Graphics::Imaging::SoftwareBitmap^ ResizeSoftwareBitmapUniformToFill(Wi
 // (0 outside, 255 inside). Radius is in pixel units.
 Windows::Graphics::Imaging::SoftwareBitmap^ CreateRoundedRectMask(unsigned int width, unsigned int height, float radiusPx);
 
+// Compute a simple average color (ARGB) from a SoftwareBitmap. Returns 0 on failure.
+unsigned int CreateAverageColorArgb(Windows::Graphics::Imaging::SoftwareBitmap^ src);
+
+// Adjust the saturation of a BGRA8 premultiplied SoftwareBitmap in-place.
+// `saturation` is a multiplier where 1.0 = no change, 0.0 = fully desaturated (grayscale).
+// Returns true on success.
+bool AdjustSaturation(Windows::Graphics::Imaging::SoftwareBitmap^ bmp, float saturation);
+
 // High-level helper: perform mask + blur pipeline and return encoded PNG stream.
 // Parameters:
 // - src: SoftwareBitmap source image (may be resized by the helper)

@@ -6,7 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    Background="{ThemeResource ThemeBackgroundColor}">
     <Grid Padding="8,16,8,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -35,6 +35,9 @@
         <local:TabsLayout x:Name="tabsLayout" Grid.Row="1">
             <local:TabsLayout.LeftContent>
                 <Grid>
+                    
+                    <!-- Screen -->
+                    
                     <StackPanel x:Name="ScreenPanel" Visibility="Visible" Padding="32,0">
                         <Border Margin="0,8,0,8" HorizontalAlignment="Stretch">
                             <Border.Background>
@@ -69,6 +72,10 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Column="0" Grid.Row="0">Autostart Host:</TextBlock>
                             <ComboBox Grid.Column="1" Grid.Row="0" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" />
+                            <TextBlock Grid.Column="0" Grid.Row="1">Theme:</TextBlock>
+                            <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal">
+                                <ToggleSwitch x:Name="ThemeToggle" Toggled="ThemeToggle_Toggled" OffContent="Light" OnContent="Dark" />
+                            </StackPanel>
                             <TextBlock Grid.Column="0" Grid.Row="2">Screen Margin Height:</TextBlock>
                             <Slider Grid.Row="2" Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" />
                             <TextBlock Grid.Column="0" Grid.Row="3">Screen Margin Width:</TextBlock>
@@ -77,6 +84,9 @@
                         </Grid>
                     </StackPanel>
 
+                    
+                    <!-- Input -->
+                    
                     <StackPanel x:Name="InputPanel" Visibility="Collapsed" Padding="32,0">
                         <Grid RowSpacing="8">
                             <Grid.ColumnDefinitions>
@@ -118,8 +128,12 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ScreenPanel" Content="Screen" HorizontalAlignment="Stretch" />
-                    <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="InputPanel" Content="Input" HorizontalAlignment="Stretch" />
+                    <Button TabIndex="0" Grid.Row="0" Grid.Column="0" Style="{StaticResource TabButtonStyle}" x:Name="ScreenTab" local:TabsLayout.TargetPanelName="ScreenPanel" Content="Screen" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind InputTab}"
+                            XYFocusRight="{x:Bind HostSelector}" />
+                    <Button TabIndex="1" Grid.Row="1" Grid.Column="0" Style="{StaticResource TabButtonStyle}" x:Name="InputTab" local:TabsLayout.TargetPanelName="InputPanel" Content="Input" HorizontalAlignment="Stretch" 
+                            XYFocusDown="{x:Bind ScreenTab}"
+                            XYFocusRight="{x:Bind KeyboardEnable}" />
                 </Grid>
             </local:TabsLayout.TabsContent>
         </local:TabsLayout>

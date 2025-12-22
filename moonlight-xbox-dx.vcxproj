@@ -236,8 +236,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>$(ProjectDir)libgamestream\build\$(Configuration)\gamestream.lib;$(ProjectDir)third_party\DirectXTK\Bin\Windows10_2022\x64\$(Configuration)\DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;dxguid.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(ProjectDir)libgamestream\build\$(Configuration)\gamestream.lib;DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;dxguid.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)third_party\DirectXTK\Bin\Windows10_2022\x64\$(Configuration);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
     </Link>
     <ClCompile>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -255,8 +255,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>$(ProjectDir)libgamestream\build\$(Configuration)\gamestream.lib;$(ProjectDir)third_party\DirectXTK\Bin\Windows10_2022\x64\$(Configuration)\DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(ProjectDir)libgamestream\build\$(Configuration)\gamestream.lib;DirectXTK.lib;libexpat.lib;libcurl.lib;libcrypto.lib;libssl.lib;avcodec.lib;avutil.lib;swscale.lib;d2d1.lib;d3d11.lib;dxgi.lib;windowscodecs.lib;dwrite.lib;opus.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);$(ProjectDir)third_party\DirectXTK\Bin\Windows10_2022\x64\$(Configuration);$(ProjectDir)vcpkg_installed\x64-uwp\lib;$(VCInstallDir)\lib\store\amd64;$(VCInstallDir)\lib\amd64;$(ProjectDir)third_party\moonlight-common-c\build\$(Configuration)\</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <ClCompile>
@@ -277,6 +277,8 @@
     <Image Include="Assets\LargeTile.scale-200.png" />
     <Image Include="Assets\LargeTile.scale-400.png" />
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
+    <Image Include="Assets\play.png" />
+    <Image Include="Assets\Play1.png" />
     <Image Include="Assets\SmallTile.scale-100.png" />
     <Image Include="Assets\SmallTile.scale-125.png" />
     <Image Include="Assets\SmallTile.scale-150.png" />
@@ -342,6 +344,7 @@
       <DependentUpon>Controls\SlidingMenu.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Common\MenuItem.h" />
+    <ClInclude Include="Converters\BoolToVisibilityConverter.h" />
     <ClInclude Include="Converters\MultiplyConverter.h" />
     <ClInclude Include="Converters\UniformThicknessConverter.h" />
     <ClInclude Include="Converters\BlurPaddingConverter.h" />
@@ -411,6 +414,7 @@
     <ClCompile Include="Controls\TabsLayout.xaml.cpp">
       <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Converters\BoolToVisibilityConverter.cpp" />
     <ClCompile Include="Converters\MultiplyConverter.cpp" />
     <ClCompile Include="Converters\UniformThicknessConverter.cpp" />
     <ClCompile Include="Converters\BlurPaddingConverter.cpp" />
@@ -708,6 +712,13 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Controls\SlidingMenu.xaml" />
+    <Page Include="Styles\Colors.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Styles\Controls.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Styles\Globals.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Pages\HelpDialog.xaml">

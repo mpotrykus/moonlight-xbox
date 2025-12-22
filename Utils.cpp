@@ -7,6 +7,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <fstream>
+#include <mutex>
 
 using namespace std::chrono;
 constexpr auto LOG_LINES = 70;
@@ -57,7 +59,20 @@ namespace moonlight_xbox_dx {
 		void Log(const std::string_view& msg) {
 			try {
 				std::wstring string = GetCurrentTimestamp() + NarrowToWideString(msg);
-        OutputDebugString(string.c_str());
+				OutputDebugString(string.c_str());
+
+				// Also append the log line to a probe file so we can collect runtime
+				// diagnostics without relying on the debugger output window.
+				try {
+					std::wofstream fout;
+					fout.open(L"C:\\Users\\mpotr\\source\\repos\\moonlight-xbox\\probe_log.txt", std::ios::app);
+					if (fout.is_open()) {
+						fout << string << std::endl;
+						fout.close();
+					}
+				} catch (...) {
+					// ignore file write failures
+				}
 				{
 					std::unique_lock<std::mutex> lk(logMutex);
 					if (logLines.size() == LOG_LINES) {

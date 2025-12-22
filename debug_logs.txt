@@ -33,7 +33,7 @@
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\D3D12.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\powrprof.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptsp.dll'. Symbol loading disabled by Include/Exclude setting.
-The thread 2740 has exited with code 0 (0x0).
+The thread 5068 has exited with code 0 (0x0).
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\forwarders\kernel32.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\bcryptprimitives.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\RTWorkQ.dll'. Symbol loading disabled by Include/Exclude setting.
@@ -80,27 +80,27 @@ The thread 2740 has exited with code 0 (0x0).
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\XboxUI.Api.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Unloaded 'C:\Windows\System32\ResourcePolicyClient.dll'
 Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Xbox.Shell.Api.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ConsoleGlobalization.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\BCP47Langs.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\userenv.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DiagnosticDataSettings.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\BCP47Langs.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\httpapi.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xcrdapi.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptdll.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ConsoleGlobalization.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\gamingtelemetry.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\httpapi.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\cryptdll.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xcrdapi.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ncrypt.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\dnsapi.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xboxfrontpanel.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\IPHLPAPI.DLL'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\winhttp.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xboxfrontpanel.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\dnsapi.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xfp.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ntasn1.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\nsi.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ciumd_wddm.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\XbRmExt.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xg.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\sc_dll.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\capauthz.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xg.dll'. Symbol loading disabled by Include/Exclude setting.
 ---------------------------------------------------------
 Xbox User Mode Driver for Direct3D 11.1 / App
 Copyright (C) Microsoft Corporation. All rights reserved.
@@ -115,22 +115,22 @@ Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB f
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\TextShaping.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\scdxil.dll'. Symbol loading disabled by Include/Exclude setting.
 -----------------------------------------------------------
-SC_DLL - Shader Compilation - +29.0 ms (29.0 ms)
+SC_DLL - Shader Compilation - +29.6 ms (29.6 ms)
 Compilation Reason: No precompiled shaders found, shader blob was either not created by Xbox tools, or was created with the -noprecompile flag.
 -----------------------------------------------------------
------------------------------------------------------------
-SC_DLL - Shader Compilation - +9.5 ms (38.5 ms)
-Compilation Reason: No precompiled shaders found, shader blob was either not created by Xbox tools, or was created with the -noprecompile flag.
------------------------------------------------------------
-The thread 5904 has exited with code 0 (0x0).
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\InputHost.dll'. Symbol loading disabled by Include/Exclude setting.
+-----------------------------------------------------------
+SC_DLL - Shader Compilation - +18.6 ms (48.3 ms)
+Compilation Reason: No precompiled shaders found, shader blob was either not created by Xbox tools, or was created with the -noprecompile flag.
+-----------------------------------------------------------
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Energy.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\MrmCoreR.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 3496 has exited with code 0 (0x0).
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.StateRepositoryClient.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\BCP47mrm.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'X:\Apps\Microsoft.UI.Xaml.2.7\Microsoft.UI.Xaml.dll'. Symbol loading disabled by Include/Exclude setting.
-'moonlight-xbox-dx.exe' (Win32): Loaded 'S:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140_1_app.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'S:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\msvcp140_app.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'S:\Program Files\WindowsApps\Microsoft.VCLibs.140.00.Debug_14.0.33519.0_x64__8wekyb3d8bbwe\vcruntime140_1_app.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Xaml.Controls.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Shell.ServiceHostBuilder.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\execmodelproxy.dll'. Symbol loading disabled by Include/Exclude setting.
@@ -143,70 +143,197 @@ The thread 5904 has exited with code 0 (0x0).
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\edgegdi.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DataExchange.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Graphics.dll'. Symbol loading disabled by Include/Exclude setting.
-[26:27.217] Hello from Moonlight!
+[42:06.628] Hello from Moonlight!
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Globalization.dll'. Symbol loading disabled by Include/Exclude setting.
 'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.ApplicationModel.dll'. Symbol loading disabled by Include/Exclude setting.
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.Storage.ApplicationData.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\propsys.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.System.Launcher.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\shlwapi_onecore.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\directmanipulation.dll'. Symbol loading disabled by Include/Exclude setting.
+onecoreuap\windows\frameworkudk\warppal.cpp(783)\Microsoft.Internal.WarpPal.dll!00007FFF6778EE4C: (caller: 00007FFF67A4BE0E) ReturnHr(1) tid(bdc) 80004002 No such interface supported
+onecoreuap\windows\frameworkudk\warppal.cpp(783)\Microsoft.Internal.WarpPal.dll!00007FFF6778EE4C: (caller: 00007FFF67A4BE0E) ReturnHr(2) tid(bdc) 80004002 No such interface supported
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\WindowsCodecs.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\mswsock.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\threadpoolwinrt.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\xmllite.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'D:\DevelopmentFiles\VSRemoteTools\x64\Microsoft.VisualStudio.DesignTools.UwpTap.dll'. Symbol loading disabled by Include/Exclude setting.
+Windows.UI.Xaml.dll!00007FFF57DFA59A: (caller: 00007FFF57E03E77) ReturnHr(1) tid(bdc) 80070057 The parameter is incorrect.
+Windows.UI.Xaml.dll!00007FFF57DFBB6A: (caller: 00007FFF42D43163) ReturnHr(2) tid(bdc) 80070057 The parameter is incorrect.
+Windows.UI.Xaml.dll!00007FFF57DFA59A: (caller: 00007FFF57E03E77) ReturnHr(3) tid(bdc) 80070057 The parameter is incorrect.
+Windows.UI.Xaml.dll!00007FFF57DFBB6A: (caller: 00007FFF42D43163) ReturnHr(4) tid(bdc) 80070057 The parameter is incorrect.
+Windows.UI.Xaml.dll!00007FFF57DFA59A: (caller: 00007FFF57E03E77) ReturnHr(5) tid(bdc) 80070057 The parameter is incorrect.
+Windows.UI.Xaml.dll!00007FFF57DFBB6A: (caller: 00007FFF42D43163) ReturnHr(6) tid(bdc) 80070057 The parameter is incorrect.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'M:\windows\system32\d3d10warp.dll'. Symbol loading disabled by Include/Exclude setting.
+Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3FF2C8.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\DeviceFamilyExt.dll'. Symbol loading disabled by Include/Exclude setting.
+The thread 5636 has exited with code 0 (0x0).
+The thread 3632 has exited with code 0 (0x0).
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\msftedit.dll'. Symbol loading disabled by Include/Exclude setting.
+Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3F94F8.
+Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3F94F8.
+Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3F94F8.
+Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3F94F8.
+Exception thrown at 0x00007FFF6B8B66CA in moonlight-xbox-dx.exe: Microsoft C++ exception: Core::ApiException::Holder$ at memory location 0x000000F4BB3F94F8.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\forwarders\user32.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\minglobinputhost.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\Windows.UI.Xaml.Phone.dll'. Symbol loading disabled by Include/Exclude setting.
+[43:03.353] AppPage: background app-fetch disabled for debugging
 
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
 
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
+[43:03.443] SlidingMenu: BackgroundElement Actual=(0.000000,0.000000) Min=(0.000000,0.000000) Max=(inf,inf) RenderTransform=(0.000000,0.000000)
 
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
 
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-Exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
-
-A breakpoint instruction (__debugbreak() statement or a similar call) was executed in moonlight-xbox-dx.exe.
-
-Unhandled exception thrown: read access violation.
-__pUnknown->**** was 0x7FF6E84908DB.
+[43:03.515] AppsGrid_Loaded fired.
+[43:03.519] AppPage: Loaded event invoked
+[43:03.522] AppPage::OnFirstRender: first render occurred
+[43:03.524] [AppPage] Handler Enter: AppsGrid_SelectionChanged
+[43:03.525] CenterSelectedItem: sv ExtentWidth=960.00 ViewportWidth=960.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[43:03.526] CenterSelectedItem: container ActualWidth=306.00 pt.X=0.00 containerCenter=153.00
+[43:03.526] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[43:03.526] CenterSelectedItem: ItemsPanel type = Other or null
+[43:03.527] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=-1.00 itemsPanelRootActualW=1224.00 estimatedContentWidth=1224.00 containerWidth=306.00
+[43:03.527] [AppPage] ApplyCenteringTransformIfNeeded: start
+[43:03.530] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=153.00 appsGridCenter=480.00 translateX=327.00
+[43:03.531] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[43:03.532] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[43:03.532] [AppPage] ApplyCenteringTransformIfNeeded: end
+[43:03.533] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[43:03.534] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=1224.00 itemsPanelRootActualW=1224.00 estimatedContentWidth=1224.00 totalItems=4
+[43:03.558] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='U:\Users\UserMgr0\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\1883389049.png'
+[43:03.576] [AppPage] Handler Enter: AppsGrid_SelectionChanged
+[43:03.578] CenterSelectedItem: sv ExtentWidth=960.00 ViewportWidth=960.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[43:03.579] CenterSelectedItem: container ActualWidth=225.00 pt.X=0.00 containerCenter=112.50
+[43:03.579] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[43:03.580] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[43:03.580] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=981.00 itemsPanelRootActualW=981.00 estimatedContentWidth=900.00 containerWidth=225.00
+[43:03.581] [AppPage] ApplyCenteringTransformIfNeeded: start
+[43:03.586] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=153.75 appsGridCenter=480.00 translateX=326.25
+[43:03.587] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[43:03.587] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[43:03.588] [AppPage] ApplyCenteringTransformIfNeeded: end
+[43:03.588] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[43:03.589] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=982.50 itemsPanelRootActualW=982.50 estimatedContentWidth=1230.00 totalItems=4
+[43:03.608] ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync: path='U:\Users\UserMgr0\AppData\Local\Packages\50497EliaZammuto.MoonlightUWP_n21gde0cx5ktw\LocalState\images\1883389049.png'
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6319) ReturnHr(1) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6363) ReturnHr(2) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD63AD) ReturnHr(3) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5AE077DA) ReturnHr(4) tid(66c) 80070002 The system cannot find the file specified.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(254)\Windows.System.Launcher.dll!00007FFF5ADD8A43: (caller: 00007FFF5ADD852E) ReturnHr(1) tid(18cc) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(77)\Windows.System.Launcher.dll!00007FFF5ADD84B0: (caller: 00007FFF5ADD94F8) ReturnHr(2) tid(18cc) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(448)\Windows.System.Launcher.dll!00007FFF5ADD94BF: (caller: 00007FFF62906DA2) ReturnHr(3) tid(18cc) 80070005 Access is denied.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6319) ReturnHr(5) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6363) ReturnHr(6) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD63AD) ReturnHr(7) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5AE077DA) ReturnHr(8) tid(678) 80070002 The system cannot find the file specified.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(254)\Windows.System.Launcher.dll!00007FFF5ADD8A43: (caller: 00007FFF5ADD852E) ReturnHr(4) tid(ed8) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(77)\Windows.System.Launcher.dll!00007FFF5ADD84B0: (caller: 00007FFF5ADD94F8) ReturnHr(5) tid(ed8) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(448)\Windows.System.Launcher.dll!00007FFF5ADD94BF: (caller: 00007FFF62906DA2) ReturnHr(6) tid(ed8) 80070005 Access is denied.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6319) ReturnHr(9) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6363) ReturnHr(10) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD63AD) ReturnHr(11) tid(66c) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5AE077DA) ReturnHr(12) tid(66c) 80070002 The system cannot find the file specified.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(254)\Windows.System.Launcher.dll!00007FFF5ADD8A43: (caller: 00007FFF5ADD852E) ReturnHr(7) tid(18cc) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(77)\Windows.System.Launcher.dll!00007FFF5ADD84B0: (caller: 00007FFF5ADD94F8) ReturnHr(8) tid(18cc) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(448)\Windows.System.Launcher.dll!00007FFF5ADD94BF: (caller: 00007FFF62906DA2) ReturnHr(9) tid(18cc) 80070005 Access is denied.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'M:\windows\system32\pfclient.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\ole32_wp.dll'. Symbol loading disabled by Include/Exclude setting.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6319) ReturnHr(13) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD6363) ReturnHr(14) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5ADD63AD) ReturnHr(15) tid(678) 80070002 The system cannot find the file specified.
+onecore\base\appmodel\runtime\src\extensions.cpp(229)\kernelbase.dll!00007FFF6B8AB937: (caller: 00007FFF5AE077DA) ReturnHr(16) tid(678) 80070002 The system cannot find the file specified.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(254)\Windows.System.Launcher.dll!00007FFF5ADD8A43: (caller: 00007FFF5ADD852E) ReturnHr(10) tid(ed8) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(77)\Windows.System.Launcher.dll!00007FFF5ADD84B0: (caller: 00007FFF5ADD94F8) ReturnHr(11) tid(ed8) 80070005 Access is denied.
+onecoreuap\shell\windows.system.launcher\lib\windows.system.private.queryassociations.cpp(448)\Windows.System.Launcher.dll!00007FFF5ADD94BF: (caller: 00007FFF62906DA2) ReturnHr(12) tid(ed8) 80070005 Access is denied.
+[43:03.847] CenterSelectedItem: sv ExtentWidth=960.00 ViewportWidth=960.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[43:03.848] CenterSelectedItem: container ActualWidth=307.50 pt.X=0.00 containerCenter=153.75
+[43:03.849] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[43:03.849] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[43:03.850] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=982.50 itemsPanelRootActualW=982.50 estimatedContentWidth=1230.00 containerWidth=307.50
+[43:03.850] [AppPage] ApplyCenteringTransformIfNeeded: start
+[43:03.851] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=153.75 appsGridCenter=480.00 translateX=326.25
+[43:03.852] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[43:03.852] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[43:03.853] [AppPage] ApplyCenteringTransformIfNeeded: end
+[43:03.853] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[43:03.854] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=982.50 itemsPanelRootActualW=982.50 estimatedContentWidth=1230.00 totalItems=4
+[43:03.855] CenterSelectedItem: sv ExtentWidth=960.00 ViewportWidth=960.00 ScrollableWidth=0.00 HorizontalOffset=0.00 VerticalOffset=0.00
+[43:03.855] CenterSelectedItem: container ActualWidth=307.50 pt.X=0.00 containerCenter=153.75
+[43:03.856] CenterSelectedItem: desired=0.00 (clamped to [0, 0.00])
+[43:03.856] CenterSelectedItem: ItemsPanel type = ItemsStackPanel
+[43:03.857] CenterSelectedItem: ItemsCount=4 itemsPanelActualW=982.50 itemsPanelRootActualW=982.50 estimatedContentWidth=1230.00 containerWidth=307.50
+[43:03.857] [AppPage] ApplyCenteringTransformIfNeeded: start
+[43:03.858] [AppPage] ApplyCenteringTransformIfNeeded: containerCenterInPanel=153.75 appsGridCenter=480.00 translateX=326.25
+[43:03.859] [AppPage] ApplyCenteringTransformIfNeeded: starting composition animation
+[43:03.859] [AppPage] ApplyCenteringTransformIfNeeded: composition animation started
+[43:03.860] [AppPage] ApplyCenteringTransformIfNeeded: end
+[43:03.860] CenterSelectedItem: polling sv.ScrollableWidth=0.00
+[43:03.861] CenterSelectedItem: polling sv.ScrollableWidth=0.00 itemsPanelActualW=982.50 itemsPanelRootActualW=982.50 estimatedContentWidth=1230.00 totalItems=4
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\PhotoMetadataHandler.dll'. Symbol loading disabled by Include/Exclude setting.
+'moonlight-xbox-dx.exe' (Win32): Loaded 'C:\Windows\System32\RTMediaFrame.dll'. Symbol loading disabled by Include/Exclude setting.
+[43:03.953] ApplyBlur(UI): captured display pixel target=450 x 692 from ActualWidth/Height (dpi=192.00)
+[43:03.956] ApplyBlur(UI): captured display pixel target=450 x 692 from ActualWidth/Height (dpi=192.00)
+[43:04.047] ApplyBlur: maskFromXaml=000002443B9BB7A0 pixelSize=615 x 941 target=450 x 692 dpi=192.00 radiusPx=16
+[43:04.048] ApplyBlur: captured mask=000002443B9BB7A0 size=615 x 941
+[43:04.049] ApplyBlur: maskFromXaml=000002443B9BA070 pixelSize=615 x 941 target=450 x 692 dpi=192.00 radiusPx=16
+[43:04.050] ApplyBlur: captured mask=000002443B9BA070 size=615 x 941
+'moonlight-xbox-dx.exe' (Win32): Loaded 'M:\windows\system32\DXGIDebug.dll'. Symbol loading disabled by Include/Exclude setting.
+Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12---------------------------------------------------------
+Xbox User Mode Driver for Direct3D 11.1 / App
+Copyright (C) Microsoft Corporation. All rights reserved.
+---------------------------------------------------------
+Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12Error querying DXDB for DX_DATABASE_QUERY_TYPE_FORCE_11ON12'moonlight-xbox-dx.exe' (Win32): Loaded 'M:\windows\system32\d3d11_3SDKLayers.dll'. Symbol loading disabled by Include/Exclude setting.
+[43:04.303] EffectsLibrary: lazy-created device=0000024446356C40 context=0000024446602030
+[43:04.304] GpuBoxBlurSoftwareBitmap: entry bitmap=000002443BF9CD10 radius=32 device=0000024446356C40 context=0000024446602030
+[43:04.304] GpuBoxBlurSoftwareBitmap: entry bitmap=000002443BF9CAE0 radius=32 device=0000024446356C40 context=0000024446602030
+[43:04.307] GpuBoxBlurSoftwareBitmap: computed pad=54 padded=558 x 800 (src=450 x 692) radius=32
+[43:04.308] GpuBoxBlurSoftwareBitmap: computed pad=54 padded=558 x 800 (src=450 x 692) radius=32
+[43:04.320] GpuBoxBlurSoftwareBitmap: compiling shaders
+-----------------------------------------------------------
+SC_DLL - Shader Compilation - +11.1 ms (59.4 ms)
+Compilation Reason: No precompiled shaders found, shader blob was either not created by Xbox tools, or was created with the -noprecompile flag.
+-----------------------------------------------------------
+-----------------------------------------------------------
+SC_DLL - Shader Compilation - +12.0 ms (71.4 ms)
+Compilation Reason: No precompiled shaders found, shader blob was either not created by Xbox tools, or was created with the -noprecompile flag.
+-----------------------------------------------------------
+[43:04.384] GpuBoxBlurSoftwareBitmap: shader/sampler/CB setup complete
+[43:04.385] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[43:04.385] GpuBoxBlurSoftwareBitmap: seeding padded ping target from srcSRV (via sampling)
+[43:04.387] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[43:04.388] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[43:04.389] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[43:04.390] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[43:04.391] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[43:04.392] GpuBoxBlurSoftwareBitmap: issuing first draw (horizontal padded)
+[43:04.392] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[43:04.393] GpuBoxBlurSoftwareBitmap: issuing second draw (vertical padded)
+[43:04.394] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
+[43:04.395] GpuBoxBlurSoftwareBitmap: copied padded rt to staging (padded=558 x 800)
+[43:04.421] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2240 mappedFlag=1
+[43:04.425] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface hr=0x80004002
+[43:04.426] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
+[43:04.435] GpuBoxBlurSoftwareBitmap: success (fallback CreateCopyFromBuffer)
+[43:04.436] GpuBoxBlurSoftwareBitmap: copying rtB -> staging
+[43:04.439] ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync: encoding bitmap 558 x 800
+[43:04.440] GpuBoxBlurSoftwareBitmap: copied padded rt to staging (padded=558 x 800)
+[43:04.442] GpuBoxBlurSoftwareBitmap: staging mapped RowPitch=2240 mappedFlag=1
+[43:04.445] GpuBoxBlurSoftwareBitmap: outAccess QueryInterface failed, using CopyFromBuffer fallback
+[43:04.453] GpuBoxBlurSoftwareBitmap: success (fallback CreateCopyFromBuffer)
+[43:04.456] ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync: encoding bitmap 558 x 800
+[43:04.575] EncodeSoftwareBitmapToPngStreamAsync: prepared straight-alpha first pixel BGRA=255,0,0,1
+[43:04.583] EncodeSoftwareBitmapToPngStreamAsync: prepared straight-alpha first pixel BGRA=255,0,0,1
+[43:04.658] ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync: encoded stream size=194407
+[43:04.665] ImageHelpers::EncodeSoftwareBitmapToPngStreamAsync: encoded stream size=194407
+[43:04.676] [AppPage] SelectionChanged: SetSourceAsync completed for app id=1883389049
+[43:04.677] [AppPage] SelectionChanged: assigned BlurredImage for app id=1883389049
+MoonlightApp: ReflectionImage set for app id=1883389049, bmp_ptr=00000244461A8660
+[43:04.682] [AppPage] SelectionChanged: assigned ReflectionImage for app id=1883389049
+[43:04.683] [AppPage] SelectionChanged: SetSourceAsync completed for app id=1883389049
+[43:04.695] [AppPage] SelectionChanged: assigned BlurredImage for app id=1883389049
+MoonlightApp: ReflectionImage set for app id=1883389049, bmp_ptr=00000244461A8C00
+[43:04.700] [AppPage] SelectionChanged: assigned ReflectionImage for app id=1883389049
+The thread 6360 has exited with code 0 (0x0).
+[43:05.357] AppPage::AppsGrid_RightTapped invoked
+Exception thrown at 0x00007FFF58000506 (Windows.UI.Xaml.dll) in moonlight-xbox-dx.exe: 0xC0000005: Access violation reading location 0x0000000000000000.
 

@@ -1,11 +1,14 @@
 #include "pch.h"
 #include "SlidingMenu.xaml.h"
-#include <winrt/Windows.UI.Xaml.Media.h>
-#include <winrt/Windows.UI.Xaml.Media.Animation.h>
+#include "Utils.hpp"
 
 using namespace moonlight_xbox_dx::Controls;
 using namespace Windows::UI::Xaml::Media::Animation;
 using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Core;
+using namespace concurrency;
+
+static constexpr int kAnimationDurationMs = 150;
 
 SlidingMenu::SlidingMenu()
 {
@@ -25,6 +28,40 @@ SlidingMenu::SlidingMenu()
     try { PageItemsList->ItemsSource = PageItems; } catch(...) {}
 }
 
+void SlidingMenu::OnApplyTemplate()
+{
+    __super::OnApplyTemplate();
+
+    try {
+        auto backgroundEl = this->GetTemplateChild("BackgroundElement");
+        if (backgroundEl != nullptr) {
+            auto border = dynamic_cast<Windows::UI::Xaml::Controls::Border^>(backgroundEl);
+            if (border != nullptr) {
+                auto w = border->ActualWidth;
+                auto h = border->ActualHeight;
+                auto mw = border->MaxWidth;
+                auto mh = border->MaxHeight;
+                auto minw = border->MinWidth;
+                auto minh = border->MinHeight;
+                auto rt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(border->RenderTransform);
+                double tx = 0, ty = 0;
+                if (rt != nullptr) { tx = rt->X; ty = rt->Y; }
+                Utils::Logf("SlidingMenu: BackgroundElement Actual=(%f,%f) Min=(%f,%f) Max=(%f,%f) RenderTransform=(%f,%f)", w, h, minw, minh, mw, mh, tx, ty);
+            } else {
+                Utils::Log("SlidingMenu: BackgroundElement found but not a Border");
+            }
+        } else {
+            Utils::Log("SlidingMenu: BackgroundElement not found in template");
+        }
+    } catch(...) {
+        Utils::Log("SlidingMenu: exception inspecting template");
+    }
+}
+
+bool SlidingMenu::IsOpen::get() {
+    return m_isOpen;
+}
+
 void SlidingMenu::AddPageItem(moonlight_xbox_dx::MenuItem^ item) {
     if (item == nullptr) return;
     PageItems->Append(item);
@@ -36,68 +73,69 @@ void SlidingMenu::ClearPageItems() {
 
 void SlidingMenu::Open()
 {
-    auto da = ref new DoubleAnimation();
-    da->To = ref new Platform::Box<double>(0.0);
-    Windows::Foundation::TimeSpan span;
-    span.Duration = 1500000; // 0.2s in 100ns units
-    da->Duration = span;
-    Storyboard::SetTarget(da, SlideTransform);
-    Storyboard::SetTargetProperty(da, "X");
-    // fade the overlay in (animate Opacity from 0 -> 1)
-    auto oa = ref new DoubleAnimation();
-    oa->From = ref new Platform::Box<double>(0.0);
-    oa->To = ref new Platform::Box<double>(1.0);
-    oa->Duration = span;
-    Storyboard::SetTarget(oa, Overlay);
-    Storyboard::SetTargetProperty(oa, "Opacity");
-
-    auto sb = ref new Storyboard();
-    sb->Children->Append(da);
-    sb->Children->Append(oa);
-    // ensure overlay is visible and receives input before animating
-    Overlay->Opacity = 0.0;
-    SetOverlayActive(true);
-    sb->Begin();
+    if (m_isOpen) return;
+    m_isOpen = true;
+    try {
+        // Ensure ShowAsync runs on the UI thread
+        if (this->Dispatcher != nullptr && this->Dispatcher->HasThreadAccess) {
+            auto asyncOp = this->ShowAsync();
+            // When dialog is shown, run the Opened visual state to animate content in
+            try { VisualStateManager::GoToState(this, "Opened", true); } catch(...) {}
+            concurrency::create_task(asyncOp).then([this](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+                m_isOpen = false;
+                try { VisualStateManager::GoToState(this, "Closed", false); } catch(...) {}
+            });
+        } else {
+            // Dispatch to UI thread; use a weak ref to avoid lifetime issues
+            Platform::WeakReference weakThis(this);
+            auto disp = this->Dispatcher;
+            if (disp == nullptr) {
+                try { auto coreView = Windows::ApplicationModel::Core::CoreApplication::MainView; if (coreView != nullptr && coreView->CoreWindow != nullptr) disp = coreView->CoreWindow->Dispatcher; } catch(...) { disp = nullptr; }
+            }
+            if (disp != nullptr) {
+                disp->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([weakThis]() {
+                    auto that = weakThis.Resolve<SlidingMenu>();
+                    if (that == nullptr) return;
+                    try {
+                        auto asyncOp = that->ShowAsync();
+                        try { VisualStateManager::GoToState(that, "Opened", true); } catch(...) {}
+                        concurrency::create_task(asyncOp).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+                            that->m_isOpen = false;
+                            try { VisualStateManager::GoToState(that, "Closed", false); } catch(...) {}
+                        });
+                    } catch(...) {
+                        that->m_isOpen = false;
+                    }
+                }));
+            } else {
+                // No dispatcher available; fall back to calling ShowAsync directly and guarding
+                try {
+                    auto asyncOp = this->ShowAsync();
+                    try { VisualStateManager::GoToState(this, "Opened", true); } catch(...) {}
+                    concurrency::create_task(asyncOp).then([this](Windows::UI::Xaml::Controls::ContentDialogResult result) {
+                        m_isOpen = false;
+                        try { VisualStateManager::GoToState(this, "Closed", false); } catch(...) {}
+                    });
+                } catch(...) {
+                    m_isOpen = false;
+                }
+            }
+        }
+    } catch(...) {
+        m_isOpen = false;
+    }
 }
 
 void SlidingMenu::Close()
 {
-    auto da = ref new DoubleAnimation();
-    da->To = ref new Platform::Box<double>(-320.0);
-    Windows::Foundation::TimeSpan span2;
-    span2.Duration = 2000000;
-    da->Duration = span2;
-    Storyboard::SetTarget(da, SlideTransform);
-    Storyboard::SetTargetProperty(da, "X");
-    // fade overlay out (Opacity 1 -> 0)
-    auto oa = ref new DoubleAnimation();
-    oa->To = ref new Platform::Box<double>(0.0);
-    oa->Duration = span2;
-    Storyboard::SetTarget(oa, Overlay);
-    Storyboard::SetTargetProperty(oa, "Opacity");
+	if (!m_isOpen) return;
 
-    auto sb = ref new Storyboard();
-    sb->Children->Append(da);
-    sb->Children->Append(oa);
-    // disable overlay after closing animation completes
-    sb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>([this](Platform::Object^ s, Platform::Object^ e) { SetOverlayActive(false); });
-    sb->Begin();
-}
-
-void SlidingMenu::SetOverlayActive(bool active)
-{
-    if (active) {
-        Overlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
-        Overlay->IsHitTestVisible = true;
-        auto rootWindow = Windows::UI::Xaml::Window::Current;
-        // set focus to the control so it receives input
-        auto focused = this->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-        (void)focused;
-    }
-    else {
-        Overlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        Overlay->IsHitTestVisible = false;
-    }
+    try {
+        // animate closed state then hide
+        try { VisualStateManager::GoToState(this, "Closed", true); } catch(...) {}
+        this->Hide();
+    } catch(...) {}
+    m_isOpen = false;
 }
 
 void SlidingMenu::OnMenuItemClicked(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
