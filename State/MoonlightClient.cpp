@@ -289,7 +289,7 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 		char message[2048];
 		sprintf(message, "gs_startapp failed with status code %d\n", a);
 		Utils::Log(message);
-		Utils::Log(gs_error);
+		if (gs_error) Utils::Logf("%s\n", gs_error);
 		return a;
 	}
 	// Sleep(10000);

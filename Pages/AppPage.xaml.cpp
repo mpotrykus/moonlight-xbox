@@ -90,14 +90,14 @@ void AppPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ 
 					try { connected = (that->host->Connect() == 0); } catch (...) { connected = false; }
 					if (that->wasConnected.load() && !connected) {
 						that->wasConnected.store(false);
-						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([that]() {
 							try {
 								auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 								dialog->Title = Utils::StringFromStdString("Disconnected");
 								dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
 								dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
 								concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([that](Windows::UI::Xaml::Controls::ContentDialogResult result) {
-									that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([that]() {
+									that->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([that]() {
 										try {
 											that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
 										} catch (...) {}
@@ -161,7 +161,7 @@ void AppPage::Connect(int appId) {
 	if (config->enableHDR) {
 		host->VideoCodec = "HEVC (H.265)";
 	}
- bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
+	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 	if (!result) {
 		printf("C");
 	}

@@ -77,44 +77,104 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	auto ignore = this->Dispatcher->RunAsync(CoreDispatcherPriority::Low, ref new DispatchedHandler([weakThis]() {
 		auto that = weakThis.Resolve<StreamPage>();
 		if (that == nullptr) return;
+		
+		auto moonlightClient = new MoonlightClient();
+		
 		try {
-			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
+			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, moonlightClient, that->configuration));
 			
 			DISPATCH_UI([that], {
-				try {
-					that->m_main->CreateDeviceDependentResources();
-					that->m_main->CreateWindowSizeDependentResources();
-					that->m_main->StartRenderLoop();
-				} catch (...) {
-					Utils::Log("StreamPage: init failed\n");
-				}
+				that->m_main->CreateDeviceDependentResources();
+				that->m_main->CreateWindowSizeDependentResources();
+				that->m_main->StartRenderLoop();
 			});
-
 		} catch (const std::exception &ex) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = Utils::StringPrintf(ex.what());
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
+			that->HandleStreamException(Utils::StringPrintf(ex.what()), moonlightClient);
 		} catch (const std::string &string) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = Utils::StringPrintf(string.c_str());
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
+			that->HandleStreamException(Utils::StringPrintf(string.c_str()), moonlightClient);
 		} catch (Platform::Exception ^ e) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
 			Platform::String ^ errorMsg = ref new Platform::String();
 			errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
 			errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
-			dialog->Content = errorMsg;
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
+			that->HandleStreamException(errorMsg, moonlightClient);
 		} catch (...) {
-			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			dialog->Content = L"Generic Exception";
-			dialog->CloseButtonText = L"OK";
-			dialog->ShowAsync();
+			that->HandleStreamException(L"Generic Exception", moonlightClient);
 		}
 	}));
+}
+
+void StreamPage::HandleStreamException(Platform::String ^ message, MoonlightClient *moonlightClient) {
+	try {
+		auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+		dialog->Content = message;
+		dialog->PrimaryButtonText = L"OK";
+
+		Platform::WeakReference weakThat(this);
+
+		concurrency::create_task(dialog->ShowAsync()).then([moonlightClient, weakThat](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
+			try {
+				auto result = t.get();
+				if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
+					auto strongThat = weakThat.Resolve<StreamPage>();
+
+					// Preferred: if m_main exists, call its Disconnect() — it calls StopStreaming()
+					// and stops the scene renderer. This is the cleanest shutdown path for
+					// the running render loop instance.
+					if (strongThat != nullptr && strongThat->m_main) {
+						Utils::Log("[StreamPage] HandleStreamException: calling m_main->Disconnect()\n");
+						strongThat->m_main->Disconnect();
+
+						// Attempt to navigate back; if Frame can't go back, navigate to HostSelectorPage.
+						strongThat->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([strongThat]() {
+							                                 if (strongThat->Frame != nullptr && strongThat->Frame->CanGoBack) {
+								                                 strongThat->Frame->GoBack();
+							                                 } else if (strongThat->Frame != nullptr) {
+								                                 strongThat->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+							                                 }
+						                                 }));
+
+						return;
+					}
+
+					// If m_main isn't available (initialization case), call StopStreaming on the
+					// MoonlightClient instance you already created. This forces the library to
+					// teardown and will trigger the connection_terminated callback which sets
+					// the same atomic flag the render loop polls.
+					if (moonlightClient) {
+						Utils::Log("[StreamPage] HandleStreamException: calling moonlightClient->StopStreaming()\n");
+						moonlightClient->StopStreaming();
+						// Also set the flag as a fallback; StopStreaming should drive termination callbacks,
+						// but setting the flag directly ensures the render-loop polling sees termination.
+						moonlightClient->SetConnectionTerminated();
+
+						// Navigate back (or to HostSelectorPage) on UI thread.
+						auto pageWeak = weakThat;
+						Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([pageWeak]() {
+							                                                                                             auto strong = pageWeak.Resolve<StreamPage>();
+							                                                                                             if (!strong) return;
+							                                                                                             if (strong->Frame != nullptr && strong->Frame->CanGoBack) {
+								                                                                                             strong->Frame->GoBack();
+							                                                                                             } else if (strong->Frame != nullptr) {
+								                                                                                             strong->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+							                                                                                             }
+						                                                                                             }));
+
+						return;
+					}
+
+					// Last resort: flip the termination flag (no client instance available).
+					Utils::Log("[StreamPage] HandleStreamException: no client instance available to stop; setting termination flag\n");
+					// global flag is set by MoonlightClient::SetConnectionTerminated(); call it only if you have a pointer.
+				}
+			} catch (...) {
+				Utils::Log("[StreamPage] HandleStreamException: dialog continuation threw\n");
+			}
+		});
+	} catch (const std::exception &ex) {
+		Utils::Logf("[StreamPage] HandleStreamException exception while showing dialog. Exception: %s\n", ex.what());
+	} catch (...) {
+		Utils::Log("[StreamPage] HandleStreamException exception while showing dialog. Unknown Exception.\n");
+	}
 }
 
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
