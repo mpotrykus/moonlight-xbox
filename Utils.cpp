@@ -99,6 +99,7 @@ namespace moonlight_xbox_dx {
 		}
 
 		std::vector<std::wstring> GetLogLines() {
+			std::lock_guard<std::mutex> lk(logMutex);
 			return logLines;
 		}
 

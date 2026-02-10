@@ -25,6 +25,21 @@ using namespace Windows::UI::Composition;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
+static MoonlightApp^ GetAppById(MoonlightHost^ host, int appId) {
+	if (host == nullptr) {
+		return nullptr;
+	}
+
+	for (unsigned int i = 0; i < host->Apps->Size; ++i) {
+		auto app = host->Apps->GetAt(i);
+		if (app != nullptr && app->Id == appId) {
+			return app;
+		}
+	}
+
+	return nullptr;
+}
+
 AppPage::AppPage()
 {
 	InitializeComponent();
@@ -143,9 +158,12 @@ void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, Windows::UI::Xaml::C
 }
 
 void AppPage::Connect(int appId) {
+	MoonlightApp^ app = GetAppById(host, appId);
+
 	StreamConfiguration ^ config = ref new StreamConfiguration();
 	config->hostname = host->LastHostname;
 	config->appID = appId;
+	config->appName = app ? app->Name : "App";
 	config->width = host->Resolution->Width;
 	config->height = host->Resolution->Height;
 	config->bitrate = host->Bitrate;

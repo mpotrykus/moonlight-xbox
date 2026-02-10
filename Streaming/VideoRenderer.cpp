@@ -51,11 +51,11 @@ typedef struct _CSC_CONST_BUF
 } CSC_CONST_BUF, * PCSC_CONST_BUF;
 static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a multiple of 16");
 
-
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_LastColorTrc(AVCOL_TRC_UNSPECIFIED),
 	m_loadingComplete(false),
+	m_loadingSuccessful(false),
 	m_deviceResources(deviceResources),
 	client(mclient),
 	configuration(sConfig)
@@ -95,7 +95,7 @@ bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render(AVFrame *frame) {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete.load(std::memory_order_acquire)) {
+	if (!m_loadingComplete.load(std::memory_order_acquire) && !m_loadingSuccessful.load(std::memory_order_acquire)) {
 		return true;
 	}
 
@@ -193,26 +193,26 @@ void VideoRenderer::CreateDeviceDependentResources()
 	{
 		auto vertexShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_vertex.fxc");
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateVertexShader(
-				vertexShaderBytecode.data(),
-				vertexShaderBytecode.size(),
-				nullptr,
+		    m_deviceResources->GetD3DDevice()->CreateVertexShader(
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
+		        nullptr,
 				&m_vertexShader
 			)
 			, "Vertex Shader Creation");
 
 		static const D3D11_INPUT_ELEMENT_DESC vertexDesc[] =
-		{
+		    {
 				{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		};
+		    };
 
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreateInputLayout(
-				vertexDesc,
-				ARRAYSIZE(vertexDesc),
-				vertexShaderBytecode.data(),
-				vertexShaderBytecode.size(),
+		    m_deviceResources->GetD3DDevice()->CreateInputLayout(
+		        vertexDesc,
+		        ARRAYSIZE(vertexDesc),
+		        vertexShaderBytecode.data(),
+		        vertexShaderBytecode.size(),
 				&m_inputLayout
 			)
 			, "Input Layout Creation");
@@ -222,10 +222,10 @@ void VideoRenderer::CreateDeviceDependentResources()
 	{
 		auto pixelShaderBytecode = DX::ReadData(L"Assets\\Shader\\d3d11_yuv420_pixel.fxc");
 		DX::ThrowIfFailed(
-			m_deviceResources->GetD3DDevice()->CreatePixelShader(
-				pixelShaderBytecode.data(),
-				pixelShaderBytecode.size(),
-				nullptr,
+		    m_deviceResources->GetD3DDevice()->CreatePixelShader(
+		        pixelShaderBytecode.data(),
+		        pixelShaderBytecode.size(),
+		        nullptr,
 				&m_pixelShaderYUV420
 			)
 			, "Pixel Shader Creation");
@@ -278,141 +278,27 @@ void VideoRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
 	}
 
-	int width = configuration->width;
-	int height = configuration->height;
+    DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
+        int status = this->client->StartStreaming(devRes, cfg);
+		
+		if (status != 0) {
+			Utils::Logf("StartStreaming failed with status %d\n", status);
+			m_loadingSuccessful.store(false, std::memory_order_release);
+			m_loadingComplete.store(true, std::memory_order_release);
+			return;
+		}
 
-	int status = client->StartStreaming(m_deviceResources, configuration);
-	if (status != 0) {
-		// Helper: translate common error codes to human readable messages.
-		auto DescribeStartStreamingError = [&](int code) -> std::string {
-			// libgamestream errors (from libgamestream/errors.h)
-#ifdef GS_FAILED
-			switch (code) {
-			case GS_FAILED: return "General failure (GS_FAILED)";
-			case GS_OUT_OF_MEMORY: return "Out of memory (GS_OUT_OF_MEMORY)";
-			case GS_INVALID: return "Invalid response from server / invalid data (GS_INVALID)";
-			case GS_WRONG_STATE: return "Wrong server state for requested operation (GS_WRONG_STATE)";
-			case GS_IO_ERROR: return "I/O error (GS_IO_ERROR)";
-			case GS_NOT_SUPPORTED_4K: return "Host does not support 4K (GS_NOT_SUPPORTED_4K)";
-			case GS_UNSUPPORTED_VERSION: return "Host reported unsupported version (GS_UNSUPPORTED_VERSION)";
-			case GS_NOT_SUPPORTED_MODE: return "Requested streaming mode not supported by host (GS_NOT_SUPPORTED_MODE)";
-			case GS_ERROR: return "Generic XML/parse error (GS_ERROR)";
-			case GS_NOT_SUPPORTED_SOPS_RESOLUTION: return "SOPS resolution not supported by host (GS_NOT_SUPPORTED_SOPS_RESOLUTION)";
-			case GS_OK: return "Success (GS_OK)";
-			}
-#endif
-
-			// Limelight connection termination errors (ML_ERROR_*
-#ifdef ML_ERROR_NO_VIDEO_TRAFFIC
-			if (code == ML_ERROR_NO_VIDEO_TRAFFIC) return "No video traffic received (ML_ERROR_NO_VIDEO_TRAFFIC)";
-			if (code == ML_ERROR_NO_VIDEO_FRAME) return "No complete video frame received (ML_ERROR_NO_VIDEO_FRAME)";
-			if (code == ML_ERROR_UNEXPECTED_EARLY_TERMINATION) return "Stream terminated unexpectedly early (ML_ERROR_UNEXPECTED_EARLY_TERMINATION)";
-			if (code == ML_ERROR_PROTECTED_CONTENT) return "Protected content prevented streaming (ML_ERROR_PROTECTED_CONTENT)";
-			if (code == ML_ERROR_FRAME_CONVERSION) return "Frame conversion error (likely HDR/resolution mismatch) (ML_ERROR_FRAME_CONVERSION)";
-#endif
-
-			// Limelight API unsupported return
-#ifdef LI_ERR_UNSUPPORTED
-			if (code == LI_ERR_UNSUPPORTED) return "Requested operation is unsupported by host (LI_ERR_UNSUPPORTED)";
-#endif
-
-			// Common heuristic fallback: gs_error is set for libgamestream HTTP/xml errors
-if (gs_error && gs_error[0] != '\0') {
-    std::string s = "libgamestream reported error: ";
-    s += gs_error;
-    return s;
-}
-
-			// Generic fallback
-			char tmp[128];
-			snprintf(tmp, sizeof(tmp), "LiStartConnection returned code %d (see logs for details)", code);
-			return std::string(tmp);
-		};
-
-		std::string descr = DescribeStartStreamingError(status);
-		Utils::Logf("StartStreaming failed: %d (%s)\n", status, descr.c_str());
-
-
-
-
-
-
-
-
-		//Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		//Utils::logMutex.lock();
-		//
-		//std::wstring m_text = L"Error: ";
-		//// append ASCII descr into wstring (descr is expected to be ASCII/UTF-8 friendly)
-		//std::wstring descrW(descr.begin(), descr.end());
-		//m_text += descrW;
-		//m_text += L"\n\nRecent logs:\n";
-
-		//std::vector<std::wstring> lines = Utils::GetLogLines();
-		//for (int i = 0; i < lines.size(); i++) {
-		//	//Get only the last 24 lines
-		//	if (lines.size() - i < 24) {
-		//		m_text += lines[i];
-		//	}
-		//}
-		//Utils::logMutex.unlock();
-		//Utils::showLogs = true;
-		//auto sv = ref new Windows::UI::Xaml::Controls::ScrollViewer();
-		//sv->VerticalScrollMode = Windows::UI::Xaml::Controls::ScrollMode::Enabled;
-		//sv->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Visible;
-		//auto tb = ref new Windows::UI::Xaml::Controls::TextBlock();
-		//tb->Text = ref new Platform::String(m_text.c_str());
-		//sv->Content = tb;
-		//dialog->Content = sv;
-		//dialog->CloseButtonText = L"OK";
-		//dialog->ShowAsync();
-
-
-
-
-
-
-		// return;
-
-
-		std::string msg = gs_error ? gs_error : "Unknown error.";
-		msg += "\n";
-		msg += "\n";
-		msg += "Error: ";
-		msg += descr;
-		msg += "\n";
-
-		//Windows::UI::Xaml::Controls::ContentDialog^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-		//dialog->Content = Utils::StringFromStdString(msg);
-		//dialog->CloseButtonText= L"OK";
-
-		//dialog->PrimaryButtonText = L"OK";
-		//concurrency::create_task(dialog->ShowAsync()).then([this](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
-		//	try {
-		//		auto result = t.get();
-		//		DISPATCH_UI([result] {
-		//			if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
-		//				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
-		//			}
-		//		});
-		//	} catch (...) {
-		//		Utils::Log("[VideoRenderer] HandleStreamException: dialog continuation threw\n");
-		//	}
-		//});
-
-
-		//return;
-
-		throw std::runtime_error(msg);
-	}
-	m_loadingComplete.store(true, std::memory_order_release);
-	Utils::Log("Loading Complete!\n");
+        m_loadingSuccessful.store(true, std::memory_order_release);
+        m_loadingComplete.store(true, std::memory_order_release);
+        Utils::Log("Loading Complete!\n");
+    }));
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	m_loadingComplete.store(false, std::memory_order_release);
+	m_loadingSuccessful.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420.Reset();

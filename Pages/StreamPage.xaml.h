@@ -61,6 +61,12 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property TextBlock^ m_stepText {
+			TextBlock^ get() {
+				return this->StepText;
+			}
+		}
+
 		property StackPanel^ m_keyboardView {
 			StackPanel^ get() {
 				return this->KeyboardView;
@@ -105,8 +111,6 @@ namespace moonlight_xbox_dx
 		void guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void toggleHDR_WinAltB_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e);
-	    
-		void HandleStreamException(Platform::String^ message, MoonlightClient * that);
 	};
 }
 

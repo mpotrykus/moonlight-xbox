@@ -19,12 +19,90 @@ using namespace Windows::UI::ViewManagement::Core;
 
 extern "C" {
 #include<Limelight.h>
+#include <Common/ModalDialog.xaml.h>
 }
 
 // Loads and initializes application assets when the application is loaded.
 moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceResources>& deviceResources, StreamPage^ streamPage, MoonlightClient* client, StreamConfiguration^ configuration) :
 	m_deviceResources(deviceResources), m_pointerLocationX(0.0f), m_streamPage(streamPage), moonlightClient(client) {
 	
+	Platform::String ^ appName = configuration->appName ? "'" + configuration->appName + "'" : "App";
+	DISPATCH_UI(([streamPage, appName]() {
+		streamPage->m_stepText->Text = "Starting " + appName;
+	}));
+
+	client->OnFailed = ([this, appName](int status, int error, char *message) {
+		std::string msgCopy = message ? message : std::string();
+		auto self = this;
+
+		DISPATCH_UI(([msgCopy, self, appName]() {
+			auto showErrorDialog = std::make_shared<std::function<void()>>();
+			auto showLogsDialog = std::make_shared<std::function<void()>>();
+
+			*showErrorDialog = [self, msgCopy, showLogsDialog, appName]() {
+				auto dialog1 = ref new Windows::UI::Xaml::Controls::ContentDialog();
+				dialog1->Title = L"Failed to start " + appName;
+				dialog1->Content = Utils::StringFromStdString(msgCopy);
+				dialog1->PrimaryButtonText = L"OK";
+				dialog1->SecondaryButtonText = L"Show Logs";
+
+				concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog1)).then([self, showLogsDialog](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
+					auto result = t.get();
+					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
+						self->StopRenderLoop();
+						self->ExitStreamPage();
+					}
+					else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+						(*showLogsDialog)();
+					}
+				});
+			};
+
+			*showLogsDialog = [self, showErrorDialog]() {
+                auto dialog2 = ref new Windows::UI::Xaml::Controls::ContentDialog();
+
+                std::wstring m_text = L"";
+                std::vector<std::wstring> lines = Utils::GetLogLines();
+
+                for (int i = 0; i < (int)lines.size(); i++) {
+                    // Get only the last 24 lines
+                    if ((int)lines.size() - i < 6) {
+                        m_text += lines[i];
+                    }
+                }
+
+                Utils::showLogs = true;
+
+				dialog2->MaxWidth = 600;
+				dialog2->Title = "Logs";
+				dialog2->Content = ref new Platform::String(m_text.c_str());
+				dialog2->PrimaryButtonText = L"OK";
+				dialog2->SecondaryButtonText = L"Show Error";
+
+				concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog2)).then([self, showErrorDialog](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
+					auto result = t.get();
+					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
+						self->StopRenderLoop();
+						self->ExitStreamPage();
+					}
+					else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+						(*showErrorDialog)();
+					}
+				});
+			};
+
+			// Start by showing the error dialog
+			(*showErrorDialog)();
+		}));
+	});
+
+	client->OnStatusUpdate = ([streamPage](int status) {
+		std::string msg = LiGetFormattedStageName(status);
+		DISPATCH_UI(([streamPage, msg]() {
+			streamPage->m_stepText->Text = Utils::StringFromStdString(msg);
+		}));
+	});
+
 	// Register to be notified if the Device is lost or recreated
 	m_deviceResources->RegisterDeviceNotify(this);
 
@@ -33,6 +111,24 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_deviceResources->SetStats(m_stats);
 
 	m_sceneRenderer = std::make_shared<VideoRenderer>(m_deviceResources, moonlightClient, configuration);
+	
+    client->OnCompleted = ([this, streamPage, configuration]() {
+        concurrency::create_task([this]() {
+            while (this->m_sceneRenderer && !this->m_sceneRenderer->IsLoadingComplete() && !this->moonlightClient->IsConnectionTerminated()) {
+                Sleep(50);
+            }
+        }).then([this, streamPage, configuration](concurrency::task<void> t) {
+
+			if (this->m_sceneRenderer && this->m_sceneRenderer->IsLoadingSuccessful()) {
+				DISPATCH_UI(([streamPage]() {
+					Sleep(500);
+					streamPage->m_progressRing->IsActive = false;
+					streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+				}));
+			}
+
+		});
+    });
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
@@ -47,26 +143,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 
 	m_deviceResources->SetShowImGui(configuration->enableGraphs);
 	ImGuiPlots::instance().setEnabled(configuration->enableGraphs);
-
-	client->OnStatusUpdate = ([streamPage](int status) {
-		const char* msg = LiGetStageName(status);
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(msg));
-		});
-
-	client->OnCompleted = ([streamPage]() {
-		// Give stream a moment to stabilize before hiding progress view
-		Sleep(500);
-		streamPage->m_progressRing->IsActive = false;
-		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	});
-
-	client->OnFailed = ([streamPage](int status, int error, char* message) {
-		streamPage->m_statusText->Text = Utils::StringFromStdString(std::string(message));
-	});
-
-	client->SetHDR = ([this](bool v) {
-		this->m_sceneRenderer->SetHDR(v);
-	});
 
 	m_timer.SetFixedTimeStep(false);
 
@@ -192,7 +268,7 @@ void moonlight_xbox_dxMain::StartRenderLoop()
 		StopRenderLoop(); // also stops input
 		Disconnect();
 
-		DISPATCH_UI([this],{
+		DISPATCH_UI([this]() {
 			ExitStreamPage();
 		});
 	});
@@ -276,7 +352,7 @@ void moonlight_xbox_dxMain::ProcessInput()
 			}
 		}
 		if (isCurrentlyPressed) {
-			DISPATCH_UI([this], {
+			DISPATCH_UI([this] {
 				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
 			});
 
@@ -603,7 +679,7 @@ void moonlight_xbox_dxMain::SendWinAltB() {
 bool moonlight_xbox_dxMain::ToggleLogs() {
 	bool visible = m_LogRenderer->GetVisible();
 
-	DISPATCH_UI([&], {
+	DISPATCH_UI([&] {
 		m_LogRenderer->ToggleVisible();
 	});
 
@@ -613,7 +689,7 @@ bool moonlight_xbox_dxMain::ToggleLogs() {
 bool moonlight_xbox_dxMain::ToggleStats() {
 	bool visible = m_statsTextRenderer->GetVisible();
 
-	DISPATCH_UI([&], {
+	DISPATCH_UI([&] {
 		m_statsTextRenderer->ToggleVisible();
 	});
 
