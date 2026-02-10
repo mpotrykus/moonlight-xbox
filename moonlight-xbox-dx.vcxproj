@@ -136,10 +136,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     <AppxPackageDir>C:\Progetti\moonlight-xbox-dx\AppPackages\moonlight-xbox-dx\</AppxPackageDir>
-    <PackageCertificateThumbprint>
-    </PackageCertificateThumbprint>
-    <PackageCertificateKeyFile>SigningCert.pfx</PackageCertificateKeyFile>
-    <PackageCertificatePassword>moonlight</PackageCertificatePassword>
+    <PackageCertificateThumbprint>12EF20E0A548743F0540AA6555D4E4D12DD7E9B3</PackageCertificateThumbprint>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -332,6 +329,7 @@
     </ClInclude>
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
+    <ClInclude Include="Converters\BoolToTextConverter.h" />
     <ClInclude Include="MoonlightWelcome.xaml.h">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
@@ -391,6 +389,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Common\TextConsole.cpp" />
+    <ClCompile Include="Converters\BoolToTextConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />
     <ClCompile Include="Keyboard\kbda3.cpp" />
@@ -671,7 +670,7 @@
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
-      <ErrorText>Questo progetto fa riferimento a uno o piÃ¹ pacchetti NuGet che non sono presenti in questo computer. Usare lo strumento di ripristino dei pacchetti NuGet per scaricarli. Per altre informazioni, vedere http://go.microsoft.com/fwlink/?LinkID=322105. Il file mancante Ã¨ {0}.</ErrorText>
+      <ErrorText>Questo progetto fa riferimento a uno o più pacchetti NuGet che non sono presenti in questo computer. Usare lo strumento di ripristino dei pacchetti NuGet per scaricarli. Per altre informazioni, vedere http://go.microsoft.com/fwlink/?LinkID=322105. Il file mancante è {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.UI.Xaml.2.7.0\build\native\Microsoft.UI.Xaml.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.UI.Xaml.2.7.0\build\native\Microsoft.UI.Xaml.targets'))" />
   </Target>
