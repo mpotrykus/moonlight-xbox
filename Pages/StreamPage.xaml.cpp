@@ -81,16 +81,16 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 			that->m_main->CreateWindowSizeDependentResources();
 			that->m_main->StartRenderLoop();
         } catch (const std::exception &ex) {
-            Utils::Log(ex.what());
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", ex.what());
         } catch (const std::string &string) {
-            Utils::Log(string);
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", string);
         } catch (Platform::Exception ^ e) {
             Platform::String ^ errorMsg = ref new Platform::String();
             errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
             errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
-            Utils::Log(Utils::PlatformStringToStdString(errorMsg));
+			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", Utils::PlatformStringToStdString(errorMsg));
         } catch (...) {
-            Utils::Log("Generic Exception");
+            Utils::Log("StreamPage::Page_Loaded: Exception when starting stream. Exception: Generic Exception");
         }
 	});
 }
