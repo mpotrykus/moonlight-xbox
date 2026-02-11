@@ -67,7 +67,7 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
                 for (int i = 0; i < (int)lines.size(); i++) {
                     // Get only the last 8 lines
 					// More than that cannot be fully viewed on the screen at the current scaling
-                    if ((int)lines.size() - i < 8) {
+                    if ((int)lines.size() - i <= 8) {
                         m_text += lines[i];
                     }
                 }
@@ -129,7 +129,17 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 			}
 
 		});
-    });
+	});
+
+	client->SetHDR = ([this](bool v) {
+		concurrency::create_task([this]() {
+			while (this->m_sceneRenderer && !this->m_sceneRenderer->IsLoadingComplete() && !this->moonlightClient->IsConnectionTerminated()) {
+				Sleep(50);
+			}
+		}).then([this, v](concurrency::task<void> t) {
+			this->m_sceneRenderer->SetHDR(v);
+		});
+	});
 
 	m_LogRenderer = std::make_unique<LogRenderer>(m_deviceResources);
 
