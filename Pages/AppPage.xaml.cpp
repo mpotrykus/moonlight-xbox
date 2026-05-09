@@ -18,7 +18,9 @@ using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
+using namespace Windows::UI::Xaml::Hosting;
 using namespace Windows::UI::Xaml::Navigation;
+using namespace Windows::Foundation::Numerics;
 using namespace concurrency;
 
 namespace moonlight_xbox_dx {
@@ -599,17 +601,50 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                 ref new DispatchedHandler([wt2, isGrid]() {
                                     auto that2 = wt2.Resolve<AppPage>();
                                     if (that2 == nullptr) return;
+                                    // Suppress focus before UpdateLayout(): UpdateLayout() is
+                                    // synchronous and fires LayoutUpdated during the call, which
+                                    // calls CenterSelectedItem — if focus is not suppressed there,
+                                    // XAML bring-into-view shifts the scroll before we can correct it.
+                                    if (!isGrid) that2->m_suppressSelectionFocus = true;
                                     // Force a synchronous layout pass so container->ActualWidth
                                     // reflects the new panel's measurements, not the stale
                                     // grid/list width from the previous layout mode. Without this,
                                     // the centering error grows linearly with the selected index.
                                     try { that2->AppsGrid->UpdateLayout(); } catch(...) {}
+                                    // Reset Composition CenterPoints on the selected item's visuals.
+                                    // They were set from grid-mode dimensions; after UpdateLayout()
+                                    // the elements have their correct list-mode sizes. Without this
+                                    // the 1.3x scale anchors from the wrong center, shifting the art
+                                    // by (listCX - gridCX) * (scale - 1) ≈ 23 px.
+                                    try {
+                                        auto lv2 = that2->AppsGrid;
+                                        if (lv2 != nullptr && lv2->SelectedItem != nullptr) {
+                                            auto c2 = dynamic_cast<ListViewItem^>(lv2->ContainerFromItem(lv2->SelectedItem));
+                                            if (c2 != nullptr) {
+                                                UIElement^ des2 = nullptr, ^img2 = nullptr, ^nm2 = nullptr;
+                                                UIElement^ bl2  = nullptr, ^rf2  = nullptr, ^pl2 = nullptr, ^em2 = nullptr;
+                                                FindElementChildren(c2, des2, img2, nm2, bl2, rf2, pl2, em2);
+                                                auto resetCP = [](UIElement^ el) {
+                                                    if (el == nullptr) return;
+                                                    auto fe = dynamic_cast<FrameworkElement^>(el);
+                                                    if (fe == nullptr || fe->ActualWidth <= 0 || fe->ActualHeight <= 0) return;
+                                                    auto vis = ElementCompositionPreview::GetElementVisual(el);
+                                                    if (vis == nullptr) return;
+                                                    Windows::Foundation::Numerics::float3 cp;
+                                                    cp.x = (float)fe->ActualWidth  * 0.5f;
+                                                    cp.y = (float)fe->ActualHeight * 0.5f;
+                                                    cp.z = 0.0f;
+                                                    vis->CenterPoint = cp;
+                                                };
+                                                resetCP(img2); resetCP(des2); resetCP(pl2); resetCP(em2);
+                                            }
+                                        }
+                                    } catch(...) {}
                                     if (isGrid) {
                                         if (that2->m_isGridLayout)
                                             try { that2->DoGridCentering(); } catch(...) {}
                                     } else {
                                         if (!that2->m_isGridLayout) {
-                                            that2->m_suppressSelectionFocus = true;
                                             try { that2->CenterSelectedItem(3, true); } catch(...) {}
                                             that2->m_suppressSelectionFocus = false;
                                         }
