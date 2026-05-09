@@ -5,6 +5,7 @@
 #include "Pages\AppPage.g.h"
 #include "State\MoonlightApp.h"
 #include <atomic>
+#include <chrono>
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx
@@ -102,6 +103,8 @@ namespace moonlight_xbox_dx
 
         bool m_initialCenteringScheduled = false;
         bool m_gridCenterPending = false;
+        bool m_pendingToggleCentering = false;
+        std::chrono::steady_clock::time_point m_lastThumbstickNav = {};
         void DoGridCentering();
 
         concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ApplyBlur(MoonlightApp^ app, float blurDip, float padDip = 0.0f);

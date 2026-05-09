@@ -483,23 +483,24 @@ void AppPage::OnGamepadKeyDown(CoreWindow^, KeyEventArgs^ args) {
             args->Handled = true;
         }
 
+        // DPad left/right is handled natively by the ListView's XY focus navigation
+        // (same path as arrow keys on PC). Handling it here too causes a double skip
+        // because CoreWindow::KeyDown Handled=true does not suppress gamepad XY nav.
+        // Thumbstick keys are NOT handled by native XY nav, so we manage those here.
+        // The cooldown prevents the thumbstick auto-repeat from firing multiple navigations
+        // per flick — the stick crosses the threshold, fires, then may fire again before
+        // returning to neutral.
         if (!m_isGridLayout &&
-            (key == VirtualKey::GamepadDPadRight || key == VirtualKey::GamepadLeftThumbstickRight)) {
-            if (this->AppsGrid) {
-                int target = (int)this->AppsGrid->SelectedIndex + 1;
-                int count  = (int)this->AppsGrid->Items->Size;
-                if (target > 0 && target < count)
-                    try { this->AppsGrid->SelectedIndex = target; } catch(...) {}
-            }
-            args->Handled = true;
-        }
-
-        if (!m_isGridLayout &&
-            (key == VirtualKey::GamepadDPadLeft || key == VirtualKey::GamepadLeftThumbstickLeft)) {
-            if (this->AppsGrid) {
-                int target = (int)this->AppsGrid->SelectedIndex - 1;
-                if (target >= 0)
-                    try { this->AppsGrid->SelectedIndex = target; } catch(...) {}
+            (key == VirtualKey::GamepadLeftThumbstickRight || key == VirtualKey::GamepadLeftThumbstickLeft)) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastThumbstickNav).count();
+            if (elapsedMs >= kAnimationDurationMs) {
+                m_lastThumbstickNav = now;
+                using namespace Windows::UI::Xaml::Input;
+                auto dir = (key == VirtualKey::GamepadLeftThumbstickRight)
+                    ? FocusNavigationDirection::Right
+                    : FocusNavigationDirection::Left;
+                try { FocusManager::TryMoveFocus(dir); } catch(...) {}
             }
             args->Handled = true;
         }
@@ -564,10 +565,30 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
 
             this->UpdateItemHeights();
 
+            // Signal LayoutUpdated to center once the new panel has measured.
+            m_pendingToggleCentering = true;
+            Utils::Log("LayoutToggle: m_pendingToggleCentering set\n");
+
             if (this->AppsGrid->SelectedIndex >= 0) {
+                auto weakThis = WeakReference(this);
                 this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                    ref new DispatchedHandler([this]() {
-                        AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
+                    ref new DispatchedHandler([weakThis]() {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr || that->AppsGrid == nullptr) return;
+                        that->AppsGrid_SelectionChanged(that->AppsGrid, nullptr);
+                        // Restore focus to the selected container after the panel rebuild.
+                        // In list mode CenterSelectedItem already does this; in grid mode it
+                        // only schedules centering and never focuses — so we cover both here.
+                        auto lv = that->AppsGrid;
+                        int idx = lv->SelectedIndex;
+                        if (idx < 0) return;
+                        try {
+                            auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromIndex(idx));
+                            if (container != nullptr)
+                                container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                            else
+                                lv->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                        } catch(...) {}
                     }));
             }
         }
@@ -655,7 +676,40 @@ void AppPage::OnSampleActionClicked() {
 
 void AppPage::AppsGrid_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
 void AppPage::AppsGrid_Unloaded(Platform::Object^, RoutedEventArgs^) {}
-void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {}
+void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
+    if (!m_pendingToggleCentering) return;
+    auto lv = this->AppsGrid;
+    if (lv == nullptr || lv->SelectedIndex < 0) return;
+    auto item = lv->SelectedItem;
+    if (item == nullptr) return;
+    auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(item));
+    if (container == nullptr) {
+        // Panel swap resets scroll to 0; selected item may be out of viewport.
+        // ScrollIntoView forces realization and triggers another LayoutUpdated.
+        try { lv->ScrollIntoView(item); } catch(...) {}
+        return;
+    }
+    if (container->ActualWidth <= 0) return;
+    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
+    if (m_scrollViewer == nullptr || m_scrollViewer->ViewportWidth <= 0) return;
+
+    if (!m_isGridLayout) {
+        // After a panel swap the scroll viewer's ExtentWidth (and thus ScrollableWidth)
+        // starts at 0 and is updated in a later layout pass. If desired > 0 but
+        // ScrollableWidth is still 0, the content hasn't been measured yet — wait.
+        double nominalW   = container->ActualWidth;
+        double finalCenter = lv->SelectedIndex * nominalW + kSelectedHPadding + nominalW / 2.0;
+        double desired     = finalCenter - m_scrollViewer->ViewportWidth / 2.0;
+        Utils::Logf("LayoutUpdated(list): idx=%d desired=%.1f scrollableW=%.1f\n",
+            lv->SelectedIndex, desired, m_scrollViewer->ScrollableWidth);
+        if (desired > 0.0 && m_scrollViewer->ScrollableWidth <= 1.0) return;
+    }
+
+    m_pendingToggleCentering = false;
+    Utils::Logf("LayoutUpdated: centering now, isGrid=%d\n", (int)m_isGridLayout);
+    if (m_isGridLayout) DoGridCentering();
+    else CenterSelectedItem(0, true);
+}
 void AppPage::PageRoot_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
 void AppPage::OnScrollViewerViewChanged(Platform::Object^, ScrollViewerViewChangedEventArgs^ args) {
     // Only act in grid mode, and only when the scroll has fully settled.

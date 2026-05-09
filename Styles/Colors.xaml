@@ -26,8 +26,8 @@
             <SolidColorBrush x:Key="ButtonFocusedColor" Color="#CCC"/>
 
             <!-- Settings page -->
-            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#EFEFEF"/>
-            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AAFFFFFF"/>
+            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="Transparent"/>
 
         </ResourceDictionary>
 
@@ -35,7 +35,7 @@
         <ResourceDictionary x:Key="Dark">
 
             <SolidColorBrush x:Key="ThemeBackgroundColor" Color="#040404"/>
-            <SolidColorBrush x:Key="ThemeSecondaryBackgroundColor" Color="#141414"/>
+            <SolidColorBrush x:Key="ThemeSecondaryBackgroundColor" Color="#080808"/>
             <SolidColorBrush x:Key="ThemeLightColor" Color="#111"/>
 
             <!-- Button -->
@@ -44,8 +44,8 @@
             <SolidColorBrush x:Key="ButtonFocusedColor" Color="#333"/>
 
             <!-- Settings page -->
-            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#111111"/>
-            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="#282828"/>
+            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AA000000"/>
+            <SolidColorBrush x:Key="SettingsSeparatorColor" Color="Transparent"/>
 
         </ResourceDictionary>
 
