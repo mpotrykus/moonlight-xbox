@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "AppPage.Xaml.h"
 #include "AppPage.Helpers.h"
 #include "Controls\SlidingMenu.xaml.h"
@@ -576,19 +576,46 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                         auto that = weakThis.Resolve<AppPage>();
                         if (that == nullptr || that->AppsGrid == nullptr) return;
                         that->AppsGrid_SelectionChanged(that->AppsGrid, nullptr);
-                        // Restore focus to the selected container after the panel rebuild.
-                        // In list mode CenterSelectedItem already does this; in grid mode it
-                        // only schedules centering and never focuses — so we cover both here.
+                        // Restore keyboard focus to the list after the panel rebuild.
+                        // In list mode CenterSelectedItem already focuses the container.
+                        // In grid mode we must NOT call container->Focus() here: XAML's
+                        // "bring focused element into view" auto-scroll fires after
+                        // DoGridCentering and overrides the centering scroll position.
+                        // Focusing the ListView itself gives arrow-key nav without triggering
+                        // per-item auto-scroll in either mode.
                         auto lv = that->AppsGrid;
-                        int idx = lv->SelectedIndex;
-                        if (idx < 0) return;
-                        try {
-                            auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromIndex(idx));
-                            if (container != nullptr)
-                                container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-                            else
-                                lv->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-                        } catch(...) {}
+                        try { lv->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) {}
+                        // AppsGrid_SelectionChanged → CenterSelectedItem may have used the
+                        // translate path (ScrollableWidth==0 during panel swap). One extra
+                        // pump lets the ScrollViewer update its ExtentWidth so re-centering
+                        // can use ChangeView with the correct ScrollableWidth.
+                        // Suppress container focus during this re-centering: focusing a
+                        // specific ListViewItem causes XAML bring-into-view which scrolls
+                        // to the nearest edge and overrides the centering scroll position.
+                        {
+                            auto wt2 = WeakReference(that);
+                            bool isGrid = that->m_isGridLayout;
+                            that->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+                                ref new DispatchedHandler([wt2, isGrid]() {
+                                    auto that2 = wt2.Resolve<AppPage>();
+                                    if (that2 == nullptr) return;
+                                    // Force a synchronous layout pass so container->ActualWidth
+                                    // reflects the new panel's measurements, not the stale
+                                    // grid/list width from the previous layout mode. Without this,
+                                    // the centering error grows linearly with the selected index.
+                                    try { that2->AppsGrid->UpdateLayout(); } catch(...) {}
+                                    if (isGrid) {
+                                        if (that2->m_isGridLayout)
+                                            try { that2->DoGridCentering(); } catch(...) {}
+                                    } else {
+                                        if (!that2->m_isGridLayout) {
+                                            that2->m_suppressSelectionFocus = true;
+                                            try { that2->CenterSelectedItem(3, true); } catch(...) {}
+                                            that2->m_suppressSelectionFocus = false;
+                                        }
+                                    }
+                                }));
+                        }
                     }));
             }
         }

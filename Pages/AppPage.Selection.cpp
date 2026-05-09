@@ -90,37 +90,46 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
             double finalCenter  = lv->SelectedIndex * nominalWidth + kSelectedHPadding + nominalWidth / 2.0;
 
             double desired = finalCenter - sv->ViewportWidth / 2.0;
+            Utils::Logf("CenterSelected: idx=%d nominalW=%.1f finalCenter=%.1f desired=%.1f scrollableW=%.1f\n",
+                lv->SelectedIndex, nominalWidth, finalCenter, desired, sv->ScrollableWidth);
             if (sv->ScrollableWidth > 1.0 && desired > 0.0) {
-                // Viewport scrolls; clear any panel translate first.
+                // Viewport scrolls; clear any panel RenderTransform translate first.
                 try {
                     auto panel = dynamic_cast<FrameworkElement^>(lv->ItemsPanelRoot);
                     if (panel != nullptr) {
-                        auto vis = ElementCompositionPreview::GetElementVisual(panel);
-                        if (vis != nullptr) {
-                            try { vis->StopAnimation("Offset.X"); } catch(...) {}
-                            auto o = vis->Offset; o.x = 0.0f; vis->Offset = o;
-                        }
+                        auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(panel->RenderTransform);
+                        if (tt != nullptr) tt->X = 0.0;
                     }
                 } catch(...) {}
                 if (desired > sv->ScrollableWidth) desired = sv->ScrollableWidth;
                 try { sv->ChangeView(desired, nullptr, nullptr, immediate); } catch(...) {}
             } else {
                 // All items fit, or selected item is near the start (desired ≤ 0):
-                // translate the panel so the item appears centered.
-                float translateX = (float)(sv->ViewportWidth / 2.0 - finalCenter);
+                // Translate the panel via RenderTransform so the item appears centered.
+                // IMPORTANT: Do NOT use ElementCompositionPreview Offset.X here — XAML
+                // layout resets Offset.X to 0 on every layout pass (the AnimateElementPadding
+                // DispatcherTimer fires ~every 16 ms invalidating layout, and UpdateLayout()
+                // calls in EnsureRealizedContainersInitialized do the same). RenderTransform
+                // is applied post-layout and is never overridden by XAML layout passes.
+                double translateX = sv->ViewportWidth / 2.0 - finalCenter;
                 try {
                     auto panel = dynamic_cast<FrameworkElement^>(lv->ItemsPanelRoot);
                     if (panel != nullptr) {
-                        auto vis = ElementCompositionPreview::GetElementVisual(panel);
-                        if (vis != nullptr) {
-                            auto compositor = vis->Compositor;
-                            auto anim = compositor->CreateScalarKeyFrameAnimation();
-                            TimeSpan ts; ts.Duration = kAnimationDurationMs * 10000LL;
-                            anim->Duration = ts;
-                            anim->InsertKeyFrame(1.0f, translateX);
-                            try { vis->StopAnimation("Offset.X"); } catch(...) {}
-                            vis->StartAnimation("Offset.X", anim);
+                        auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(panel->RenderTransform);
+                        if (tt == nullptr) {
+                            tt = ref new Windows::UI::Xaml::Media::TranslateTransform();
+                            panel->RenderTransform = tt;
                         }
+                        using namespace Windows::UI::Xaml::Media::Animation;
+                        auto dbl = ref new DoubleAnimation();
+                        dbl->To = ref new Platform::Box<double>(translateX);
+                        TimeSpan ts; ts.Duration = kAnimationDurationMs * 10000LL;
+                        dbl->Duration = DurationHelper::FromTimeSpan(ts);
+                        auto sb = ref new Storyboard();
+                        sb->Children->Append(dbl);
+                        Storyboard::SetTarget(dbl, tt);
+                        Storyboard::SetTargetProperty(dbl, "X");
+                        sb->Begin();
                     }
                 } catch(...) {}
             }
@@ -140,9 +149,13 @@ void AppPage::DoGridCentering() {
     if (lv == nullptr || lv->SelectedIndex < 0) return;
     if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
     auto sv = m_scrollViewer;
+    Utils::Logf("DoGridCentering: sv=%s scrollableH=%.1f viewportH=%.1f\n",
+        sv ? "ok" : "null", sv ? sv->ScrollableHeight : -1.0, sv ? sv->ViewportHeight : -1.0);
     if (sv == nullptr || sv->ScrollableHeight <= 1.0) return;
 
     auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(lv->SelectedItem));
+    Utils::Logf("DoGridCentering: container=%s h=%.1f\n",
+        container ? "ok" : "null", container ? container->ActualHeight : -1.0);
     if (container == nullptr || container->ActualHeight <= 0) return;
 
     try {
@@ -155,6 +168,7 @@ void AppPage::DoGridCentering() {
         double dY = itemTopInContent + container->ActualHeight / 2.0 - sv->ViewportHeight / 2.0;
         if (dY < 0) dY = 0;
         if (dY > sv->ScrollableHeight) dY = sv->ScrollableHeight;
+        Utils::Logf("DoGridCentering: ptY=%.1f vOffset=%.1f dY=%.1f\n", pt.Y, sv->VerticalOffset, dY);
         sv->ChangeView(nullptr, dY, nullptr, false);
     } catch(...) {}
 }
