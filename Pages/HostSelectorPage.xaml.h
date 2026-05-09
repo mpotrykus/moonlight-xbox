@@ -1,4 +1,4 @@
-﻿//
+//
 // HostSelectorPage.xaml.h
 // Declaration of the HostSelectorPage class
 //
@@ -13,9 +13,6 @@
 using namespace Windows::UI::Core;
 namespace moonlight_xbox_dx
 {
-	/// <summary>
-	/// An empty page that can be used on its own or navigated to within a Frame.
-	/// </summary>
 	[Windows::Foundation::Metadata::WebHostHidden]
 	public ref class HostSelectorPage sealed
 	{
@@ -30,6 +27,7 @@ namespace moonlight_xbox_dx
 		void Connect(MoonlightHost^ host);
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+		virtual void OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
 		ApplicationState ^state;
 		void NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -44,6 +42,9 @@ namespace moonlight_xbox_dx
 		void hostDetailsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		std::atomic<bool> continueFetch;
+		std::atomic<bool> m_isNavigatedAway;
+		std::atomic<int> m_pollActiveCount;
+		Windows::System::Threading::ThreadPoolTimer^ m_pollTimer;
 		void OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 		void wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

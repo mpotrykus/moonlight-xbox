@@ -27,6 +27,12 @@
 #include <collection.h>
 #include <gamingdeviceinformation.h>
 #include "App.xaml.h"
+#include "Converters\\BoolToVisibilityConverter.h"
+#include "Converters\\BoolToTextConverter.h"
+#include "Converters\\MultiplyConverter.h"
+#include "Converters\\UniformThicknessConverter.h"
+#include "Converters\\BlurPaddingConverter.h"
+#include "Converters\\UppercaseConverter.h"
 
 #define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
 #include <imgui.h>

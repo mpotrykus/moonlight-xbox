@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
+#include "EffectsLibrary.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
 #include <Pages/StreamPage.xaml.h>
@@ -190,6 +191,13 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
+
+    // Initialize EffectsLibrary with the created device/context so GPU effects can run.
+    try {
+        ::EffectsLibrary::Initialize(m_d3dDevice.Get(), m_d3dContext.Get());
+    } catch(...) {
+        // Avoid throwing from device setup; EffectsLibrary failures will fall back at runtime.
+    }
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -374,9 +382,6 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_compositionScaleX = panel->CompositionScaleX;
 	m_compositionScaleY = panel->CompositionScaleY;
 
-	Utils::Logf("SwapChain logical size: %.0fx%.0f @ composition scale %.1fx%.1f\n",
-		m_logicalSize.Width, m_logicalSize.Height, m_compositionScaleX, m_compositionScaleY);
-
 	CreateWindowSizeDependentResources();
 
 	ComPtr<ISwapChainPanelNative> panelNative;
@@ -526,6 +531,11 @@ void DX::DeviceResources::Trim()
 void DX::DeviceResources::Present()
 {
 	HRESULT hr = m_swapChain->Present(0, 0);
+
+	// Discard the contents of the render target.
+	// This is a valid operation only when the existing contents will be entirely
+	// overwritten. If dirty or scroll rects are used, this call should be modified.
+	m_d3dContext->DiscardView1(m_d3dRenderTargetView.Get(), nullptr, 0);
 
 	// If the device was removed either by a disconnection or a driver upgrade, we
 	// must recreate all device resources.

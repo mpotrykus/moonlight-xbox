@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+#include "Controls/TabsLayout.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include <gamingdeviceinformation.h>
@@ -56,8 +57,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AvailableAudioConfigs->Append("Stereo");
 	AvailableAudioConfigs->Append("Surround 5.1");
 	AvailableAudioConfigs->Append("Surround 7.1");
-	AvailableFramePacing->Append("Immediate");
-	AvailableFramePacing->Append("Display-locked");
 	CurrentResolutionIndex = 0;
 	for (int i = 0; i < AvailableResolutions->Size; i++) {
 		if (host->Resolution->Width == AvailableResolutions->GetAt(i)->Width &&
@@ -81,14 +80,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 
-	// Set frame pacing selection based on saved preference
-	for (int i = 0; i < AvailableFramePacing->Size; i++) {
-		if (host->FramePacing == AvailableFramePacing->GetAt(i)) {
-			FramePacingComboBox->SelectedIndex = i;
-			break;
-		}
-	}
-
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
 		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
@@ -108,17 +99,6 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			EnableHDRCheckbox->IsEnabled = true;
 			EnableHDRCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-		}
-
-		// Disable graphs at 4K on Xbox One
-		if (IsXboxOne() && height >= 2160) {
-			EnableGraphsCheckbox->IsEnabled = false;
-			EnableGraphsCheckbox->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
-		} else {
-			EnableGraphsCheckbox->IsEnabled = true;
-			EnableGraphsCheckbox->Visibility = Windows::UI::Xaml::Visibility::Visible;
-			XboxOneGraphsNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
 }
@@ -176,20 +156,6 @@ void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ send
 	}
 }
 
-void HostSettingsPage::FramePacing_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
-{
-	auto selectedFramePacing = AvailableFramePacing->GetAt(this->FramePacingComboBox->SelectedIndex);
-
-	if (selectedFramePacing == "Immediate") {
-		FramePacingImmediateDesc->Visibility = Windows::UI::Xaml::Visibility::Visible;
-		FramePacingDisplayLockedDesc->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	} else {
-		FramePacingImmediateDesc->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-		FramePacingDisplayLockedDesc->Visibility = Windows::UI::Xaml::Visibility::Visible;
-	}
-
-	host->FramePacing = selectedFramePacing;
-}
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
@@ -208,7 +174,52 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
+
+	// Ensure Display tab is visible by default
+	if (this->DisplayPanel != nullptr) {
+		this->DisplayPanel->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	}
+	if (this->AudioPanel != nullptr) {
+		this->AudioPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	}
+	if (this->StreamPanel != nullptr) {
+		this->StreamPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	}
+
+	// If TabsLayout buttons exist, set their direct TargetPanel references so TabsLayout can map them without name lookup
+	if (this->rightTabs != nullptr) {
+		// Try to find the buttons inside the TabsLayout TabsContent presenter
+		auto tabsContent = this->rightTabs->TabsContent;
+		if (tabsContent != nullptr) {
+			auto panel = dynamic_cast<Windows::UI::Xaml::Controls::Panel^>(safe_cast<Windows::UI::Xaml::UIElement^>(tabsContent));
+			if (panel != nullptr) {
+				for (unsigned int i = 0; i < panel->Children->Size; i++) {
+					auto child = panel->Children->GetAt(i);
+					auto btn = dynamic_cast<Windows::UI::Xaml::Controls::Button^>(child);
+					if (btn != nullptr) {
+						auto content = btn->Content;
+						auto text = dynamic_cast<Platform::Object^>(content);
+						// Match by name in the button content or use existing TargetPanelName
+						auto name = moonlight_xbox_dx::TabsLayout::GetTargetPanelName(btn);
+						if (name != nullptr) {
+							if (name == "DisplayPanel") {
+								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->DisplayPanel);
+							}
+							else if (name == "AudioPanel") {
+								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->AudioPanel);
+							}
+							else if (name == "StreamPanel") {
+								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->StreamPanel);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
+
+// Tab activation is handled by TabsLayout (it hooks Click and GotFocus automatically)
 
 void HostSettingsPage::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {

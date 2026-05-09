@@ -22,7 +22,6 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableVideoCodecs;
-		Windows::Foundation::Collections::IVector<Platform::String^>^ availableFramePacing;
 		int currentResolutionIndex = 0;
 		int currentAppIndex = 0;
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
@@ -77,15 +76,6 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property Windows::Foundation::Collections::IVector<Platform::String^>^ AvailableFramePacing {
-			Windows::Foundation::Collections::IVector<Platform::String^>^ get() {
-				if (this->availableFramePacing == nullptr)
-				{
-					this->availableFramePacing = ref new Platform::Collections::Vector<Platform::String^>();
-				}
-				return this->availableFramePacing;
-			}
-		}
 
 		property int CurrentResolutionIndex
 		{
@@ -109,8 +99,13 @@ namespace moonlight_xbox_dx
 		void FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
-		void FramePacing_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void DisplayTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void AudioTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void StreamTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void DisplayTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void AudioTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void StreamTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

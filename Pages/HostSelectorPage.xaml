@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="moonlight_xbox_dx.HostSelectorPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -7,9 +7,17 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Background="{ThemeResource ThemeBackgroundColor}"
     XYFocusKeyboardNavigation="Disabled"
     >
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <local:UppercaseConverter x:Key="UppercaseConverter" />
+        </ResourceDictionary>
+    </Page.Resources>
     <FlyoutBase.AttachedFlyout>
         <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
             <MenuFlyoutItem x:Name="hostSettingsButton" Click="hostSettingsButton_Click" Text="Host Settings" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
@@ -39,34 +47,34 @@
             </MenuFlyoutItem>
         </MenuFlyout>
     </FlyoutBase.AttachedFlyout>
-    <Grid>
+    <Grid Background="{ThemeResource ThemeBackgroundColor}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0" VerticalAlignment="Center" Padding="0,0,0,8" >
+        <Grid Grid.Row="0" VerticalAlignment="Center" Padding="30,8" Background="{ThemeResource ThemeLightColor}" >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"></ColumnDefinition>
                 <ColumnDefinition Width="*"></ColumnDefinition>
             </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Padding="8">
-                <Image Source="ms-appx:///Assets/StoreLogo.scale-200.png" Width="48" Height="48"></Image>
-                <TextBlock VerticalAlignment="Center" Padding="8" FontSize="20">Moonlight</TextBlock>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/logo2.gif" Margin="0,0,2,5" Width="24" Height="24"></Image>
+                <TextBlock VerticalAlignment="Center" Padding="12,0" FontFamily="Bahnschrift" CharacterSpacing="500" FontSize="14">MOONLIGHT</TextBlock>
             </StackPanel>
-            <StackPanel  Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="8" Orientation="Horizontal" Spacing="16">
-                <Button Click="NewHostButton_Click" TabIndex="2">
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="0" Orientation="Horizontal" Spacing="0">
+                <Button Click="NewHostButton_Click" TabIndex="1">
                     <Button.Content>
                         <SymbolIcon Symbol="Add" />
                     </Button.Content>
                 </Button>
-                <Button Name="SettingsButton" TabIndex="3" Click="SettingsButton_Click">
+                <Button Name="SettingsButton" TabIndex="2" Click="SettingsButton_Click">
                     <Button.Content>
                         <SymbolIcon Symbol="Setting" />
                     </Button.Content>
                 </Button>
             </StackPanel>
         </Grid>
-        <GridView IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" Grid.Row="1" x:Name="HostsGrid"  ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center" SelectionMode="None">
+        <GridView IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" Grid.Row="1" x:Name="HostsGrid" ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" HorizontalAlignment="Center" VerticalAlignment="Center" SelectionMode="None">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
                     <ItemsWrapGrid Orientation="Horizontal"

@@ -29,6 +29,19 @@ MoonlightSettings::MoonlightSettings()
 {
 	InitializeComponent();
 	state = GetApplicationState();
+
+	// Restore theme preference from local settings (if present)
+	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	if (localSettings->HasKey("theme")) {
+		auto v = safe_cast<Platform::String^>(localSettings->Lookup("theme"));
+		ApplyTheme(v);
+		// set toggle initial state
+		if (v->Equals("Dark")) {
+			ThemeToggle->IsOn = true;
+		} else {
+			ThemeToggle->IsOn = false;
+		}
+	}
 	auto item = ref new ComboBoxItem();
 	item->Content = "Don't autoconnect";
 	item->DataContext = "";
@@ -99,6 +112,33 @@ void MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender
 
 	auto s = item->DataContext->ToString();
 	state->KeyboardLayout = s;
+}
+
+void MoonlightSettings::ThemeToggle_Toggled(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	auto toggle = safe_cast<ToggleSwitch^>(sender);
+	auto theme = toggle->IsOn ? L"Dark" : L"Light";
+
+	// persist
+	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	localSettings->Insert("theme", ref new Platform::String(theme));
+
+	ApplyTheme(ref new Platform::String(theme));
+}
+
+void MoonlightSettings::ApplyTheme(Platform::String^ theme)
+{
+	// Apply theme to the root visual element so ThemeResources re-evaluate.
+	// Setting Application::RequestedTheme can fail at runtime; use the root FrameworkElement's RequestedTheme (ElementTheme).
+	auto content = Windows::UI::Xaml::Window::Current->Content;
+	auto root = dynamic_cast<FrameworkElement^>(content);
+	if (root != nullptr) {
+		if (theme != nullptr && theme->Equals("Dark")) {
+			root->RequestedTheme = Windows::UI::Xaml::ElementTheme::Dark;
+		} else {
+			root->RequestedTheme = Windows::UI::Xaml::ElementTheme::Light;
+		}
+	}
 }
 
 void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

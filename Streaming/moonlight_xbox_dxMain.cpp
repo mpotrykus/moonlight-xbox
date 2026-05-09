@@ -218,7 +218,7 @@ void moonlight_xbox_dxMain::CreateWindowSizeDependentResources() {
 
 void moonlight_xbox_dxMain::StartRenderLoop() {
 	// If the animation render loop is already running then do not start another thread.
-	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == AsyncStatus::Started) {
+	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == Windows::Foundation::AsyncStatus::Started) {
 		return;
 	}
 
@@ -237,7 +237,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		double ewmaRenderMs = 3.0;     // Initial guess for render cost
 
 		// Calculate the updated frame and render once per vertical blanking interval.
-		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
+		while (action->Status == Windows::Foundation::AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
 			// Get overall deadline we must hit by the Present for this frame
 			int64_t deadline = Pacer::instance().getNextVBlankQpc(&t0);
 
@@ -331,7 +331,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
-	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
+	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == Windows::Foundation::AsyncStatus::Started) {
 		return;
 	}
 	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
@@ -339,7 +339,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
 		int64_t lastProcessInput = 0;
 
-		while (action->Status == AsyncStatus::Started) {
+		while (action->Status == Windows::Foundation::AsyncStatus::Started) {
 			int64_t now = QpcNow();
 			if (now - lastProcessInput >= pollIntervalQpc) {
 				lastProcessInput = now;

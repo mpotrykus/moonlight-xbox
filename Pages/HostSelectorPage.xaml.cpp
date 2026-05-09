@@ -1,4 +1,4 @@
-﻿//
+//
 // HostSelectorPage.xaml.cpp
 // Implementation of the HostSelectorPage class
 //
@@ -14,7 +14,6 @@
 #include "MoonlightWelcome.xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include <string>
-#include <cstdlib>
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 
@@ -67,15 +66,15 @@ void HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::
 				sender->Content = L"Failed to Connect to " + hostname;
 				def->Complete();
 				}))) .then([](concurrency::task<void> t) {
-				try {
-					t.get();
-				}
-				catch (const std::exception &e) {
-					Utils::Logf("HostSelectorPage NewHost create_task exception: %s", e.what());
-				}
-				catch (...) {
-					Utils::Log("HostSelectorPage NewHost create_task unknown exception");
-				}
+					try {
+						t.get();
+					}
+					catch (const std::exception &e) {
+						Utils::Logf("HostSelectorPage NewHost create_task exception: %s", e.what());
+					}
+					catch (...) {
+						Utils::Log("HostSelectorPage NewHost create_task unknown exception");
+					}
 				});
 			return;
 		}
@@ -161,7 +160,6 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 						::moonlight_xbox_dx::ModalDialog::HideDialog(dialog);
 				}
 				else {
-					//dialog->Content = Utils::StringFromStdString(std::string(gs_error));
 				}
 					host->UpdateHostInfo(true);
 			}
@@ -189,7 +187,6 @@ void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::
 	//Thanks to https://stackoverflow.com/questions/62878368/uwp-gridview-listview-get-the-righttapped-item-supporting-both-mouse-and-xbox-co
 	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
 
-	// Determine the host from the tapped element
 	if (senderElement->GetType()->FullName->Equals(GridViewItem::typeid->FullName)) {
 		auto gi = (GridViewItem^)senderElement;
 		currentHost = (MoonlightHost^)(gi->Content);
@@ -198,7 +195,6 @@ void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::
 		currentHost = (MoonlightHost^)(senderElement->DataContext);
 	}
 
-	// Delegate to consolidated helper (use senderElement as anchor)
 	this->ShowHostActions(senderElement, currentHost);
 }
 
@@ -264,28 +260,69 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 }
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	continueFetch.store(true);
-	Concurrency::create_task([this] {
-		init_mdns();
-		while (continueFetch.load()) {
-			query_mdns();
-			for (auto a : GetApplicationState()->SavedHosts) {
-				a->UpdateHostInfo(true);
+	m_isNavigatedAway.store(false);
+
+	using namespace Windows::System::Threading;
+	using namespace Windows::Foundation;
+
+	try {
+		TimeSpan period;
+		period.Duration = 5000 * 10000LL;
+		Platform::WeakReference weakThis(this);
+		auto callback = ref new TimerElapsedHandler([weakThis](ThreadPoolTimer^ timer) {
+			auto that = weakThis.Resolve<HostSelectorPage>();
+			if (that == nullptr) {
+				try { if (timer != nullptr) timer->Cancel(); } catch (...) {}
+				return;
 			}
-			Sleep(5000);
+			if (that->m_isNavigatedAway.load()) {
+				try { if (timer != nullptr) timer->Cancel(); } catch (...) {}
+				return;
+			}
+
+			that->m_pollActiveCount.fetch_add(1);
+			if (!that->continueFetch.load()) return;
+			try {
+				try { mdns_send_query(); } catch(...) {}
+				query_mdns();
+				for (auto a : GetApplicationState()->SavedHosts) {
+					try { a->UpdateHostInfo(true); } catch (...) {}
+				}
+			}
+			catch (const std::exception &ex) {
+				Utils::Logf("HostSelectorPage poll exception: %s", ex.what());
+			}
+			catch (...) {
+				Utils::Log("HostSelectorPage poll unknown exception");
+			}
+			that->m_pollActiveCount.fetch_sub(1);
+		});
+
+		m_pollTimer = ThreadPoolTimer::CreatePeriodicTimer(callback, period);
+	}
+	catch (...) {
+		Utils::Log("HostSelectorPage failed to start poll timer");
+	}
+}
+
+void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e)
+{
+	m_isNavigatedAway.store(true);
+	continueFetch.store(false);
+	try {
+		if (m_pollTimer != nullptr) {
+			m_pollTimer->Cancel();
+			m_pollTimer = nullptr;
 		}
-	}) .then([](concurrency::task<void> t) {
-		try {
-			t.get();
-		}
-		catch (const std::exception &e) {
-			Utils::Logf("HostSelectorPage mdns loop task exception: %s", e.what());
-		}
-		catch (...) {
-			Utils::Log("HostSelectorPage mdns loop task unknown exception");
-		}
-	});
+	} catch (...) {}
+
+	for (int i = 0; i < 50 && m_pollActiveCount.load() > 0; ++i) {
+		Sleep(20);
+	}
+
+	try { __super::OnNavigatedFrom(e); } catch (...) {}
 }
 
 void HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
@@ -303,7 +340,14 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 
 	try {
 		bool success = State->WakeHost(currentHost);
-		if (!success) {
+		if (success) {
+			ContentDialog^ confirm = ref new ContentDialog();
+			confirm->Title = "Wake Host";
+			confirm->Content = "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName;
+			confirm->PrimaryButtonText = "OK";
+			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(confirm));
+		}
+		else {
 			ContentDialog^ fail = ref new ContentDialog();
 			fail->Title = "Wake Host Failed";
 			fail->Content = "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";
@@ -311,9 +355,6 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(fail));
 		}
 
-		// After sending WoL successfully, aggressively poll this host for a short period
-		// to detect when it comes online (hosts can take time to boot/respond).
-		// Poll every 1s for up to 60s, stop early if Connected becomes true.
 		if (success) {
 			auto host = currentHost;
 			host->WolPolling = true;
@@ -348,8 +389,8 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 		ContentDialog^ dialog = ref new ContentDialog();
 		dialog->Title = "Wake Host Error";
 		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char*)ex.what());
-	dialog->PrimaryButtonText = "OK";
-	concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
+		dialog->PrimaryButtonText = "OK";
+		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 	}
 }
 
@@ -391,22 +432,11 @@ void HostSelectorPage::hostDetailsButton_Click(Platform::Object^ sender, Windows
 void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
     if (currentHost == nullptr) return;
 
-	std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
-	std::string hostOnly;
-	int port = 0;
-	try {
-		auto split = GetApplicationState()->Split_IP_Address(hostname, ':');
-		hostOnly = split.first;
-		port = split.second;
-	}
-	catch (...) {
-		// If parsing fails for any reason, fall back to original behaviour
-		auto pos = hostname.find(':');
-		hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
-		port = 0;
-	}
+    std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
+    auto pos = hostname.find(':');
+    std::string hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
 
-	concurrency::create_task([hostOnly, port]() {
+    concurrency::create_task([hostOnly]() {
         WSADATA wsaData;
         std::string resultMsg = "Unknown";
         if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
@@ -419,9 +449,7 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Wind
             hints.ai_socktype = SOCK_STREAM;
             hints.ai_protocol = IPPROTO_TCP;
 
-			// If port is known (non-zero) use it, otherwise default to 47989
-			std::string portStorage = (port > 0) ? std::to_string(port) : std::string("47989");
-			int gai = getaddrinfo(hostOnly.c_str(), portStorage.c_str(), &hints, &res);
+            int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
             if (gai != 0) {
                 resultMsg = std::string("DNS lookup failed: ") + std::to_string(gai);
             } else {
