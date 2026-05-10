@@ -11,7 +11,7 @@ namespace moonlight_xbox_dx {
 static constexpr float  kDesaturatorOpacityUnselected =  0.8f;
 static constexpr float  kEmbossOpacitySelected        =  0.0f; //0.2f;
 static constexpr float  kBackgroundOpacity            = 0.05f;
-static constexpr float  kBackgroundSaturation         =  1.5f;
+static constexpr float  kBackgroundSaturation         = 1.25f;
 static constexpr float  kSelectedScale                =  1.3f;
 static constexpr float  kUnselectedScale              =  1.0f;
 static constexpr double kSelectedHPadding             =  75.0;
