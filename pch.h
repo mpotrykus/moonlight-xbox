@@ -33,6 +33,8 @@
 #include "Converters\\UniformThicknessConverter.h"
 #include "Converters\\BlurPaddingConverter.h"
 #include "Converters\\UppercaseConverter.h"
+#include "Converters\\WindowHeightConverter.h"
+#include "Converters\\WindowWidthConverter.h"
 
 #define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
 #include <imgui.h>

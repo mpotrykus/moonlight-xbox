@@ -119,126 +119,109 @@ Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, 
 
 // ── Animation helpers ─────────────────────────────────────────────────────────
 
-void SetElementOpacityImmediate(UIElement^ element, float value) {
-    if (element == nullptr) return;
-    try {
-        auto vis = ElementCompositionPreview::GetElementVisual(element);
-        if (vis != nullptr) {
-            try { vis->StopAnimation("Opacity"); } catch(...) {}
-            vis->Opacity = value;
-        }
-        element->Opacity = value;
-    } catch(...) {}
-}
-
-void SetElementScaleImmediate(UIElement^ element, float scale) {
-    if (element == nullptr) return;
-    try {
-        auto vis = ElementCompositionPreview::GetElementVisual(element);
-        if (vis != nullptr) {
-            try { vis->StopAnimation("Scale.X"); vis->StopAnimation("Scale.Y"); } catch(...) {}
-            Windows::Foundation::Numerics::float3 s; s.x = scale; s.y = scale; s.z = 0.0f;
-            vis->Scale = s;
-        }
-    } catch(...) {}
-}
-
-void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs) {
-    if (element == nullptr) return;
-    try {
-        try {
-            auto vis = ElementCompositionPreview::GetElementVisual(element);
-            if (vis != nullptr) {
-                auto compositor = vis->Compositor;
-                auto anim = compositor->CreateScalarKeyFrameAnimation();
-                TimeSpan ts; ts.Duration = (int64_t)durationMs * 10000LL;
-                anim->Duration = ts;
-                anim->InsertKeyFrame(1.0f, targetOpacity);
-                try { vis->StopAnimation("Opacity"); } catch(...) {}
-                vis->StartAnimation("Opacity", anim);
-            }
-        } catch(...) {}
-
-        try {
-            using namespace Windows::UI::Xaml::Media::Animation;
-            auto dbl = ref new DoubleAnimation();
-            dbl->To = ref new Platform::Box<double>((double)targetOpacity);
-            TimeSpan ts2; ts2.Duration = (int64_t)durationMs * 10000LL;
-            dbl->Duration = DurationHelper::FromTimeSpan(ts2);
-            auto sb = ref new Storyboard();
-            sb->Children->Append(dbl);
-            Storyboard::SetTarget(dbl, element);
-            Storyboard::SetTargetProperty(dbl, ref new Platform::String(L"(UIElement.Opacity)"));
-            sb->Begin();
-        } catch(...) {}
-    } catch(...) {}
-}
-
-void AnimateElementWidth(FrameworkElement^ element, double targetWidth, int durationMs) {
-    if (element == nullptr) return;
-    try {
-        using namespace Windows::UI::Xaml::Media::Animation;
-        auto dbl = ref new DoubleAnimation();
-        dbl->To = ref new Platform::Box<double>(targetWidth);
-        TimeSpan ts; ts.Duration = (int64_t)durationMs * 10000LL;
-        dbl->Duration = DurationHelper::FromTimeSpan(ts);
-        dbl->EnableDependentAnimation = true;
-        auto sb = ref new Storyboard();
-        sb->Children->Append(dbl);
-        Storyboard::SetTarget(dbl, element);
-        Storyboard::SetTargetProperty(dbl, "(FrameworkElement.Width)");
-        sb->Begin();
-    } catch(...) {}
-}
-
-void AnimateElementScale(UIElement^ element, float targetScale, int durationMs) {
-    if (element == nullptr) return;
-    try {
-        auto vis = ElementCompositionPreview::GetElementVisual(element);
-        if (vis == nullptr) return;
-        auto compositor = vis->Compositor;
-        auto animX = compositor->CreateScalarKeyFrameAnimation();
-        auto animY = compositor->CreateScalarKeyFrameAnimation();
-        TimeSpan ts; ts.Duration = (int64_t)durationMs * 10000LL;
-        animX->Duration = ts; animY->Duration = ts;
-        animX->InsertKeyFrame(1.0f, targetScale);
-        animY->InsertKeyFrame(1.0f, targetScale);
-        try { vis->StopAnimation("Scale.X"); vis->StopAnimation("Scale.Y"); } catch(...) {}
-        try { vis->StartAnimation("Scale.X", animX); vis->StartAnimation("Scale.Y", animY); } catch(...) {}
-    } catch(...) {}
-}
-
-void AnimateElementPadding(FrameworkElement^ element, Windows::UI::Xaml::Thickness target, int durationMs) {
-    if (element == nullptr) return;
-    try {
-        auto start = element->Margin;
-        double durationSec = durationMs / 1000.0;
-        auto startTime = std::chrono::steady_clock::now();
-
-        auto timer = ref new DispatcherTimer();
-        TimeSpan iv; iv.Duration = 166667LL; // ~60 fps
-        timer->Interval = iv;
-
-        WeakReference weakEl(element);
-        WeakReference weakTimer(timer);
-
-        timer->Tick += ref new EventHandler<Platform::Object^>(
-            [weakEl, weakTimer, start, target, startTime, durationSec](Platform::Object^, Platform::Object^) {
-                auto el  = weakEl.Resolve<FrameworkElement>();
-                auto tmr = weakTimer.Resolve<DispatcherTimer>();
-                if (el == nullptr || tmr == nullptr) { if (tmr != nullptr) tmr->Stop(); return; }
-                double t = std::min(std::chrono::duration<double>(
-                    std::chrono::steady_clock::now() - startTime).count() / durationSec, 1.0);
-                Windows::UI::Xaml::Thickness cur;
-                cur.Left   = start.Left   + (target.Left   - start.Left)   * t;
-                cur.Right  = start.Right  + (target.Right  - start.Right)  * t;
-                cur.Top    = 0.0; cur.Bottom = 0.0;
-                el->Margin = cur;
-                if (t >= 1.0) tmr->Stop();
-            });
-        timer->Start();
-    } catch(...) {}
-}
+//void SetElementOpacityImmediate(UIElement^ element, float value) {
+//    if (element == nullptr) return;
+//    try {
+//        auto vis = ElementCompositionPreview::GetElementVisual(element);
+//        if (vis != nullptr) {
+//            try { vis->StopAnimation("Opacity"); } catch(...) {}
+//            vis->Opacity = value;
+//        }
+//        element->Opacity = value;
+//    } catch(...) {}
+//}
+//
+//void SetElementScaleImmediate(UIElement^ element, float scale) {
+//    if (element == nullptr) return;
+//    try {
+//        auto vis = ElementCompositionPreview::GetElementVisual(element);
+//        if (vis != nullptr) {
+//            try { vis->StopAnimation("Scale.X"); vis->StopAnimation("Scale.Y"); } catch(...) {}
+//            Windows::Foundation::Numerics::float3 s; s.x = scale; s.y = scale; s.z = 0.0f;
+//            vis->Scale = s;
+//        }
+//    } catch(...) {}
+//}
+//
+//void AnimateElementOpacity(UIElement^ element, float targetOpacity, int durationMs) {
+//    if (element == nullptr) return;
+//    try {
+//        try {
+//            auto vis = ElementCompositionPreview::GetElementVisual(element);
+//            if (vis != nullptr) {
+//                auto compositor = vis->Compositor;
+//                auto anim = compositor->CreateScalarKeyFrameAnimation();
+//                TimeSpan ts; ts.Duration = (int64_t)durationMs * 10000LL;
+//                anim->Duration = ts;
+//                anim->InsertKeyFrame(1.0f, targetOpacity);
+//                try { vis->StopAnimation("Opacity"); } catch(...) {}
+//                vis->StartAnimation("Opacity", anim);
+//            }
+//        } catch(...) {}
+//
+//        try {
+//            using namespace Windows::UI::Xaml::Media::Animation;
+//            auto dbl = ref new DoubleAnimation();
+//            dbl->To = ref new Platform::Box<double>((double)targetOpacity);
+//            TimeSpan ts2; ts2.Duration = (int64_t)durationMs * 10000LL;
+//            dbl->Duration = DurationHelper::FromTimeSpan(ts2);
+//            auto sb = ref new Storyboard();
+//            sb->Children->Append(dbl);
+//            Storyboard::SetTarget(dbl, element);
+//            Storyboard::SetTargetProperty(dbl, ref new Platform::String(L"(UIElement.Opacity)"));
+//            sb->Begin();
+//        } catch(...) {}
+//    } catch(...) {}
+//}
+//
+//void AnimateElementWidth(FrameworkElement^ element, double targetWidth, int durationMs) {
+//    if (element == nullptr) return;
+//    try {
+//        using namespace Windows::UI::Xaml::Media::Animation;
+//        auto dbl = ref new DoubleAnimation();
+//        dbl->To = ref new Platform::Box<double>(targetWidth);
+//        TimeSpan ts; ts.Duration = (int64_t)durationMs * 10000LL;
+//        dbl->Duration = DurationHelper::FromTimeSpan(ts);
+//        dbl->EnableDependentAnimation = true;
+//        auto sb = ref new Storyboard();
+//        sb->Children->Append(dbl);
+//        Storyboard::SetTarget(dbl, element);
+//        Storyboard::SetTargetProperty(dbl, "(FrameworkElement.Width)");
+//        sb->Begin();
+//    } catch(...) {}
+//}
+//
+//void AnimateElementPadding(FrameworkElement^ element, Windows::UI::Xaml::Thickness target, int durationMs) {
+//    if (element == nullptr) return;
+//    try {
+//        auto start = element->Margin;
+//        double durationSec = durationMs / 1000.0;
+//        auto startTime = std::chrono::steady_clock::now();
+//
+//        auto timer = ref new DispatcherTimer();
+//        TimeSpan iv; iv.Duration = 166667LL; // ~60 fps
+//        timer->Interval = iv;
+//
+//        WeakReference weakEl(element);
+//        WeakReference weakTimer(timer);
+//
+//        timer->Tick += ref new EventHandler<Platform::Object^>(
+//            [weakEl, weakTimer, start, target, startTime, durationSec](Platform::Object^, Platform::Object^) {
+//                auto el  = weakEl.Resolve<FrameworkElement>();
+//                auto tmr = weakTimer.Resolve<DispatcherTimer>();
+//                if (el == nullptr || tmr == nullptr) { if (tmr != nullptr) tmr->Stop(); return; }
+//                double t = std::min(std::chrono::duration<double>(
+//                    std::chrono::steady_clock::now() - startTime).count() / durationSec, 1.0);
+//                Windows::UI::Xaml::Thickness cur;
+//                cur.Left   = start.Left   + (target.Left   - start.Left)   * t;
+//                cur.Right  = start.Right  + (target.Right  - start.Right)  * t;
+//                cur.Top    = 0.0; cur.Bottom = 0.0;
+//                el->Margin = cur;
+//                if (t >= 1.0) tmr->Stop();
+//            });
+//        timer->Start();
+//    } catch(...) {}
+//}
 
 // ── Selection visuals ─────────────────────────────────────────────────────────
 
@@ -246,35 +229,7 @@ void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt,
     UIElement^ blur, UIElement^ reflection, UIElement^ play, UIElement^ emboss,
     bool selected, bool isGridLayout)
 {
-    try {
-        float targetScale = (!isGridLayout && selected) ? kSelectedScale : kUnselectedScale;
-
-        if (img  != nullptr) AnimateElementScale(img,  targetScale, kAnimationDurationMs);
-
-        if (des  != nullptr) {
-            AnimateElementScale(des,  targetScale, kAnimationDurationMs);
-            AnimateElementOpacity(des, selected ? 0.0f : kDesaturatorOpacityUnselected, kAnimationDurationMs);
-        }
-
-        if (play != nullptr) AnimateElementScale(play, targetScale, kAnimationDurationMs);
-
-        if (emboss != nullptr) {
-            AnimateElementScale(emboss, targetScale, kAnimationDurationMs);
-            AnimateElementOpacity(emboss, selected ? kEmbossOpacitySelected : 0.0f, kAnimationDurationMs);
-        }
-
-        if (blur != nullptr) {
-            if (!isGridLayout && selected) {
-                blur->Visibility = Visibility::Visible;
-                AnimateElementOpacity(blur, kBlurGlowOpacity, kAnimationDurationMs);
-            } else {
-                AnimateElementOpacity(blur, 0.0f, kAnimationDurationMs);
-                blur->Visibility = Visibility::Collapsed;
-            }
-        }
-        if (reflection != nullptr) reflection->Visibility = Visibility::Collapsed;
-        if (nameTxt != nullptr)    AnimateElementOpacity(nameTxt, selected ? 1.0f : 0.0f, kAnimationDurationMs);
-    } catch(...) {}
+    (void)des; (void)img; (void)nameTxt; (void)blur; (void)reflection; (void)play; (void)emboss; (void)selected; (void)isGridLayout;
 }
 
 } // namespace moonlight_xbox_dx

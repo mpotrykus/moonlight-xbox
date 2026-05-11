@@ -4,6 +4,7 @@
 
 #include "Pages\AppPage.g.h"
 #include "State\MoonlightApp.h"
+#include "ViewModels\AppPageViewModel.h"
 #include <atomic>
 #include <chrono>
 #include <ppltasks.h>
@@ -18,6 +19,7 @@ namespace moonlight_xbox_dx
         // Cached SlidingMenu created on demand (not part of the visual tree)
         moonlight_xbox_dx::Controls::SlidingMenu^ m_leftMenu = nullptr;
         moonlight_xbox_dx::Controls::SlidingMenu^ GetLeftMenu();
+        AppPageViewModel^ m_viewModel = nullptr;
         MoonlightHost^ host;
         MoonlightApp^ currentApp;
         Platform::Collections::Vector<MoonlightApp^>^ m_filteredApps;
@@ -41,6 +43,12 @@ namespace moonlight_xbox_dx
         }
         property MoonlightHost^ Host {
             MoonlightHost^ get() { return this->host; }
+        }
+        property AppPageViewModel^ ViewModel {
+            AppPageViewModel^ get() { 
+                if (m_viewModel == nullptr) m_viewModel = ref new AppPageViewModel();
+                return m_viewModel; 
+            }
         }
         void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
 

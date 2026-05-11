@@ -199,7 +199,11 @@
     </Style>
 
     <Style x:Key="SettingsGroupStyle" TargetType="Border">
-        <Setter Property="Background" Value="{ThemeResource SettingsGroupBackgroundColor}"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <SolidColorBrush Color="#AA000000" />
+            </Setter.Value>
+        </Setter>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="Padding" Value="16,0"/>
         <Setter Property="Margin" Value="0,0,0,4"/>
@@ -207,7 +211,11 @@
 
     <Style x:Key="SettingsRowSeparatorStyle" TargetType="Border">
         <Setter Property="Height" Value="1"/>
-        <Setter Property="Background" Value="{ThemeResource SettingsSeparatorColor}"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <SolidColorBrush Color="Transparent" />
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

@@ -7,6 +7,7 @@
 #include "StreamPage.xaml.h"
 #include "Utils.hpp"
 #include "Common\XamlHelper.h"
+#include "ViewModels\AppPageViewModel.h"
 #include <algorithm>
 #include <cwctype>
 
@@ -232,8 +233,8 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                         that->Resources->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard")));
                     if (sb != nullptr) sb->Begin();
                     else {
-                        SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
-                        SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
+                        //SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
+                        //SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
                     }
                 }
             } catch(...) {}
@@ -278,8 +279,8 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
 							that->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 							that->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
                             that->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
-                            SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
-                            SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
+                            //SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
+                            //SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
                             auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
                                 that->Resources->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
                             if (sb != nullptr) sb->Begin();
@@ -375,6 +376,13 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
                 auto that = weakThis.Resolve<AppPage>();
                 if (that) that->OnFirstRender(s, args);
             });
+    } catch(...) {}
+
+    // Initialize ViewModel with the page background border
+    try {
+        if (this->ViewModel != nullptr && this->PageBackgroundImage != nullptr) {
+            this->ViewModel->SetPageBackgroundBorder(this->PageBackgroundImage);
+        }
     } catch(...) {}
 
     StartBgPanAnimation();

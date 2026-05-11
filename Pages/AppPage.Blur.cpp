@@ -219,6 +219,15 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
         bool isGrid = this->m_isGridLayout;
         Platform::WeakReference weakThis(this);
 
+        // Read glow blur amount from the shared XAML resource so it stays in sync
+        // with the padding/margin converters driven by the same value.
+        float glowBlurAmount = 16.0f; // fallback if resource lookup fails
+        try {
+            auto boxed = Resources->Lookup("BlurAmount");
+            auto pv = dynamic_cast<Windows::Foundation::IPropertyValue^>(boxed);
+            if (pv != nullptr) glowBlurAmount = (float)pv->GetDouble();
+        } catch(...) {}
+
         // Background blur — always generated, used for page background and reflection
         try {
             ApplyBlur(selApp, kBlurAmountBackground)
@@ -269,7 +278,7 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
         // Glow blur — only in list mode, used for the per-item glow rect
         if (!isGrid) {
             try {
-                ApplyBlur(selApp, kBlurAmountGlow, kBlurGlowPaddingDip)
+                ApplyBlur(selApp, glowBlurAmount, kBlurGlowPaddingDip)
                     .then([selApp, weakThis](IRandomAccessStream^ stream) {
                     try {
                         if (stream == nullptr) return;
@@ -310,13 +319,10 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
         } catch(...) { return; }
 
         try {
-            if (this->PageBackgroundImage != nullptr) {
-                auto brush = dynamic_cast<ImageBrush^>(this->PageBackgroundImage->Background);
-                if (brush != nullptr) {
-                    SetElementOpacityImmediate(this->PageBackgroundImage, 0.0f);
-                    brush->ImageSource = img;
-                    AnimateElementOpacity(this->PageBackgroundImage, kBackgroundOpacity, kAnimationDurationMs);
-                }
+            // Notify ViewModel to transition to the new blurred image
+            auto vm = this->ViewModel;
+            if (vm != nullptr) {
+                vm->TransitionToBlurredImage(img);
             }
         } catch(...) {}
 
@@ -342,4 +348,4 @@ void AppPage::UpdateAverageColorOverlay(MoonlightApp^ app) {
     } catch(...) {}
 }
 
-} // namespace moonlight_xbox_dx
+} // namespace moonlight_xbox_dx} // namespace moonlight_xbox_dx

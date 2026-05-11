@@ -38,32 +38,33 @@ Object^ BlurPaddingConverter::Convert(Object^ value, TypeName targetType, Object
         } catch(...) { baseValue = 0.0; }
     }
 
-    double blurAmount = 0.0;
+    // parameter is an optional multiplier.
+    // Default (-1) makes margin negative so the target grows outward by blur amount on each side.
+	double scaleDefault = -1.5;
+    double scale = scaleDefault;
     if (parameter != nullptr) {
         try {
             auto pboxed = dynamic_cast<IBox<double>^>(parameter);
-            if (pboxed != nullptr) blurAmount = pboxed->Value;
+            if (pboxed != nullptr) scale = pboxed->Value;
             else {
                 auto pv2 = dynamic_cast<Windows::Foundation::IPropertyValue^>(parameter);
                 if (pv2 != nullptr) {
                     try {
-                        if (pv2->Type == Windows::Foundation::PropertyType::Double) blurAmount = pv2->GetDouble();
-                        else if (pv2->Type == Windows::Foundation::PropertyType::Single) blurAmount = pv2->GetSingle();
-                        else if (pv2->Type == Windows::Foundation::PropertyType::Int32) blurAmount = pv2->GetInt32();
-                        else if (pv2->Type == Windows::Foundation::PropertyType::UInt32) blurAmount = pv2->GetUInt32();
-                        else if (pv2->Type == Windows::Foundation::PropertyType::Int64) blurAmount = (double)pv2->GetInt64();
-                        else if (pv2->Type == Windows::Foundation::PropertyType::String) blurAmount = std::stod(std::wstring(pv2->GetString()->Data()));
-                    } catch(...) { blurAmount = 0.0; }
+                        if (pv2->Type == Windows::Foundation::PropertyType::Double) scale = pv2->GetDouble();
+                        else if (pv2->Type == Windows::Foundation::PropertyType::Single) scale = pv2->GetSingle();
+                        else if (pv2->Type == Windows::Foundation::PropertyType::Int32) scale = pv2->GetInt32();
+                        else if (pv2->Type == Windows::Foundation::PropertyType::UInt32) scale = pv2->GetUInt32();
+                        else if (pv2->Type == Windows::Foundation::PropertyType::Int64) scale = (double)pv2->GetInt64();
+                        else if (pv2->Type == Windows::Foundation::PropertyType::String) scale = std::stod(std::wstring(pv2->GetString()->Data()));
+                    } catch(...) { scale = scaleDefault; }
                 } else {
                     auto ps = dynamic_cast<String^>(parameter);
-                    if (ps != nullptr) { try { blurAmount = std::stod(std::wstring(ps->Data())); } catch(...) { blurAmount = 0.0; } }
+                    if (ps != nullptr) { try { scale = std::stod(std::wstring(ps->Data())); } catch(...) { scale = scaleDefault; } }
                 }
             }
-        } catch(...) { blurAmount = 0.0; }
+        } catch(...) { scale = scaleDefault; }
     }
 
-    // parameter is a scale multiplier (default 1 if omitted); supports negative for outward overflow
-    double scale = (parameter != nullptr) ? blurAmount : 1.0;
     double result = baseValue * scale;
     return ref new Platform::Box<Windows::UI::Xaml::Thickness>(Windows::UI::Xaml::Thickness(result));
 }

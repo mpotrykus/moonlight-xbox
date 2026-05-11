@@ -10,6 +10,7 @@ namespace moonlight_xbox_dx {
         Platform::String^ imagePath = "ms-appx:///Assets/gamepad.svg";
         int id;
         bool currentlyRunning;
+        bool isGridLayout = false;
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ image;
         // Backing image for the blurred version used as background behind the original image
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
@@ -79,6 +80,16 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->currentlyRunning = value;
                 OnPropertyChanged("CurrentlyRunning");
+            }
+        }
+
+        property bool IsGridLayout
+        {
+            bool get() { return this->isGridLayout; }
+            void set(bool value) {
+                if (this->isGridLayout == value) return;
+                this->isGridLayout = value;
+                OnPropertyChanged("IsGridLayout");
             }
         }
 

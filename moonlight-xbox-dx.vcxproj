@@ -355,6 +355,8 @@
     <ClInclude Include="Converters\UniformThicknessConverter.h" />
     <ClInclude Include="Converters\BlurPaddingConverter.h" />
     <ClInclude Include="Converters\UppercaseConverter.h" />
+    <ClInclude Include="Converters\WindowHeightConverter.h" />
+    <ClInclude Include="Converters\WindowWidthConverter.h" />
     <ClInclude Include="MoonlightWelcome.xaml.h">
       <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
@@ -413,6 +415,7 @@
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
     <ClInclude Include="Utils\FloatBuffer.h" />
+    <ClInclude Include="ViewModels\AppPageViewModel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
@@ -433,6 +436,8 @@
     <ClCompile Include="Converters\UniformThicknessConverter.cpp" />
     <ClCompile Include="Converters\BlurPaddingConverter.cpp" />
     <ClCompile Include="Converters\UppercaseConverter.cpp" />
+    <ClCompile Include="Converters\WindowHeightConverter.cpp" />
+    <ClCompile Include="Converters\WindowWidthConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />
     <ClCompile Include="Keyboard\kbda3.cpp" />
@@ -611,6 +616,7 @@
     </ClCompile>
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Utils\FloatBuffer.cpp" />
+    <ClCompile Include="ViewModels\AppPageViewModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -712,6 +718,7 @@
     </Page>
     <Page Include="KeyboardControl.xaml" />
     <Page Include="Pages\AppActionsDialog.xaml" />
+    <Page Include="Pages\AppPage.Resources.xaml" />
     <Page Include="Pages\AppPage.xaml">
       <SubType>Designer</SubType>
     </Page>

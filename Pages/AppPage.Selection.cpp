@@ -23,154 +23,25 @@ namespace moonlight_xbox_dx {
 void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
     if (container == nullptr) return;
     try {
-        UIElement^ des = nullptr, ^img = nullptr, ^nameTxt = nullptr;
-        UIElement^ blur = nullptr, ^reflection = nullptr, ^play = nullptr, ^emboss = nullptr;
-        FindElementChildren(container, des, img, nameTxt, blur, reflection, play, emboss);
-        ApplySelectionVisuals(des, img, nameTxt, blur, reflection, play, emboss, selected, this->m_isGridLayout);
-
         double hp = (!m_isGridLayout && selected) ? kSelectedHPadding : 0.0;
         Windows::UI::Xaml::Thickness targetPadding;
         targetPadding.Left = hp; targetPadding.Top = 0.0; targetPadding.Right = hp; targetPadding.Bottom = 0.0;
-        AnimateElementPadding(container, targetPadding, kAnimationDurationMs);
+        //AnimateElementPadding(container, targetPadding, kAnimationDurationMs);
     } catch(...) {}
 }
 
 // ── AppPage::CenterSelectedItem ───────────────────────────────────────────────
 
 void AppPage::CenterSelectedItem(int attempts, bool immediate) {
-    auto lv = this->AppsGrid;
-    if (lv == nullptr || lv->SelectedIndex < 0) return;
-
-    auto item = lv->SelectedItem;
-    if (item == nullptr) return;
-
-    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
-    auto sv = m_scrollViewer;
-    if (sv == nullptr) return;
-
-    auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(item));
-
-    if (container == nullptr) {
-        try { lv->ScrollIntoView(item); } catch(...) {}
-        if (attempts > 0) {
-            auto wt = WeakReference(this);
-            this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                ref new DispatchedHandler([wt, attempts, immediate]() {
-                    auto that = wt.Resolve<AppPage>();
-                    if (that) that->CenterSelectedItem(attempts - 1, immediate);
-                }));
-        }
-        return;
-    }
-
-    if (container->ActualWidth <= 0 || sv->ViewportWidth <= 0) {
-        if (attempts > 0) {
-            auto wt = WeakReference(this);
-            this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                ref new DispatchedHandler([wt, attempts, immediate]() {
-                    auto that = wt.Resolve<AppPage>();
-                    if (that) that->CenterSelectedItem(attempts - 1, immediate);
-                }));
-        }
-        return;
-    }
-
-    try {
-        if (m_isGridLayout) {
-            // Mark pending; OnScrollViewerViewChanged applies centering after the
-            // ListView's own keyboard-nav scroll finishes (ViewChanged !IsIntermediate).
-            m_gridCenterPending = true;
-        } else {
-            // Horizontal centering. TransformToVisual captures mid-animation layout: the
-            // previously-selected item still has its full margin (kSelectedHPadding on each
-            // side) when SelectionChanged fires, skewing pt.X. Instead compute the final
-            // settled center directly: each preceding unselected item occupies nominalWidth
-            // pixels, then the selected item adds kSelectedHPadding before its content.
-            double nominalWidth = container->ActualWidth; // container not yet animated — unselected width
-            double finalCenter  = lv->SelectedIndex * nominalWidth + kSelectedHPadding + nominalWidth / 2.0;
-
-            double desired = finalCenter - sv->ViewportWidth / 2.0;
-            Utils::Logf("CenterSelected: idx=%d nominalW=%.1f finalCenter=%.1f desired=%.1f scrollableW=%.1f\n",
-                lv->SelectedIndex, nominalWidth, finalCenter, desired, sv->ScrollableWidth);
-            if (sv->ScrollableWidth > 1.0 && desired > 0.0) {
-                // Viewport scrolls; clear any panel RenderTransform translate first.
-                try {
-                    auto panel = dynamic_cast<FrameworkElement^>(lv->ItemsPanelRoot);
-                    if (panel != nullptr) {
-                        auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(panel->RenderTransform);
-                        if (tt != nullptr) tt->X = 0.0;
-                    }
-                } catch(...) {}
-                if (desired > sv->ScrollableWidth) desired = sv->ScrollableWidth;
-                try { sv->ChangeView(desired, nullptr, nullptr, immediate); } catch(...) {}
-            } else {
-                // All items fit, or selected item is near the start (desired ≤ 0):
-                // Translate the panel via RenderTransform so the item appears centered.
-                // IMPORTANT: Do NOT use ElementCompositionPreview Offset.X here — XAML
-                // layout resets Offset.X to 0 on every layout pass (the AnimateElementPadding
-                // DispatcherTimer fires ~every 16 ms invalidating layout, and UpdateLayout()
-                // calls in EnsureRealizedContainersInitialized do the same). RenderTransform
-                // is applied post-layout and is never overridden by XAML layout passes.
-                double translateX = sv->ViewportWidth / 2.0 - finalCenter;
-                try {
-                    auto panel = dynamic_cast<FrameworkElement^>(lv->ItemsPanelRoot);
-                    if (panel != nullptr) {
-                        auto tt = dynamic_cast<Windows::UI::Xaml::Media::TranslateTransform^>(panel->RenderTransform);
-                        if (tt == nullptr) {
-                            tt = ref new Windows::UI::Xaml::Media::TranslateTransform();
-                            panel->RenderTransform = tt;
-                        }
-                        using namespace Windows::UI::Xaml::Media::Animation;
-                        auto dbl = ref new DoubleAnimation();
-                        dbl->To = ref new Platform::Box<double>(translateX);
-                        TimeSpan ts; ts.Duration = kAnimationDurationMs * 10000LL;
-                        dbl->Duration = DurationHelper::FromTimeSpan(ts);
-                        auto sb = ref new Storyboard();
-                        sb->Children->Append(dbl);
-                        Storyboard::SetTarget(dbl, tt);
-                        Storyboard::SetTargetProperty(dbl, "X");
-                        sb->Begin();
-                    }
-                } catch(...) {}
-            }
-            try {
-                if (!m_suppressSelectionFocus) container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-            } catch(...) {}
-            if (immediate) m_initialCenteringScheduled = true;
-        }
-    } catch(...) {}
+    (void)attempts; (void)immediate;
+    // Selection centering is intentionally disabled.
+    // This was previously handled in code-behind and is not effectively replicated in XAML.
 }
 
 // ── AppPage::DoGridCentering ──────────────────────────────────────────────────
 
 void AppPage::DoGridCentering() {
-    m_gridCenterPending = false; // clear BEFORE ChangeView so the ViewChanged it fires won't re-enter
-    auto lv = this->AppsGrid;
-    if (lv == nullptr || lv->SelectedIndex < 0) return;
-    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
-    auto sv = m_scrollViewer;
-    Utils::Logf("DoGridCentering: sv=%s scrollableH=%.1f viewportH=%.1f\n",
-        sv ? "ok" : "null", sv ? sv->ScrollableHeight : -1.0, sv ? sv->ViewportHeight : -1.0);
-    if (sv == nullptr || sv->ScrollableHeight <= 1.0) return;
-
-    auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(lv->SelectedItem));
-    Utils::Logf("DoGridCentering: container=%s h=%.1f\n",
-        container ? "ok" : "null", container ? container->ActualHeight : -1.0);
-    if (container == nullptr || container->ActualHeight <= 0) return;
-
-    try {
-        // TransformToVisual gives position relative to lv's current viewport (scroll-adjusted).
-        // Adding VerticalOffset converts to content/document coordinates, which is what
-        // ChangeView expects — no need to manually account for panel margins or padding.
-        auto transform = container->TransformToVisual(lv);
-        auto pt = transform->TransformPoint(Windows::Foundation::Point(0, 0));
-        double itemTopInContent = pt.Y + sv->VerticalOffset;
-        double dY = itemTopInContent + container->ActualHeight / 2.0 - sv->ViewportHeight / 2.0;
-        if (dY < 0) dY = 0;
-        if (dY > sv->ScrollableHeight) dY = sv->ScrollableHeight;
-        Utils::Logf("DoGridCentering: ptY=%.1f vOffset=%.1f dY=%.1f\n", pt.Y, sv->VerticalOffset, dY);
-        sv->ChangeView(nullptr, dY, nullptr, false);
-    } catch(...) {}
+    // Selection centering is intentionally disabled.
 }
 
 // ── AppPage::UpdateItemHeights ────────────────────────────────────────────────
@@ -250,10 +121,10 @@ void AppPage::UpdateItemHeights() {
 // ── AppPage::EnsureRealizedContainersInitialized ──────────────────────────────
 
 void AppPage::EnsureRealizedContainersInitialized(ListView^ lv) {
+	return;
     try {
         if (lv == nullptr) return;
         double listTarget = lv->ActualHeight * kAppsGridHeightFactor;
-        float initScale = kUnselectedScale;
 
         for (unsigned int i = 0; i < lv->Items->Size; ++i) {
             auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromIndex(i));
@@ -287,102 +158,8 @@ void AppPage::EnsureRealizedContainersInitialized(ListView^ lv) {
                 }
             }
 
-            try {
-                auto des     = dynamic_cast<UIElement^>(FindChildByName(container, "Desaturator"));
-                auto img     = dynamic_cast<UIElement^>(FindChildByName(container, "AppImageRect"));
-                auto blur    = dynamic_cast<UIElement^>(FindChildByName(container, "AppImageBlurRect"));
-                auto refl    = dynamic_cast<UIElement^>(FindChildByName(container, "AppImageReflectionRect"));
-                auto nameTxt = dynamic_cast<UIElement^>(FindChildByName(container, "AppName"));
-
-                bool isSelected = false;
-                try {
-                    if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-                        int idx = this->AppsGrid->IndexFromContainer(container);
-                        if (idx == this->AppsGrid->SelectedIndex) isSelected = true;
-                    }
-                } catch(...) {}
-
-                auto initVisual = [&](UIElement^ el, float scale, float opacity) {
-                    if (el == nullptr) return;
-                    auto vis = ElementCompositionPreview::GetElementVisual(el);
-                    if (vis == nullptr) return;
-                    try { vis->StopAnimation("Scale.X"); vis->StopAnimation("Scale.Y"); } catch(...) {}
-                    if (m_compositionReady) {
-                        AnimateElementScale(el, scale, kAnimationDurationMs);
-                        if (opacity >= 0.0f) AnimateElementOpacity(el, opacity, kAnimationDurationMs);
-                    } else {
-                        Windows::Foundation::Numerics::float3 s; s.x = scale; s.y = s.x; s.z = 0.0f;
-                        vis->Scale = s;
-                        if (opacity >= 0.0f) vis->Opacity = opacity;
-                    }
-                    auto fe2 = dynamic_cast<FrameworkElement^>(el);
-                    if (fe2 != nullptr && fe2->ActualWidth > 0 && fe2->ActualHeight > 0) {
-                        Windows::Foundation::Numerics::float3 cp;
-                        cp.x = (float)fe2->ActualWidth * 0.5f;
-                        cp.y = (float)fe2->ActualHeight * 0.5f;
-                        cp.z = 0.0f;
-                        vis->CenterPoint = cp;
-                    }
-                };
-
-                try { initVisual(img,  initScale, -1.0f); } catch(...) {}
-                try { initVisual(blur, initScale, -1.0f); } catch(...) {}
-                try { initVisual(refl, initScale, -1.0f); } catch(...) {}
-
-                try {
-                    auto playFE = FindChildByName(container, "Play");
-                    initVisual(dynamic_cast<UIElement^>(playFE), initScale, -1.0f);
-                } catch(...) {}
-
-                if (des != nullptr) {
-                    auto desVis = ElementCompositionPreview::GetElementVisual(des);
-                    if (desVis != nullptr) {
-                        try { desVis->StopAnimation("Scale.X"); desVis->StopAnimation("Scale.Y"); desVis->StopAnimation("Opacity"); } catch(...) {}
-                        if (m_compositionReady) {
-                            AnimateElementScale(dynamic_cast<UIElement^>(des), initScale, kAnimationDurationMs);
-                            AnimateElementOpacity(des, kDesaturatorOpacityUnselected, kAnimationDurationMs);
-                        } else {
-                            Windows::Foundation::Numerics::float3 s2; s2.x = initScale; s2.y = s2.x; s2.z = 0.0f;
-                            desVis->Scale = s2;
-                            desVis->Opacity = kDesaturatorOpacityUnselected;
-                        }
-                        if (nameTxt != nullptr) {
-                            if (m_compositionReady) AnimateElementOpacity(nameTxt, isSelected ? 1.0f : 0.0f, kAnimationDurationMs);
-                            else SetElementOpacityImmediate(nameTxt, isSelected ? 1.0f : 0.0f);
-                        }
-                        auto desFE2 = dynamic_cast<FrameworkElement^>(des);
-                        if (desFE2 != nullptr && desFE2->ActualWidth > 0 && desFE2->ActualHeight > 0) {
-                            Windows::Foundation::Numerics::float3 cp2;
-                            cp2.x = (float)desFE2->ActualWidth * 0.5f; cp2.y = (float)desFE2->ActualHeight * 0.5f; cp2.z = 0.0f;
-                            desVis->CenterPoint = cp2;
-                        }
-                        // Emboss
-                        try {
-                            auto emboss = dynamic_cast<UIElement^>(FindChildByName(container, "Emboss"));
-                            if (emboss != nullptr) {
-                                auto embossVis = ElementCompositionPreview::GetElementVisual(emboss);
-                                if (embossVis != nullptr) {
-                                    try { embossVis->StopAnimation("Scale.X"); embossVis->StopAnimation("Scale.Y"); embossVis->StopAnimation("Opacity"); } catch(...) {}
-                                    if (m_compositionReady) {
-                                        AnimateElementScale(emboss, initScale, kAnimationDurationMs);
-                                        AnimateElementOpacity(emboss, 0.0f, kAnimationDurationMs);
-                                    } else {
-                                        embossVis->Opacity = 0.0f;
-                                        Windows::Foundation::Numerics::float3 s3; s3.x = initScale; s3.y = s3.x; s3.z = 0.0f;
-                                        embossVis->Scale = s3;
-                                    }
-                                    auto embossFE2 = dynamic_cast<FrameworkElement^>(emboss);
-                                    if (embossFE2 != nullptr && embossFE2->ActualWidth > 0 && embossFE2->ActualHeight > 0) {
-                                        Windows::Foundation::Numerics::float3 cp3;
-                                        cp3.x = (float)embossFE2->ActualWidth * 0.5f; cp3.y = (float)embossFE2->ActualHeight * 0.5f; cp3.z = 0.0f;
-                                        embossVis->CenterPoint = cp3;
-                                    }
-                                }
-                            }
-                        } catch(...) {}
-                    }
-                }
-            } catch(...) {}
+            // XAML item container styles now own the selected/unselected scale.
+            // Keep the realized container tree stable, but do not touch scale here.
         }
     } catch(...) {}
 }
@@ -403,19 +180,6 @@ void AppPage::AppsGrid_ContainerContentChanging(
     // ── Recycled: leaving the viewport ───────────────────────────────────────
     if (args->InRecycleQueue) {
         try {
-            UIElement^ des = nullptr, ^img = nullptr, ^nameTxt = nullptr;
-            UIElement^ blur = nullptr, ^refl = nullptr, ^play = nullptr, ^emboss = nullptr;
-            FindElementChildren(container, des, img, nameTxt, blur, refl, play, emboss);
-            if (img)    SetElementScaleImmediate(img,    kUnselectedScale);
-            if (des)  { SetElementScaleImmediate(des,    kUnselectedScale);
-                        SetElementOpacityImmediate(des,  kDesaturatorOpacityUnselected); }
-            if (play)   SetElementScaleImmediate(play,   kUnselectedScale);
-            if (emboss){ SetElementScaleImmediate(emboss, kUnselectedScale);
-                         SetElementOpacityImmediate(emboss, 0.0f); }
-            if (blur)  { SetElementOpacityImmediate(blur, 0.0f);
-                         blur->Visibility = Windows::UI::Xaml::Visibility::Collapsed; }
-            if (refl)    refl->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-            if (nameTxt) SetElementOpacityImmediate(nameTxt, 0.0f);
             Windows::UI::Xaml::Thickness zero;
             zero.Left = zero.Top = zero.Right = zero.Bottom = 0.0;
             container->Margin = zero;
@@ -440,67 +204,55 @@ void AppPage::AppsGrid_ContainerContentChanging(
     auto lv = dynamic_cast<ListView^>(sender);
 
     // Set AspectRatioBox height so the item has a measurable size.
-    try {
-        double listTarget = lv != nullptr ? lv->ActualHeight * kAppsGridHeightFactor : 300.0;
+    //try {
+    //    double listTarget = lv != nullptr ? lv->ActualHeight * kAppsGridHeightFactor : 300.0;
 
-        std::function<DependencyObject^(DependencyObject^)> findAspect =
-            [&](DependencyObject^ parent) -> DependencyObject^ {
-                if (parent == nullptr) return nullptr;
-                int count = VisualTreeHelper::GetChildrenCount(parent);
-                for (int j = 0; j < count; ++j) {
-                    auto child = VisualTreeHelper::GetChild(parent, j);
-                    auto fe    = dynamic_cast<FrameworkElement^>(child);
-                    if (fe != nullptr && fe->GetType()->FullName == "moonlight_xbox_dx.AspectRatioBox")
-                        return child;
-                    auto rec = findAspect(child);
-                    if (rec != nullptr) return rec;
-                }
-                return nullptr;
-            };
+    //    std::function<DependencyObject^(DependencyObject^)> findAspect =
+    //        [&](DependencyObject^ parent) -> DependencyObject^ {
+    //            if (parent == nullptr) return nullptr;
+    //            int count = VisualTreeHelper::GetChildrenCount(parent);
+    //            for (int j = 0; j < count; ++j) {
+    //                auto child = VisualTreeHelper::GetChild(parent, j);
+    //                auto fe    = dynamic_cast<FrameworkElement^>(child);
+    //                if (fe != nullptr && fe->GetType()->FullName == "moonlight_xbox_dx.AspectRatioBox")
+    //                    return child;
+    //                auto rec = findAspect(child);
+    //                if (rec != nullptr) return rec;
+    //            }
+    //            return nullptr;
+    //        };
 
-        auto found = findAspect(container);
-        if (found != nullptr) {
-            auto fe = dynamic_cast<FrameworkElement^>(found);
-            if (fe != nullptr) {
-                double desiredH = listTarget;
-                if (m_isGridLayout) {
-                    double itemW = 217.0; // matches XAML ItemsWrapGrid ItemWidth
-                    try {
-                        auto panel = dynamic_cast<ItemsWrapGrid^>(lv->ItemsPanelRoot);
-                        if (panel != nullptr && panel->ItemWidth > 0) itemW = panel->ItemWidth;
-                    } catch(...) {}
-                    constexpr double ratio = 0.65;
-                    double h = itemW / ratio;
-                    if (h > 0.0 && h < listTarget) desiredH = h;
-                }
-                double prev = fe->Height;
-                if (std::isnan(prev) || std::fabs(prev - desiredH) > 1.0) {
-                    fe->Height = desiredH;
-                    fe->InvalidateMeasure();
-                }
-            }
-        }
-    } catch(...) {}
+    //    auto found = findAspect(container);
+    //    if (found != nullptr) {
+    //        auto fe = dynamic_cast<FrameworkElement^>(found);
+    //        if (fe != nullptr) {
+    //            double desiredH = listTarget;
+    //            if (m_isGridLayout) {
+    //                double itemW = 217.0; // matches XAML ItemsWrapGrid ItemWidth
+    //                try {
+    //                    auto panel = dynamic_cast<ItemsWrapGrid^>(lv->ItemsPanelRoot);
+    //                    if (panel != nullptr && panel->ItemWidth > 0) itemW = panel->ItemWidth;
+    //                } catch(...) {}
+    //                constexpr double ratio = 0.65;
+    //                double h = itemW / ratio;
+    //                if (h > 0.0 && h < listTarget) desiredH = h;
+    //            }
+    //            double prev = fe->Height;
+    //            if (std::isnan(prev) || std::fabs(prev - desiredH) > 1.0) {
+    //                fe->Height = desiredH;
+    //                fe->InvalidateMeasure();
+    //            }
+    //        }
+    //    }
+    //} catch(...) {}
 
     // Apply unselected visual state (no animations for fresh containers).
-    try {
-        UIElement^ des = nullptr, ^img = nullptr, ^nameTxt = nullptr;
-        UIElement^ blur = nullptr, ^refl = nullptr, ^play = nullptr, ^emboss = nullptr;
-        FindElementChildren(container, des, img, nameTxt, blur, refl, play, emboss);
-        if (img)    SetElementScaleImmediate(img,    kUnselectedScale);
-        if (play)   SetElementScaleImmediate(play,   kUnselectedScale);
-        if (des)  { SetElementScaleImmediate(des,    kUnselectedScale);
-                    SetElementOpacityImmediate(des,  kDesaturatorOpacityUnselected); }
-        if (emboss){ SetElementScaleImmediate(emboss, kUnselectedScale);
-                     SetElementOpacityImmediate(emboss, 0.0f); }
-        if (blur)  { SetElementOpacityImmediate(blur, 0.0f);
-                     blur->Visibility = Windows::UI::Xaml::Visibility::Collapsed; }
-        if (refl)    refl->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        if (nameTxt) SetElementOpacityImmediate(nameTxt, 0.0f);
-        Windows::UI::Xaml::Thickness zero;
-        zero.Left = zero.Top = zero.Right = zero.Bottom = 0.0;
-        container->Margin = zero;
-    } catch(...) {}
+    //try {
+    //    Windows::UI::Xaml::Thickness zero;
+    //    zero.Left = zero.Top = zero.Right = zero.Bottom = 0.0;
+    //    container->Margin = zero;
+    //    ApplyVisualsToContainer(container, false);
+    //} catch(...) {}
 
     // If this is the selected container, apply full selection visuals and blur.
     // Relevant mainly in grid mode where keyboard nav can leave the selected
@@ -538,6 +290,16 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
             prevItem = e->RemovedItems->GetAt(0);
     } catch(...) {}
 
+    //try {
+    //    auto prevApp = dynamic_cast<MoonlightApp^>(prevItem);
+    //    if (prevApp != nullptr) prevApp->IsSelected = false;
+    //    auto selAppState = dynamic_cast<MoonlightApp^>(item);
+    //    if (selAppState != nullptr) {
+    //        selAppState->IsGridLayout = m_isGridLayout;
+    //        selAppState->IsSelected = true;
+    //    }
+    //} catch(...) {}
+
     // Realize container
     auto findOrEnsureContainer = [&](Platform::Object^ it) -> ListViewItem^ {
         if (it == nullptr) return nullptr;
@@ -551,7 +313,6 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
     };
 
     ListViewItem^ container = findOrEnsureContainer(item);
-    this->CenterSelectedItem(4, true);
 
     ListViewItem^ prevContainer = nullptr;
     if (prevItem != nullptr) {
@@ -586,8 +347,8 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
 			this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 			this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
             this->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
-            SetElementOpacityImmediate(this->SelectedAppBox,  0.0f);
-            SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
+            //SetElementOpacityImmediate(this->SelectedAppBox,  0.0f);
+            //SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
             if (res != nullptr) {
                 auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
                     res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
@@ -596,16 +357,16 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
         } else if (res != nullptr) {
             auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
                 res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard")));
-            if (sb != nullptr) sb->Begin();
-            else {
-                if (m_compositionReady) {
-                    AnimateElementOpacity(this->SelectedAppBox,  0.0f, kAnimationDurationMs);
-                    AnimateElementOpacity(this->SelectedAppText, 0.0f, kAnimationDurationMs);
-                } else {
-                    SetElementOpacityImmediate(this->SelectedAppBox,  0.0f);
-                    SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
-                }
-            }
+            //if (sb != nullptr) sb->Begin();
+            //else {
+            //    if (m_compositionReady) {
+            //        AnimateElementOpacity(this->SelectedAppBox,  0.0f, kAnimationDurationMs);
+            //        AnimateElementOpacity(this->SelectedAppText, 0.0f, kAnimationDurationMs);
+            //    } else {
+            //        SetElementOpacityImmediate(this->SelectedAppBox,  0.0f);
+            //        SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
+            //    }
+            //}
         }
     } catch(...) {}
 }

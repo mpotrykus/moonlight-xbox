@@ -15,7 +15,6 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <local:UppercaseConverter x:Key="UppercaseConverter" />
         </ResourceDictionary>
     </Page.Resources>
     <FlyoutBase.AttachedFlyout>
