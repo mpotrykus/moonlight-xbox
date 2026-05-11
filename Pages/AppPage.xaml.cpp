@@ -10,6 +10,9 @@
 #include "ViewModels\AppPageViewModel.h"
 #include <algorithm>
 #include <cwctype>
+#include <sstream>
+#include <vector>
+#include <cmath>
 
 using namespace Platform;
 using namespace Windows::Foundation;
@@ -25,6 +28,74 @@ using namespace Windows::Foundation::Numerics;
 using namespace concurrency;
 
 namespace moonlight_xbox_dx {
+
+namespace {
+
+static double ParseDurationStringToMs(Platform::String^ durationValue) {
+    if (durationValue == nullptr || durationValue->IsEmpty()) return 250.0;
+
+    std::wstring text(durationValue->Data());
+    std::wstringstream ss(text);
+    std::wstring segment;
+    std::vector<double> parts;
+
+    while (std::getline(ss, segment, L':')) {
+        if (segment.empty()) return 250.0;
+        try {
+            size_t idx = 0;
+            double value = std::stod(segment, &idx);
+            if (idx != segment.size()) return 250.0;
+            parts.push_back(value);
+        } catch (...) {
+            return 250.0;
+        }
+    }
+
+    double totalSeconds = 0.0;
+    if (parts.size() == 3) {
+        totalSeconds = (parts[0] * 3600.0) + (parts[1] * 60.0) + parts[2];
+    } else if (parts.size() == 2) {
+        totalSeconds = (parts[0] * 60.0) + parts[1];
+    } else if (parts.size() == 1) {
+        totalSeconds = parts[0];
+    } else {
+        return 250.0;
+    }
+
+    if (!std::isfinite(totalSeconds) || totalSeconds <= 0.0) return 250.0;
+    return totalSeconds * 1000.0;
+}
+
+static double ResolveBackgroundOverlayOpacityFromPageResources(Page^ page) {
+    double overlayOpacity = 0.05;
+    if (page == nullptr || page->Resources == nullptr) return overlayOpacity;
+
+    try {
+        auto value = page->Resources->Lookup(ref new Platform::String(L"BackgroundOverlayOpacity"));
+        auto pv = dynamic_cast<Windows::Foundation::IPropertyValue^>(value);
+        if (pv != nullptr) {
+            overlayOpacity = pv->GetDouble();
+        }
+    } catch(...) {}
+
+    if (overlayOpacity < 0.0) overlayOpacity = 0.0;
+    if (overlayOpacity > 1.0) overlayOpacity = 1.0;
+    return overlayOpacity;
+}
+
+static double ResolveSharedAnimationDurationMsFromPageResources(Page^ page) {
+    if (page == nullptr || page->Resources == nullptr) return 250.0;
+
+    try {
+        auto value = page->Resources->Lookup(ref new Platform::String(L"SharedAnimationDuration"));
+        auto durationValue = dynamic_cast<Platform::String^>(value);
+        return ParseDurationStringToMs(durationValue);
+    } catch(...) {}
+
+    return 250.0;
+}
+
+} // namespace
 
 // ── AppPage::GetLeftMenu ──────────────────────────────────────────────────────
 
@@ -382,6 +453,9 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
     try {
         if (this->ViewModel != nullptr && this->PageBackgroundImage != nullptr) {
             this->ViewModel->SetPageBackgroundBorder(this->PageBackgroundImage);
+            this->ViewModel->SetBackgroundTransitionSettings(
+                ResolveSharedAnimationDurationMsFromPageResources(this),
+                ResolveBackgroundOverlayOpacityFromPageResources(this));
         }
     } catch(...) {}
 
@@ -547,6 +621,8 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                 if (res != nullptr) {
                     auto panel = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"GridItemsPanelTemplate")));
                     if (panel != nullptr) this->AppsGrid->ItemsPanel = panel;
+                    auto style = dynamic_cast<Windows::UI::Xaml::Style^>(res->Lookup(ref new Platform::String(L"AppGridViewItemContainerStyle")));
+                    if (style != nullptr) this->AppsGrid->ItemContainerStyle = style;
                 }
                 this->AppsGrid->SetValue(ScrollViewer::HorizontalScrollModeProperty, ScrollMode::Disabled);
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollModeProperty,   ScrollMode::Enabled);
@@ -556,6 +632,8 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                 if (res != nullptr) {
                     auto panel = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"HorizontalItemsPanelTemplate")));
                     if (panel != nullptr) this->AppsGrid->ItemsPanel = panel;
+                    auto style = dynamic_cast<Windows::UI::Xaml::Style^>(res->Lookup(ref new Platform::String(L"AppListViewItemContainerStyle")));
+                    if (style != nullptr) this->AppsGrid->ItemContainerStyle = style;
                 }
                 this->AppsGrid->SetValue(ScrollViewer::HorizontalScrollModeProperty, ScrollMode::Enabled);
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollModeProperty,   ScrollMode::Disabled);
@@ -747,47 +825,9 @@ void AppPage::OnSampleActionClicked() {
 void AppPage::AppsGrid_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
 void AppPage::AppsGrid_Unloaded(Platform::Object^, RoutedEventArgs^) {}
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
-    if (!m_pendingToggleCentering) return;
-    auto lv = this->AppsGrid;
-    if (lv == nullptr || lv->SelectedIndex < 0) return;
-    auto item = lv->SelectedItem;
-    if (item == nullptr) return;
-    auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(item));
-    if (container == nullptr) {
-        // Panel swap resets scroll to 0; selected item may be out of viewport.
-        // ScrollIntoView forces realization and triggers another LayoutUpdated.
-        try { lv->ScrollIntoView(item); } catch(...) {}
-        return;
-    }
-    if (container->ActualWidth <= 0) return;
-    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
-    if (m_scrollViewer == nullptr || m_scrollViewer->ViewportWidth <= 0) return;
-
-    if (!m_isGridLayout) {
-        // After a panel swap the scroll viewer's ExtentWidth (and thus ScrollableWidth)
-        // starts at 0 and is updated in a later layout pass. If desired > 0 but
-        // ScrollableWidth is still 0, the content hasn't been measured yet — wait.
-        double nominalW   = container->ActualWidth;
-        double finalCenter = lv->SelectedIndex * nominalW + kSelectedHPadding + nominalW / 2.0;
-        double desired     = finalCenter - m_scrollViewer->ViewportWidth / 2.0;
-        Utils::Logf("LayoutUpdated(list): idx=%d desired=%.1f scrollableW=%.1f\n",
-            lv->SelectedIndex, desired, m_scrollViewer->ScrollableWidth);
-        if (desired > 0.0 && m_scrollViewer->ScrollableWidth <= 1.0) return;
-    }
-
-    m_pendingToggleCentering = false;
-    Utils::Logf("LayoutUpdated: centering now, isGrid=%d\n", (int)m_isGridLayout);
-    if (m_isGridLayout) DoGridCentering();
-    else CenterSelectedItem(0, true);
+    if (m_pendingToggleCentering) m_pendingToggleCentering = false;
 }
 void AppPage::PageRoot_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
-void AppPage::OnScrollViewerViewChanged(Platform::Object^, ScrollViewerViewChangedEventArgs^ args) {
-    // Only act in grid mode, and only when the scroll has fully settled.
-    // IsIntermediate=false means the ListView's keyboard-nav scroll just finished,
-    // so it's safe to apply our centering without being overridden.
-    if (!m_isGridLayout) return;
-    if (args != nullptr && args->IsIntermediate) return;
-    if (m_gridCenterPending) DoGridCentering();
-}
+void AppPage::OnScrollViewerViewChanged(Platform::Object^, ScrollViewerViewChangedEventArgs^) {}
 
 } // namespace moonlight_xbox_dx

@@ -326,7 +326,7 @@ void AppPage::FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Bitma
             }
         } catch(...) {}
 
-        UpdateAverageColorOverlay(app);
+        // UpdateAverageColorOverlay(app);
     } catch(...) {}
 }
 

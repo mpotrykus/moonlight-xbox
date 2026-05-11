@@ -10,6 +10,8 @@ namespace moonlight_xbox_dx {
     private:
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ currentBackgroundImage;
         Windows::UI::Xaml::Controls::Border^ pageBackgroundBorder;
+        double backgroundTransitionDurationMs;
+        double backgroundOverlayOpacity;
 
     public:
         AppPageViewModel();
@@ -27,5 +29,6 @@ namespace moonlight_xbox_dx {
         
         // Set the page background border for animation reference
         void SetPageBackgroundBorder(Windows::UI::Xaml::Controls::Border^ border);
+        void SetBackgroundTransitionSettings(double durationMs, double overlayOpacity);
     };
 }

@@ -29,6 +29,7 @@ namespace moonlight_xbox_dx
         Windows::Foundation::EventRegistrationToken m_back_cookie;
         std::atomic<bool> continueAppFetch{ false };
         std::atomic<bool> wasConnected{ false };
+        unsigned int m_centeringAnimationVersion = 0;
     protected:
         virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
         void Connect(int app);

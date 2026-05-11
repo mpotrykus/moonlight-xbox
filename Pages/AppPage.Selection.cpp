@@ -2,11 +2,16 @@
 #include "AppPage.xaml.h"
 #include "AppPage.Helpers.h"
 #include "Utils.hpp"
+#include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <functional>
+#include <memory>
+#include <sstream>
 #include <vector>
 
 using namespace Platform;
+using namespace Windows::ApplicationModel::Core;
 using namespace Windows::Foundation;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml;
@@ -17,6 +22,70 @@ using namespace Windows::UI::Xaml::Media::Imaging;
 using namespace concurrency;
 
 namespace moonlight_xbox_dx {
+
+namespace {
+
+static double ParseDurationStringToMs(Platform::String^ durationValue) {
+    if (durationValue == nullptr || durationValue->IsEmpty()) return 250.0;
+
+    std::wstring text(durationValue->Data());
+    std::wstringstream ss(text);
+    std::wstring segment;
+    std::vector<double> parts;
+
+    while (std::getline(ss, segment, L':')) {
+        if (segment.empty()) return 250.0;
+        try {
+            size_t idx = 0;
+            double value = std::stod(segment, &idx);
+            if (idx != segment.size()) return 250.0;
+            parts.push_back(value);
+        } catch (...) {
+            return 250.0;
+        }
+    }
+
+    double totalSeconds = 0.0;
+    if (parts.size() == 3) {
+        totalSeconds = (parts[0] * 3600.0) + (parts[1] * 60.0) + parts[2];
+    } else if (parts.size() == 2) {
+        totalSeconds = (parts[0] * 60.0) + parts[1];
+    } else if (parts.size() == 1) {
+        totalSeconds = parts[0];
+    } else {
+        return 250.0;
+    }
+
+    if (!std::isfinite(totalSeconds) || totalSeconds <= 0.0) return 250.0;
+    return totalSeconds * 1000.0;
+}
+
+static double GetSharedAnimationDurationMs(AppPage^ page) {
+    if (page == nullptr) return 250.0;
+
+    Platform::String^ durationValue = nullptr;
+
+    try {
+        auto local = page->Resources != nullptr
+            ? page->Resources->Lookup(ref new Platform::String(L"SharedAnimationDuration"))
+            : nullptr;
+        durationValue = dynamic_cast<Platform::String^>(local);
+    } catch (...) {}
+
+    if (durationValue == nullptr) {
+        try {
+            auto appRes = Application::Current != nullptr ? Application::Current->Resources : nullptr;
+            auto global = appRes != nullptr
+                ? appRes->Lookup(ref new Platform::String(L"SharedAnimationDuration"))
+                : nullptr;
+            durationValue = dynamic_cast<Platform::String^>(global);
+        } catch (...) {}
+    }
+
+    return ParseDurationStringToMs(durationValue);
+}
+
+} // namespace
 
 // ── AppPage::ApplyVisualsToContainer ─────────────────────────────────────────
 
@@ -33,15 +102,154 @@ void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
 // ── AppPage::CenterSelectedItem ───────────────────────────────────────────────
 
 void AppPage::CenterSelectedItem(int attempts, bool immediate) {
-    (void)attempts; (void)immediate;
-    // Selection centering is intentionally disabled.
-    // This was previously handled in code-behind and is not effectively replicated in XAML.
+    auto queueRetry = [this, attempts, immediate]() {
+        if (attempts <= 0 || this->Dispatcher == nullptr) return;
+        auto weakThis = WeakReference(this);
+        try {
+            this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+                ref new DispatchedHandler([weakThis, attempts, immediate]() {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr) return;
+                    that->CenterSelectedItem(attempts - 1, immediate);
+                }));
+        } catch(...) {}
+    };
+
+    auto lv = this->AppsGrid;
+    if (lv == nullptr || lv->SelectedIndex < 0 || lv->SelectedItem == nullptr) return;
+
+    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(lv);
+    if (m_scrollViewer == nullptr) {
+        queueRetry();
+        return;
+    }
+
+    auto selectedItem = lv->SelectedItem;
+    auto container = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(selectedItem));
+    if (container == nullptr) {
+        try { lv->ScrollIntoView(selectedItem); } catch(...) {}
+        queueRetry();
+        return;
+    }
+
+    if (container->ActualWidth <= 0.0 || container->ActualHeight <= 0.0) {
+        queueRetry();
+        return;
+    }
+
+    double viewport = m_isGridLayout ? m_scrollViewer->ViewportHeight : m_scrollViewer->ViewportWidth;
+    if (viewport <= 0.0) {
+        queueRetry();
+        return;
+    }
+
+    try {
+        auto padding = lv->Padding;
+        if (!m_isGridLayout) {
+            double desiredEdgePadding = std::max(0.0, (viewport - container->ActualWidth) * 0.5);
+            if (std::fabs(padding.Left - desiredEdgePadding) > 0.5 || std::fabs(padding.Right - desiredEdgePadding) > 0.5) {
+                padding.Left = desiredEdgePadding;
+                padding.Right = desiredEdgePadding;
+                lv->Padding = padding;
+                try { lv->UpdateLayout(); } catch(...) {}
+                queueRetry();
+                return;
+            }
+        } else {
+            if (std::fabs(padding.Left) > 0.5 || std::fabs(padding.Right) > 0.5) {
+                padding.Left = 0.0;
+                padding.Right = 0.0;
+                lv->Padding = padding;
+                try { lv->UpdateLayout(); } catch(...) {}
+                queueRetry();
+                return;
+            }
+        }
+    } catch(...) {}
+
+    auto contentElement = dynamic_cast<UIElement^>(m_scrollViewer->Content);
+    if (contentElement == nullptr) {
+        queueRetry();
+        return;
+    }
+
+    Point origin; origin.X = 0.0f; origin.Y = 0.0f;
+    Point inContent;
+    try {
+        inContent = container->TransformToVisual(contentElement)->TransformPoint(origin);
+    } catch(...) {
+        queueRetry();
+        return;
+    }
+
+    double itemCenter = m_isGridLayout
+        ? (inContent.Y + (container->ActualHeight * 0.5))
+        : (inContent.X + (container->ActualWidth  * 0.5));
+
+    double scrollable = m_isGridLayout ? m_scrollViewer->ScrollableHeight : m_scrollViewer->ScrollableWidth;
+    double current = m_isGridLayout ? m_scrollViewer->VerticalOffset : m_scrollViewer->HorizontalOffset;
+    double target = itemCenter - (viewport * 0.5);
+    target = std::max(0.0, std::min(target, std::max(0.0, scrollable)));
+
+    if (std::fabs(target - current) < 0.5) return;
+
+    if (immediate) {
+        try {
+            if (m_isGridLayout) m_scrollViewer->ChangeView(nullptr, target, nullptr, true);
+            else                m_scrollViewer->ChangeView(target, nullptr, nullptr, true);
+        } catch(...) {}
+        return;
+    }
+
+    const double durationMs = GetSharedAnimationDurationMs(this);
+    if (durationMs <= 1.0) {
+        try {
+            if (m_isGridLayout) m_scrollViewer->ChangeView(nullptr, target, nullptr, true);
+            else                m_scrollViewer->ChangeView(target, nullptr, nullptr, true);
+        } catch(...) {}
+        return;
+    }
+
+    const bool isGrid = m_isGridLayout;
+    const double start = current;
+    const double delta = target - start;
+    const unsigned int version = ++m_centeringAnimationVersion;
+
+    auto weakThis = WeakReference(this);
+    auto renderingToken = std::make_shared<Windows::Foundation::EventRegistrationToken>();
+    auto startTime = std::make_shared<std::chrono::steady_clock::time_point>(std::chrono::steady_clock::now());
+
+    *renderingToken = Windows::UI::Xaml::Media::CompositionTarget::Rendering +=
+        ref new EventHandler<Platform::Object^>(
+            [weakThis, renderingToken, startTime, durationMs, start, delta, isGrid, version](Platform::Object^, Platform::Object^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that == nullptr || that->m_scrollViewer == nullptr || that->m_centeringAnimationVersion != version) {
+                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; } catch(...) {}
+                    return;
+                }
+
+                auto now = std::chrono::steady_clock::now();
+                double elapsedMs = std::chrono::duration<double, std::milli>(now - *startTime).count();
+                double t = std::min(1.0, elapsedMs / durationMs);
+                double eased = 1.0 - std::pow(1.0 - t, 3.0);
+                double value = start + (delta * eased);
+
+                try {
+                    if (isGrid) that->m_scrollViewer->ChangeView(nullptr, value, nullptr, true);
+                    else        that->m_scrollViewer->ChangeView(value, nullptr, nullptr, true);
+                } catch(...) {}
+
+                if (t >= 1.0) {
+                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; } catch(...) {}
+                }
+            });
 }
 
 // ── AppPage::DoGridCentering ──────────────────────────────────────────────────
 
 void AppPage::DoGridCentering() {
-    // Selection centering is intentionally disabled.
+    if (!m_isGridLayout) return;
+    CenterSelectedItem(3, false);
 }
 
 // ── AppPage::UpdateItemHeights ────────────────────────────────────────────────
@@ -344,8 +552,8 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
             try {
                 this->SelectedAppText->Text = selApp->Name != nullptr ? selApp->Name : ref new Platform::String(L"");
             } catch(...) { this->SelectedAppText->Text = selApp->Name; }
-			this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
-			this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
+            this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+            this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
             this->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
             //SetElementOpacityImmediate(this->SelectedAppBox,  0.0f);
             //SetElementOpacityImmediate(this->SelectedAppText, 0.0f);
@@ -369,6 +577,8 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
             //}
         }
     } catch(...) {}
+
+    try { CenterSelectedItem(4, false); } catch(...) {}
 }
 
 } // namespace moonlight_xbox_dx
