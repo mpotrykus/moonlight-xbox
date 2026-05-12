@@ -20,10 +20,12 @@
     <!--Apps-->
     <x:Double x:Key="AppAspectRatio">0.66</x:Double>
     <x:Double x:Key="BlurAmount">16</x:Double>
+    <Thickness x:Key="ListItemUnselectedMargin">5,0,5,0</Thickness>
+    <Thickness x:Key="ListItemSelectedMargin">18,0,18,0</Thickness>
 
     <x:Double x:Key="SelectedScale">1.0</x:Double>
-    <x:Double x:Key="SelectedBlurScaleX">1.2</x:Double>
-    <x:Double x:Key="SelectedBlurScaleY">1.12</x:Double>
+    <x:Double x:Key="SelectedBlurScaleX">1.1</x:Double>
+    <x:Double x:Key="SelectedBlurScaleY">1.08</x:Double>
     <x:Double x:Key="UnselectedScale">0.75</x:Double>
     <x:Double x:Key="GridScale">1.0</x:Double>
   
@@ -139,7 +141,8 @@
 
                         <Grid x:Name="AppVisualRoot" Grid.Row="1" RenderTransformOrigin="0.5,0.5"
                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                              Margin="5,0">
+                              Margin="{StaticResource ListItemUnselectedMargin}">
+
                             <Grid.RenderTransform>
                                 <ScaleTransform ScaleX="{StaticResource UnselectedScale}" ScaleY="{StaticResource UnselectedScale}"/>
                             </Grid.RenderTransform>
@@ -188,6 +191,9 @@
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="CommonStates">
                                 <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemUnselectedMargin}"/>
+                                    </VisualState.Setters>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
                                                          Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
@@ -214,6 +220,9 @@
                                 <VisualState x:Name="PointerOver"/>
                                 <VisualState x:Name="Pressed"/>
                                 <VisualState x:Name="Selected">
+                                    <VisualState.Setters>
+                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
+                                    </VisualState.Setters>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
                                                          Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
@@ -272,7 +281,7 @@
 
                             <!-- Image box: no extra margin, sits flush inside AppVisualRoot -->
                             <local:AspectRatioBox x:Name="AppAspectRatioBox" Ratio="{StaticResource AppAspectRatio}"
-                                                  Height="400"
+                                                  Height="250"
                                                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                                 <Grid>
                                     <Rectangle x:Name="AppImageRect" RadiusX="12" RadiusY="12" Opacity="1" IsHitTestVisible="False">

@@ -13,8 +13,87 @@
     <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/Styles/controls.xaml" />
+                <ResourceDictionary Source="ms-appx:///Styles/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <x:String x:Key="SharedAnimationDuration">0:0:0.125</x:String>
+            <x:Double x:Key="HostSelectedScale">1.3</x:Double>
+            <x:Double x:Key="HostUnselectedScale">1.0</x:Double>
+            <x:Double x:Key="HostSelectedDesaturatorOpacity">0.0</x:Double>
+            <x:Double x:Key="HostUnselectedDesaturatorOpacity">0.75</x:Double>
+
+            <Style x:Key="HostGridViewItemContainerStyle" TargetType="ListViewItem">
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+                <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListViewItem">
+                            <Grid Background="Transparent">
+                                <Grid x:Name="ItemRoot" RenderTransformOrigin="0.5,0.5" Margin="8,0">
+                                    <Grid.RenderTransform>
+                                        <ScaleTransform ScaleX="{StaticResource HostUnselectedScale}" ScaleY="{StaticResource HostUnselectedScale}"/>
+                                    </Grid.RenderTransform>
+
+                                    <ContentPresenter x:Name="contentPresenter"
+                                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                      Content="{TemplateBinding Content}"
+                                                      HorizontalAlignment="Stretch"
+                                                      VerticalAlignment="Stretch"/>
+
+                                    <Rectangle x:Name="Desaturator"
+                                               Fill="#FF000000"
+                                               Opacity="{StaticResource HostUnselectedDesaturatorOpacity}"
+                                               RadiusX="12"
+                                               RadiusY="12"
+                                               IsHitTestVisible="False"
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch" />
+                                </Grid>
+
+                                <VisualStateManager.VisualStateGroups>
+
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="ItemRoot"
+                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 To="{StaticResource HostUnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                                <DoubleAnimation Storyboard.TargetName="ItemRoot"
+                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 To="{StaticResource HostUnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                                <DoubleAnimation Storyboard.TargetName="Desaturator"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="{StaticResource HostUnselectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="PointerOver"/>
+                                        <VisualState x:Name="Pressed"/>
+                                        <VisualState x:Name="Selected">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="ItemRoot"
+                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                 To="{StaticResource HostSelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                                <DoubleAnimation Storyboard.TargetName="ItemRoot"
+                                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                 To="{StaticResource HostSelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                                <DoubleAnimation Storyboard.TargetName="Desaturator"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="{StaticResource HostSelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                        <VisualState x:Name="PointerOverSelected"/>
+                                        <VisualState x:Name="PressedSelected"/>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Page.Resources>
     <FlyoutBase.AttachedFlyout>
@@ -47,16 +126,13 @@
         </MenuFlyout>
     </FlyoutBase.AttachedFlyout>
 
-    <Viewbox>
-        <Grid Background="{ThemeResource ThemeBackgroundColor}" Margin="0,50">
+        <Grid Background="{ThemeResource ThemeBackgroundColor}">
             <Grid.RowDefinitions>
+                <RowDefinition Height="75" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="75" />
             </Grid.RowDefinitions>
-            <Grid Grid.Row="1" VerticalAlignment="Center" Padding="30,8" >
+            <Grid Grid.Row="0" VerticalAlignment="Center" Padding="30,8" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -67,21 +143,38 @@
                     <TextBlock VerticalAlignment="Center" Padding="12,0" FontFamily="Bahnschrift" CharacterSpacing="500" FontSize="14">MOONLIGHT</TextBlock>
                 </StackPanel>
             </Grid>
-            <Grid Grid.Row="2" Margin="0,50" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" HorizontalAlignment="Stretch" TextAlignment="Center" >Select Host</TextBlock>
-                <GridView Grid.Row="1" IsRightTapEnabled="True" RightTapped="HostsGrid_RightTapped" x:Name="HostsGrid" ItemsSource="{x:Bind State.SavedHosts}" IsItemClickEnabled="True" ItemClick="GridView_ItemClick" TabIndex="1" SelectionMode="None">
-                    <GridView.ItemsPanel>
+                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" >Select Host</TextBlock>
+                <ListView Grid.Row="1"
+                          Margin="0,12"
+                          IsRightTapEnabled="True"
+                          RightTapped="HostsGrid_RightTapped"
+                          x:Name="HostsGrid"
+                          ItemsSource="{x:Bind State.SavedHosts}"
+                          IsItemClickEnabled="True"
+                          ItemClick="GridView_ItemClick"
+                          SelectionChanged="HostsGrid_SelectionChanged"
+                          Loaded="HostsGrid_Loaded"
+                          SizeChanged="HostsGrid_SizeChanged"
+                          TabIndex="0"
+                          SelectionMode="Single"
+                          SelectedIndex="0"
+                          ItemContainerStyle="{StaticResource HostGridViewItemContainerStyle}"
+                          ScrollViewer.HorizontalScrollMode="Enabled"
+                          ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                          ScrollViewer.VerticalScrollMode="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                    <ListView.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsWrapGrid Orientation="Horizontal"
-                                    ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                            <ItemsStackPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
-                    </GridView.ItemsPanel>
-                    <GridView.ItemTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
                         <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
                             <StackPanel>
                                 <StackPanel Padding="16,0" VerticalAlignment="Center">
@@ -94,15 +187,25 @@
                                             <muxc:ProgressRing IsActive="True" Width="48" Height="48" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Grid>
                                     </Canvas>
-                                    <TextBlock Margin="0,12,0,0" TextAlignment="Center" HorizontalAlignment="Stretch" Text="{x:Bind ComputerName}"/>
                                 </StackPanel>
                                 <muxc:ProgressBar IsIndeterminate="True" Visibility="{x:Bind WolPollingVisibility}"></muxc:ProgressBar>
                             </StackPanel>
                         </DataTemplate>
-                    </GridView.ItemTemplate>
-                </GridView>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <Border Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        Margin="0,24,0,0"
+                        Padding="24,12"
+                        CornerRadius="10"
+                        Background="#BB000000">
+                    <TextBlock FontFamily="Bahnschrift"
+                               FontSize="12"
+                               TextAlignment="Center"
+                               Text="{Binding ElementName=HostsGrid, Path=SelectedItem.ComputerName}" />
+                </Border>
             </Grid>
-            <Grid Grid.Row="3">
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -123,5 +226,4 @@
 
             </Grid>
         </Grid>
-    </Viewbox>
 </Page>

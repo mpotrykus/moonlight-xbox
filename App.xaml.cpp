@@ -36,6 +36,17 @@ App::App()
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 	displayRequest = ref new Windows::System::Display::DisplayRequest();
 
+	this->UnhandledException += ref new Windows::UI::Xaml::UnhandledExceptionEventHandler(
+		[](Platform::Object^, Windows::UI::Xaml::UnhandledExceptionEventArgs^ e) {
+			try {
+				if (e != nullptr && e->Message != nullptr) {
+					std::wstring msg = e->Message->Data();
+					Utils::Logf("Unhandled XAML exception: %S", msg.c_str());
+				}
+			} catch (...) {}
+			try { if (e != nullptr) e->Handled = true; } catch (...) {}
+		});
+
 	// Initialize global menu items
 	GlobalMenuItems = ref new Platform::Collections::Vector<moonlight_xbox_dx::MenuItem^>();
 	GlobalMenuItems->Append(ref new moonlight_xbox_dx::MenuItem(

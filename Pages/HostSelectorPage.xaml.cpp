@@ -14,6 +14,8 @@
 #include "MoonlightWelcome.xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include <string>
+#include <algorithm>
+#include <cmath>
 #include <winsock2.h>
 #include <Ws2tcpip.h>
 
@@ -35,6 +37,208 @@ HostSelectorPage::HostSelectorPage()
 {
 	state = GetApplicationState();
 	InitializeComponent();
+	m_hostsScrollViewer = nullptr;
+}
+
+Windows::UI::Xaml::Controls::ScrollViewer^ HostSelectorPage::FindScrollViewer(Windows::UI::Xaml::DependencyObject^ root)
+{
+	if (root == nullptr) return nullptr;
+	if (auto sv = dynamic_cast<ScrollViewer^>(root)) return sv;
+
+	try {
+		int count = VisualTreeHelper::GetChildrenCount(root);
+		for (int i = 0; i < count; ++i) {
+			auto child = VisualTreeHelper::GetChild(root, i);
+			auto found = FindScrollViewer(child);
+			if (found != nullptr) return found;
+		}
+	} catch (...) {}
+
+	return nullptr;
+}
+
+void HostSelectorPage::EnsureCenteringPadding(int attempts)
+{
+	try {
+		if (m_adjustingCenterPadding) return;
+
+		auto queueRetry = [this, attempts]() {
+			if (attempts <= 0 || this->Dispatcher == nullptr) return;
+			auto weakThis = WeakReference(this);
+			try {
+				this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
+					ref new Windows::UI::Core::DispatchedHandler([weakThis, attempts]() {
+						auto that = weakThis.Resolve<HostSelectorPage>();
+						if (that == nullptr) return;
+						that->EnsureCenteringPadding(attempts - 1);
+					}));
+			} catch (...) {}
+		};
+
+		auto grid = this->HostsGrid;
+		if (grid == nullptr || grid->SelectedItem == nullptr) return;
+		if (m_hostsScrollViewer == nullptr) m_hostsScrollViewer = FindScrollViewer(grid);
+		if (m_hostsScrollViewer == nullptr) {
+			queueRetry();
+			return;
+		}
+
+		auto container = dynamic_cast<ListViewItem^>(grid->ContainerFromItem(grid->SelectedItem));
+		if (container == nullptr) {
+			try { grid->ScrollIntoView(grid->SelectedItem); } catch (...) {}
+			queueRetry();
+			return;
+		}
+
+		double viewport = m_hostsScrollViewer->ViewportWidth;
+		double width = container->ActualWidth;
+		if (!std::isfinite(viewport) || !std::isfinite(width) || viewport <= 0.0 || width <= 0.0) {
+			queueRetry();
+			return;
+		}
+
+		double desired = std::max(0.0, (viewport - width) * 0.5);
+		if (!std::isfinite(desired)) return;
+		if (m_lastCenterPadding >= 0.0 && std::fabs(m_lastCenterPadding - desired) < 0.5) return;
+
+		auto p = grid->Padding;
+		if (std::fabs(p.Left - desired) < 0.5 && std::fabs(p.Right - desired) < 0.5) {
+			m_lastCenterPadding = desired;
+			return;
+		}
+
+		m_adjustingCenterPadding = true;
+		p.Left = desired;
+		p.Right = desired;
+		grid->Padding = p;
+		m_lastCenterPadding = desired;
+		m_adjustingCenterPadding = false;
+	} catch (...) {
+		m_adjustingCenterPadding = false;
+	}
+}
+
+void HostSelectorPage::CenterSelectedHost(int attempts, bool immediate)
+{
+	try {
+		auto queueRetry = [this, attempts, immediate]() {
+			if (attempts <= 0 || this->Dispatcher == nullptr) return;
+			auto weakThis = WeakReference(this);
+			try {
+				this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
+					ref new Windows::UI::Core::DispatchedHandler([weakThis, attempts, immediate]() {
+						auto that = weakThis.Resolve<HostSelectorPage>();
+						if (that == nullptr) return;
+						that->CenterSelectedHost(attempts - 1, immediate);
+					}));
+			} catch (...) {}
+		};
+
+		auto grid = this->HostsGrid;
+		if (grid == nullptr || grid->SelectedIndex < 0 || grid->SelectedItem == nullptr) return;
+
+		EnsureCenteringPadding(2);
+
+		if (m_hostsScrollViewer == nullptr) m_hostsScrollViewer = FindScrollViewer(grid);
+		if (m_hostsScrollViewer == nullptr) {
+			queueRetry();
+			return;
+		}
+
+		auto item = grid->SelectedItem;
+		ListViewItem^ container = nullptr;
+		try {
+			container = dynamic_cast<ListViewItem^>(grid->ContainerFromItem(item));
+		} catch (...) {}
+		if (container == nullptr) {
+			try { grid->ScrollIntoView(item); } catch (...) {}
+			queueRetry();
+			return;
+		}
+
+		double containerWidth = container->ActualWidth;
+		if (!std::isfinite(containerWidth) || containerWidth <= 0.0) {
+			queueRetry();
+			return;
+		}
+
+		double viewport = m_hostsScrollViewer->ViewportWidth;
+		if (!std::isfinite(viewport) || viewport <= 0.0) {
+			queueRetry();
+			return;
+		}
+
+		auto content = dynamic_cast<UIElement^>(m_hostsScrollViewer->Content);
+		if (content == nullptr) {
+			queueRetry();
+			return;
+		}
+
+		Point origin; origin.X = 0.0f; origin.Y = 0.0f;
+		Point inContent;
+		try {
+			inContent = container->TransformToVisual(content)->TransformPoint(origin);
+		} catch (...) {
+			queueRetry();
+			return;
+		}
+
+		double itemCenter = inContent.X + (containerWidth * 0.5);
+		double scrollable = m_hostsScrollViewer->ScrollableWidth;
+		double current = m_hostsScrollViewer->HorizontalOffset;
+		if (!std::isfinite(itemCenter) || !std::isfinite(scrollable) || !std::isfinite(current)) {
+			queueRetry();
+			return;
+		}
+		double target = itemCenter - (viewport * 0.5);
+		target = std::max(0.0, std::min(target, std::max(0.0, scrollable)));
+		if (!std::isfinite(target)) {
+			queueRetry();
+			return;
+		}
+
+		if (std::fabs(target - current) < 0.5) return;
+
+		try {
+			m_hostsScrollViewer->ChangeView(target, nullptr, nullptr, immediate);
+		} catch (...) {}
+	} catch (...) {}
+}
+
+void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^)
+{
+	try {
+		auto grid = dynamic_cast<ListViewBase^>(sender);
+		if (grid == nullptr) return;
+		if (m_hostsScrollViewer == nullptr) m_hostsScrollViewer = FindScrollViewer(grid);
+
+		try {
+			if (grid->Items != nullptr && grid->Items->Size > 0 && grid->SelectedIndex < 0) {
+				grid->SelectedIndex = 0;
+			}
+		} catch (...) {}
+
+		EnsureCenteringPadding(3);
+		CenterSelectedHost(4, true);
+	} catch (...) {}
+}
+
+void HostSelectorPage::HostsGrid_SizeChanged(Platform::Object^, Windows::UI::Xaml::SizeChangedEventArgs^)
+{
+	try {
+		if (m_adjustingCenterPadding) return;
+		EnsureCenteringPadding(2);
+		CenterSelectedHost(2, true);
+	} catch (...) {}
+}
+
+void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^)
+{
+	try {
+		auto grid = dynamic_cast<ListViewBase^>(sender);
+		if (grid == nullptr || grid->SelectedIndex < 0) return;
+		CenterSelectedHost(4, false);
+	} catch (...) {}
 }
 
 void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -104,9 +308,9 @@ void HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI:
 	}
 
 	if (!anchor) {
-		auto gv = dynamic_cast<GridView^>(sender);
-		if (gv) {
-			auto container = dynamic_cast<GridViewItem^>(gv->ContainerFromItem(host));
+		auto lv = dynamic_cast<ListViewBase^>(sender);
+		if (lv) {
+			auto container = dynamic_cast<FrameworkElement^>(lv->ContainerFromItem(host));
 			if (container) anchor = container;
 		}
 	}
@@ -184,15 +388,15 @@ void HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows:
 
 void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
 {
-	//Thanks to https://stackoverflow.com/questions/62878368/uwp-gridview-listview-get-the-righttapped-item-supporting-both-mouse-and-xbox-co
-	FrameworkElement^ senderElement = (FrameworkElement^)e->OriginalSource;
+	FrameworkElement^ senderElement = dynamic_cast<FrameworkElement^>(e->OriginalSource);
+	if (senderElement == nullptr) return;
 
-	if (senderElement->GetType()->FullName->Equals(GridViewItem::typeid->FullName)) {
-		auto gi = (GridViewItem^)senderElement;
-		currentHost = (MoonlightHost^)(gi->Content);
+	auto itemContainer = dynamic_cast<SelectorItem^>(senderElement);
+	if (itemContainer != nullptr) {
+		currentHost = dynamic_cast<MoonlightHost^>(itemContainer->Content);
 	}
 	else {
-		currentHost = (MoonlightHost^)(senderElement->DataContext);
+		currentHost = dynamic_cast<MoonlightHost^>(senderElement->DataContext);
 	}
 
 	this->ShowHostActions(senderElement, currentHost);
