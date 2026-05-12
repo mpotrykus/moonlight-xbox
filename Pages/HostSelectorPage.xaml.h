@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Pages\HostSelectorPage.g.h"
+#include "Pages\HostActionsDialog.xaml.h"
 #include "State\ApplicationState.h"
 
 #include <atomic>
@@ -41,22 +42,21 @@ namespace moonlight_xbox_dx
 		void EnsureCenteringPadding(int attempts = 3);
 		Windows::UI::Xaml::Controls::ScrollViewer^ FindScrollViewer(Windows::UI::Xaml::DependencyObject^ root);
 		void StartPairing(MoonlightHost^ host);
-		void removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
 		MoonlightHost^ currentHost;
 		Windows::UI::Xaml::Controls::ScrollViewer^ m_hostsScrollViewer;
 		bool m_adjustingCenterPadding = false;
 		double m_lastCenterPadding = -1.0;
-		void hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void hostDetailsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		std::atomic<bool> continueFetch;
 		std::atomic<bool> m_isNavigatedAway;
 		std::atomic<int> m_pollActiveCount;
 		Windows::System::Threading::ThreadPoolTimer^ m_pollTimer;
 		void OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+		void ShowHostActions(MoonlightHost^ host);
+		HostActionsDialog^ m_hostActionsDialog;
 		void wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void hostDetailsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void ShowHostActions(Windows::UI::Xaml::FrameworkElement^ anchor, MoonlightHost^ host);
 	};
 }

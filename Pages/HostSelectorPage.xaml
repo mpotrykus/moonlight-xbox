@@ -96,35 +96,6 @@
             </Style>
         </ResourceDictionary>
     </Page.Resources>
-    <FlyoutBase.AttachedFlyout>
-        <MenuFlyout x:Name="ActionsFlyout" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
-            <MenuFlyoutItem x:Name="hostSettingsButton" Click="hostSettingsButton_Click" Text="Host Settings" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="Setting" />
-                </MenuFlyoutItem.Icon>
-            </MenuFlyoutItem>
-            <MenuFlyoutItem x:Name="hostDetailsButton" Click="hostDetailsButton_Click" Text="Host Details" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5">
-                <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="Help" />
-                </MenuFlyoutItem.Icon>
-            </MenuFlyoutItem>
-            <MenuFlyoutItem x:Name="wakeHostButton" Click="wakeHostButton_Click" Text="Wake Host" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="MapDrive" />
-                </MenuFlyoutItem.Icon>
-            </MenuFlyoutItem>
-            <MenuFlyoutItem x:Name="testConnectionButton" Click="testConnectionButton_Click" Text="Test Connection" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5">
-                <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="Globe" />
-                </MenuFlyoutItem.Icon>
-            </MenuFlyoutItem>
-            <MenuFlyoutItem x:Name="removeHostButton" Click="removeHostButton_Click" Text="Remove Host" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                <MenuFlyoutItem.Icon>
-                    <SymbolIcon Symbol="Remove" />
-                </MenuFlyoutItem.Icon>
-            </MenuFlyoutItem>
-        </MenuFlyout>
-    </FlyoutBase.AttachedFlyout>
 
         <Grid Background="{ThemeResource ThemeBackgroundColor}">
             <Grid.RowDefinitions>

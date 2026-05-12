@@ -367,6 +367,9 @@
       <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
+    <ClInclude Include="Pages\HostActionsDialog.xaml.h">
+      <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
@@ -533,6 +536,9 @@
     </ClCompile>
     <ClCompile Include="Common\ModalDialog.xaml.cpp">
       <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\HostActionsDialog.xaml.cpp">
+      <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
@@ -731,6 +737,7 @@
     <Page Include="Pages\HelpDialog.xaml">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </Page>
+    <Page Include="Pages\HostActionsDialog.xaml" />
     <Page Include="Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>

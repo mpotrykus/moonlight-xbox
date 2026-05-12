@@ -13,6 +13,7 @@
 #include "State\MDNSHandler.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Common\ModalDialog.xaml.h"
+#include "Pages\HostActionsDialog.xaml.h"
 #include <string>
 #include <algorithm>
 #include <cmath>
@@ -247,8 +248,19 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 	dialogHostnameTextBox->AcceptsReturn = false;
 	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &HostSelectorPage::OnKeyDown);
 	ContentDialog^ dialog = ref new ContentDialog();
+	
+	auto abkg = ref new AcrylicBrush();
+	abkg->BackgroundSource = AcrylicBackgroundSource::HostBackdrop;
+	abkg->TintColor = Windows::UI::Colors::Black;
+	abkg->TintOpacity = 0.01;
+	
+	dialog->Background = abkg;
 	dialog->Content = dialogHostnameTextBox;
-	dialog->Title = L"Add new Host";
+	auto titleText = ref new TextBlock();
+	titleText->Text = L"Add new Host";
+	titleText->TextAlignment = TextAlignment::Center;
+	dialog->Title = titleText;
+	dialog->BorderBrush = ref new SolidColorBrush(Windows::UI::Colors::Transparent);
 	dialog->IsSecondaryButtonEnabled = true;
 	dialog->PrimaryButtonText = "Ok";
 	dialog->SecondaryButtonText = "Cancel";
@@ -302,45 +314,63 @@ void HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI:
 		return;
 	}
 
-	FrameworkElement^ anchor = nullptr;
-	if (e && e->OriginalSource) {
-		anchor = dynamic_cast<FrameworkElement^>(e->OriginalSource);
-	}
-
-	if (!anchor) {
-		auto lv = dynamic_cast<ListViewBase^>(sender);
-		if (lv) {
-			auto container = dynamic_cast<FrameworkElement^>(lv->ContainerFromItem(host));
-			if (container) anchor = container;
-		}
-	}
-
-	this->ShowHostActions(anchor, host);
+	this->ShowHostActions(host);
 }
 
-void HostSelectorPage::ShowHostActions(Windows::UI::Xaml::FrameworkElement^ anchor, MoonlightHost^ host)
+void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
 {
     currentHost = host;
+    if (currentHost == nullptr) return;
 
-    if (currentHost == nullptr) {
-        return;
-    }
+    bool showWake = !(currentHost->Connected || currentHost->WolPolling);
+    bool showTest = !showWake;
 
-    if (currentHost->Connected || currentHost->WolPolling) {
-        this->wakeHostButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-        this->testConnectionButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-    }
-    else {
-        this->wakeHostButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-        this->testConnectionButton->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-    }
+    auto dialog = ref new HostActionsDialog();
+    m_hostActionsDialog = dialog;
 
-    if (anchor) {
-        this->ActionsFlyout->ShowAt(anchor);
-    }
-    else {
-        this->ActionsFlyout->ShowAt(this->HostsGrid);
-    }
+    Platform::WeakReference weakThis(this);
+
+    dialog->Configure(
+        currentHost->ComputerName,
+        showWake,
+        showTest,
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr || that->currentHost == nullptr) return;
+            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->currentHost);
+        }),
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr || that->currentHost == nullptr) return;
+            that->hostDetailsButton_Click(nullptr, nullptr);
+        }),
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr || that->currentHost == nullptr) return;
+            that->wakeHostButton_Click(nullptr, nullptr);
+        }),
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr || that->currentHost == nullptr) return;
+            that->testConnectionButton_Click(nullptr, nullptr);
+        }),
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr || that->currentHost == nullptr) return;
+            that->State->RemoveHost(that->currentHost);
+        }),
+        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+            auto that = weakThis.Resolve<HostSelectorPage>();
+            if (that == nullptr) return;
+            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+        })
+    );
+
+    try {
+        dialog->XamlRoot = this->XamlRoot;
+    } catch (...) {}
+
+    concurrency::create_task(dialog->ShowAsync());
 }
 
 void HostSelectorPage::StartPairing(MoonlightHost^ host) {
@@ -381,30 +411,21 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 		});
 }
 
-void HostSelectorPage::removeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	State->RemoveHost(currentHost);
-}
-
 void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e)
 {
 	FrameworkElement^ senderElement = dynamic_cast<FrameworkElement^>(e->OriginalSource);
 	if (senderElement == nullptr) return;
 
 	auto itemContainer = dynamic_cast<SelectorItem^>(senderElement);
+	MoonlightHost^ host = nullptr;
 	if (itemContainer != nullptr) {
-		currentHost = dynamic_cast<MoonlightHost^>(itemContainer->Content);
+		host = dynamic_cast<MoonlightHost^>(itemContainer->Content);
 	}
 	else {
-		currentHost = dynamic_cast<MoonlightHost^>(senderElement->DataContext);
+		host = dynamic_cast<MoonlightHost^>(senderElement->DataContext);
 	}
 
-	this->ShowHostActions(senderElement, currentHost);
-}
-
-void HostSelectorPage::hostSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), currentHost);
+	this->ShowHostActions(host);
 }
 
 void HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -478,41 +499,49 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		auto callback = ref new TimerElapsedHandler([weakThis](ThreadPoolTimer^ timer) {
 			auto that = weakThis.Resolve<HostSelectorPage>();
 			if (that == nullptr) {
-				try { if (timer != nullptr) timer->Cancel(); } catch (...) {}
+				try {
+					if (timer != nullptr) timer->Cancel();
+				} catch (...) {
+				}
 				return;
 			}
 			if (that->m_isNavigatedAway.load()) {
-				try { if (timer != nullptr) timer->Cancel(); } catch (...) {}
+				try {
+					if (timer != nullptr) timer->Cancel();
+				} catch (...) {
+				}
 				return;
 			}
 
 			that->m_pollActiveCount.fetch_add(1);
 			if (!that->continueFetch.load()) return;
 			try {
-				try { mdns_send_query(); } catch(...) {}
+				try {
+					mdns_send_query();
+				} catch (...) {
+				}
 				query_mdns();
 				for (auto a : GetApplicationState()->SavedHosts) {
-					try { a->UpdateHostInfo(true); } catch (...) {}
+					try {
+						a->UpdateHostInfo(true);
+					} catch (...) {
+					}
 				}
-			}
-			catch (const std::exception &ex) {
+			} catch (const std::exception &ex) {
 				Utils::Logf("HostSelectorPage poll exception: %s", ex.what());
-			}
-			catch (...) {
+			} catch (...) {
 				Utils::Log("HostSelectorPage poll unknown exception");
 			}
 			that->m_pollActiveCount.fetch_sub(1);
 		});
 
 		m_pollTimer = ThreadPoolTimer::CreatePeriodicTimer(callback, period);
-	}
-	catch (...) {
+	} catch (...) {
 		Utils::Log("HostSelectorPage failed to start poll timer");
 	}
 }
 
-void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e)
-{
+void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs ^ e) {
 	m_isNavigatedAway.store(true);
 	continueFetch.store(false);
 	try {
@@ -520,24 +549,26 @@ void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::Navigation
 			m_pollTimer->Cancel();
 			m_pollTimer = nullptr;
 		}
-	} catch (...) {}
+	} catch (...) {
+	}
 
 	for (int i = 0; i < 50 && m_pollActiveCount.load() > 0; ++i) {
 		Sleep(20);
 	}
 
-	try { __super::OnNavigatedFrom(e); } catch (...) {}
+	try {
+		__super::OnNavigatedFrom(e);
+	} catch (...) {
+	}
 }
 
-void HostSelectorPage::OnKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
-{
+void HostSelectorPage::OnKeyDown(Platform::Object ^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs ^ e) {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
 	}
 }
 
-void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
+void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	if (currentHost == nullptr) {
 		return;
 	}
@@ -545,14 +576,13 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 	try {
 		bool success = State->WakeHost(currentHost);
 		if (success) {
-			ContentDialog^ confirm = ref new ContentDialog();
+			ContentDialog ^ confirm = ref new ContentDialog();
 			confirm->Title = "Wake Host";
 			confirm->Content = "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName;
 			confirm->PrimaryButtonText = "OK";
 			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(confirm));
-		}
-		else {
-			ContentDialog^ fail = ref new ContentDialog();
+		} else {
+			ContentDialog ^ fail = ref new ContentDialog();
 			fail->Title = "Wake Host Failed";
 			fail->Content = "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";
 			fail->PrimaryButtonText = "OK";
@@ -582,137 +612,140 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object^
 					Sleep(1000);
 				}
 			})).then([host](concurrency::task<void> t) {
-				try { t.get(); } catch (...) { }
+				try {
+					t.get();
+				} catch (...) {
+				}
 				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([host]() {
-					host->WolPolling = false;
-				}));
+					                                                                                             host->WolPolling = false;
+				                                                                                             }));
 			});
 		}
-	}
-	catch (std::exception ex) {
-		ContentDialog^ dialog = ref new ContentDialog();
+	} catch (std::exception ex) {
+		ContentDialog ^ dialog = ref new ContentDialog();
 		dialog->Title = "Wake Host Error";
-		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char*)ex.what());
+		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char *)ex.what());
 		dialog->PrimaryButtonText = "OK";
 		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 	}
 }
 
-void HostSelectorPage::hostDetailsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    if (currentHost == nullptr) return;
+void HostSelectorPage::hostDetailsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	if (currentHost == nullptr) return;
 
-    auto panel = ref new Windows::UI::Xaml::Controls::StackPanel();
-    panel->Spacing = 8;
+	auto panel = ref new Windows::UI::Xaml::Controls::StackPanel();
+	panel->Spacing = 8;
 
-    auto addLine = [panel](Platform::String^ label, Platform::String^ value) {
-        auto val = ref new Windows::UI::Xaml::Controls::TextBlock();
+	auto addLine = [panel](Platform::String ^ label, Platform::String ^ value) {
+		auto val = ref new Windows::UI::Xaml::Controls::TextBlock();
 		val->Text = label + " " + value;
-        panel->Children->Append(val);
-    };
+		panel->Children->Append(val);
+	};
 
-    addLine(Utils::StringFromStdString("Hostname:"), currentHost->LastHostname == nullptr ? Utils::StringFromStdString("(null)") : currentHost->LastHostname);
-    addLine(Utils::StringFromStdString("Instance ID:"), currentHost->InstanceId == nullptr ? Utils::StringFromStdString("(null)") : currentHost->InstanceId);
-    addLine(Utils::StringFromStdString("Computer Name:"), currentHost->ComputerName == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ComputerName);
-    addLine(Utils::StringFromStdString("Server Address:"), currentHost->ServerAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ServerAddress);
-    addLine(Utils::StringFromStdString("MAC Address:"), currentHost->MacAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->MacAddress);
+	addLine(Utils::StringFromStdString("Hostname:"), currentHost->LastHostname == nullptr ? Utils::StringFromStdString("(null)") : currentHost->LastHostname);
+	addLine(Utils::StringFromStdString("Instance ID:"), currentHost->InstanceId == nullptr ? Utils::StringFromStdString("(null)") : currentHost->InstanceId);
+	addLine(Utils::StringFromStdString("Computer Name:"), currentHost->ComputerName == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ComputerName);
+	addLine(Utils::StringFromStdString("Server Address:"), currentHost->ServerAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ServerAddress);
+	addLine(Utils::StringFromStdString("MAC Address:"), currentHost->MacAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->MacAddress);
 
-    auto scroll = ref new Windows::UI::Xaml::Controls::ScrollViewer();
-    scroll->Content = panel;
-    scroll->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Auto;
-    scroll->MaxHeight = 400;
+	auto scroll = ref new Windows::UI::Xaml::Controls::ScrollViewer();
+	scroll->Content = panel;
+	scroll->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Auto;
+	scroll->MaxHeight = 400;
 
-    auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-    dialog->Title = Utils::StringFromStdString("Host Details");
-    dialog->Content = scroll;
-    dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
+	auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+	dialog->Title = Utils::StringFromStdString("Host Details");
+	dialog->Content = scroll;
+	dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
 
-    try {
-        dialog->XamlRoot = this->XamlRoot;
-    } catch(...) {}
+	try {
+		dialog->XamlRoot = this->XamlRoot;
+	} catch (...) {
+	}
 
-    concurrency::create_task(dialog->ShowAsync());
+	concurrency::create_task(dialog->ShowAsync());
 }
 
-void HostSelectorPage::testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    if (currentHost == nullptr) return;
+void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	if (currentHost == nullptr) return;
 
-    std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
-    auto pos = hostname.find(':');
-    std::string hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
+	std::string hostname = Utils::PlatformStringToStdString(currentHost->LastHostname);
+	auto pos = hostname.find(':');
+	std::string hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
 
-    concurrency::create_task([hostOnly]() {
-        WSADATA wsaData;
-        std::string resultMsg = "Unknown";
-        if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
-            resultMsg = "WSAStartup failed";
-        } else {
-            struct addrinfo hints;
-            struct addrinfo *res = nullptr;
-            ZeroMemory(&hints, sizeof(hints));
-            hints.ai_family = AF_UNSPEC;
-            hints.ai_socktype = SOCK_STREAM;
-            hints.ai_protocol = IPPROTO_TCP;
+	concurrency::create_task([hostOnly]() {
+		WSADATA wsaData;
+		std::string resultMsg = "Unknown";
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+			resultMsg = "WSAStartup failed";
+		} else {
+			struct addrinfo hints;
+			struct addrinfo *res = nullptr;
+			ZeroMemory(&hints, sizeof(hints));
+			hints.ai_family = AF_UNSPEC;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_protocol = IPPROTO_TCP;
 
-            int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
-            if (gai != 0) {
-                resultMsg = std::string("DNS lookup failed: ") + std::to_string(gai);
-            } else {
-                bool ok = false;
-                double bestRttMs = -1.0;
-                for (struct addrinfo *p = res; p != nullptr; p = p->ai_next) {
-                    SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-                    if (s == INVALID_SOCKET) continue;
-                    u_long mode = 1;
-                    ioctlsocket(s, FIONBIO, &mode);
+			int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
+			if (gai != 0) {
+				resultMsg = std::string("DNS lookup failed: ") + std::to_string(gai);
+			} else {
+				bool ok = false;
+				double bestRttMs = -1.0;
+				for (struct addrinfo *p = res; p != nullptr; p = p->ai_next) {
+					SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+					if (s == INVALID_SOCKET) continue;
+					u_long mode = 1;
+					ioctlsocket(s, FIONBIO, &mode);
 
-                    using namespace std::chrono;
-                    auto start = high_resolution_clock::now();
-                    int rc = connect(s, p->ai_addr, (int)p->ai_addrlen);
-                    if (rc == 0) {
-                        auto end = high_resolution_clock::now();
-                        double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
-                        if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
-                        ok = true;
-                        closesocket(s);
-                        break;
-                    }
-                    fd_set writeSet;
-                    FD_ZERO(&writeSet);
-                    FD_SET(s, &writeSet);
+					using namespace std::chrono;
+					auto start = high_resolution_clock::now();
+					int rc = connect(s, p->ai_addr, (int)p->ai_addrlen);
+					if (rc == 0) {
+						auto end = high_resolution_clock::now();
+						double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+						if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
+						ok = true;
+						closesocket(s);
+						break;
+					}
+					fd_set writeSet;
+					FD_ZERO(&writeSet);
+					FD_SET(s, &writeSet);
                     timeval tv; tv.tv_sec = 3; tv.tv_usec = 0;
-                    int sel = select(0, NULL, &writeSet, NULL, &tv);
-                    if (sel > 0 && FD_ISSET(s, &writeSet)) {
-                        auto end = high_resolution_clock::now();
-                        double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
-                        if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
-                        ok = true;
-                        closesocket(s);
-                        break;
-                    }
-                    closesocket(s);
-                }
-                freeaddrinfo(res);
-                if (ok) {
-                    if (bestRttMs >= 0) {
-                        char buf[64];
-                        snprintf(buf, sizeof(buf), "Connection OK (RTT: %.1f ms)", bestRttMs);
-                        resultMsg = buf;
-                    } else {
-                        resultMsg = "Connection OK";
-                    }
-                } else {
-                    resultMsg = "Connection failed";
-                }
-            }
-            WSACleanup();
-        }
+					int sel = select(0, NULL, &writeSet, NULL, &tv);
+					if (sel > 0 && FD_ISSET(s, &writeSet)) {
+						auto end = high_resolution_clock::now();
+						double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+						if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
+						ok = true;
+						closesocket(s);
+						break;
+					}
+					closesocket(s);
+				}
+				freeaddrinfo(res);
+				if (ok) {
+					if (bestRttMs >= 0) {
+						char buf[64];
+						snprintf(buf, sizeof(buf), "Connection OK (RTT: %.1f ms)", bestRttMs);
+						resultMsg = buf;
+					} else {
+						resultMsg = "Connection OK";
+					}
+				} else {
+					resultMsg = "Connection failed";
+				}
+			}
+			WSACleanup();
+		}
 
-        Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([resultMsg, hostOnly]() {
-            auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-            dialog->Title = Utils::StringFromStdString("Test Connection");
-            dialog->Content = Utils::StringFromStdString(hostOnly + ": " + resultMsg);
-            dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-            concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
-        }));
-    });
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([resultMsg, hostOnly]() {
+			                                                                                             auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			                                                                                             dialog->Title = Utils::StringFromStdString("Test Connection");
+			                                                                                             dialog->Content = Utils::StringFromStdString(hostOnly + ": " + resultMsg);
+			                                                                                             dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
+			                                                                                             concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
+		                                                                                             }));
+	});
 }
