@@ -13,30 +13,30 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0 0 0 8">
+        <Grid Grid.Row="0" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Margin="0 0 0 16" Name="backButton" Click="backButton_Click">
+            <Button Grid.Column="0" Margin="0,0,0,16" Name="backButton" Click="backButton_Click">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
             </Button>
 
-            <StackPanel Grid.Column="1" Margin="16 0 0 0" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="App Settings" Style="{StaticResource PageTitleStyle}" />
             </StackPanel>
             <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,16">Open Welcome Wizard</Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="25" Padding="16,0" CornerRadius="8">
-            <local:TabsLayout x:Name="tabsLayout" >
+        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" CornerRadius="8">
+            <local:TabsLayout x:Name="tabsLayout" Margin="24">
 
                 <local:TabsLayout.TabsContent>
-                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top" Padding="0,16">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -55,11 +55,11 @@
                 </local:TabsLayout.TabsContent>
                 
                 <local:TabsLayout.LeftContent>
-                    <Grid Padding="0,16">
+                    <Grid>
 
                         <!-- Screen -->
 
-                        <StackPanel x:Name="ScreenPanel" Visibility="Visible" Padding="0,0,16,0">
+                        <StackPanel x:Name="ScreenPanel" Visibility="Visible">
                             <Border Margin="0,0,0,16" HorizontalAlignment="Stretch" CornerRadius="8">
                                 <Border.Background>
                                     <SolidColorBrush Color="{ThemeResource SystemListAccentMediumColor}"/>

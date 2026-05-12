@@ -38,14 +38,14 @@
             </Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="25" Padding="16,0" CornerRadius="8">
-            <local:TabsLayout x:Name="rightTabs">
+        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" Padding="16,0" CornerRadius="8">
+            <local:TabsLayout x:Name="rightTabs" Padding="24">
                 <local:TabsLayout.LeftContent>
                     <Grid Margin="0,16">
 
                         <!-- Display -->
 
-                        <StackPanel x:Name="DisplayPanel" Visibility="Visible" Padding="0,0,16,0">
+                        <StackPanel x:Name="DisplayPanel" Visibility="Visible">
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="VIDEO QUALITY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
@@ -151,7 +151,7 @@
 
                         <!-- Stream -->
 
-                        <StackPanel x:Name="StreamPanel" Visibility="Collapsed" Padding="0,0,16,0">
+                        <StackPanel x:Name="StreamPanel" Visibility="Collapsed">
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="STARTUP" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
@@ -192,7 +192,7 @@
 
                         <!-- Controls -->
 
-                        <StackPanel x:Name="ControlsPanel" Visibility="Collapsed" Padding="0,0,16,0">
+                        <StackPanel x:Name="ControlsPanel" Visibility="Collapsed">
                             <ScrollViewer HorizontalAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="USEFUL SHORTCUTS" Margin="4,4,0,6" />
@@ -270,7 +270,7 @@
                 <!-- Tabs -->
 
                 <local:TabsLayout.TabsContent>
-                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="0,16">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />

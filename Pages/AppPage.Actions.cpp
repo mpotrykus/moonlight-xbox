@@ -4,6 +4,8 @@
 #include "Controls\SlidingMenu.xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include "HostSettingsPage.xaml.h"
+#include "MoonlightSettings.xaml.h"
+#include "Pages\AppActionsDialog.xaml.h"
 #include "State\MoonlightClient.h"
 #include "StreamPage.xaml.h"
 #include "Utils.hpp"
@@ -13,6 +15,7 @@ using namespace Windows::Foundation;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Media;
 using namespace concurrency;
 
 namespace moonlight_xbox_dx {
@@ -61,97 +64,68 @@ void AppPage::Connect(int appId) {
 void AppPage::AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e) {
     Utils::Log("AppPage::AppsGrid_RightTapped\n");
 
-    // Close sliding menu if open
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr && lm->IsOpen) { lm->Close(); return; }
-    } catch(...) {}
-
-    bool wasMenuOpen = false;
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr) { try { wasMenuOpen = lm->IsOpen; } catch(...) {} }
-    } catch(...) {}
-
-    FrameworkElement^ senderElement = dynamic_cast<FrameworkElement^>(e->OriginalSource);
-    FrameworkElement^ anchor = senderElement;
-
-    if (senderElement != nullptr && senderElement->GetType()->FullName->Equals(ListViewItem::typeid->FullName)) {
-        auto gi = (ListViewItem^)senderElement;
-        currentApp = (MoonlightApp^)(gi->Content);
-        anchor = gi;
-    } else {
-        if (senderElement != nullptr) currentApp = (MoonlightApp^)(senderElement->DataContext);
-        if (currentApp == nullptr && this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-            currentApp = (MoonlightApp^)this->AppsGrid->SelectedItem;
-            auto container = (ListViewItem^)this->AppsGrid->ContainerFromIndex(this->AppsGrid->SelectedIndex);
-            anchor = container != nullptr ? (FrameworkElement^)container : (FrameworkElement^)this->AppsGrid;
+    // Determine currentApp from tapped element
+    FrameworkElement^ senderElement = dynamic_cast<FrameworkElement^>(e != nullptr ? e->OriginalSource : nullptr);
+    if (senderElement != nullptr) {
+        if (senderElement->GetType()->FullName->Equals(ListViewItem::typeid->FullName)) {
+            currentApp = (MoonlightApp^)((ListViewItem^)senderElement)->Content;
+        } else {
+            currentApp = dynamic_cast<MoonlightApp^>(senderElement->DataContext);
+            if (currentApp == nullptr && this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0)
+                currentApp = (MoonlightApp^)this->AppsGrid->SelectedItem;
         }
     }
 
     bool anyRunning = false;
-    MoonlightApp^ runningApp = nullptr;
     if (this->host != nullptr) {
         for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
             auto c = this->host->Apps->GetAt(i);
-            if (c != nullptr && c->CurrentlyRunning) { anyRunning = true; runningApp = c; break; }
+            if (c != nullptr && c->CurrentlyRunning) { anyRunning = true; break; }
         }
     }
 
+    if (this->currentApp == nullptr) {
+        if (e != nullptr) e->Handled = false;
+        return;
+    }
+
     try {
-        auto lm = this->GetLeftMenu();
-        if (lm == nullptr) {
-            if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor);
-            else this->ActionsFlyout->ShowAt(this->AppsGrid);
-            return;
-        }
-
-        lm->ClearPageItems();
         Platform::WeakReference weakThis(this);
+        auto dialog = ref new AppActionsDialog();
+        dialog->Configure(
+            (this->currentApp->Name != nullptr) ? this->currentApp->Name : ref new Platform::String(L""),
+            this->currentApp->CurrentlyRunning,
+            !this->currentApp->CurrentlyRunning && anyRunning,
+            !this->currentApp->CurrentlyRunning && !anyRunning,
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Connect(that->currentApp->Id); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis, dialog](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->closeAppButton_Click(dialog, nullptr); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis, dialog](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->closeAndStartButton_Click(dialog, nullptr); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr && that->currentApp != nullptr) try { that->Connect(that->currentApp->Id); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid)); } catch (...) {}
+            }),
+		    ref new RoutedEventHandler([weakThis](Platform::Object ^, RoutedEventArgs ^) {
+			    auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid)); } catch (...) {}
+            }));
 
-        if (this->currentApp != nullptr && this->currentApp->CurrentlyRunning) {
-            lm->AddPageItem(ref new MenuItem(
-                ref new Platform::String(L"Resume App"), ref new Platform::String(L""),
-                ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->resumeAppButton_Click(nullptr, nullptr); } catch(...) {}
-                })));
-            lm->AddPageItem(ref new MenuItem(
-                ref new Platform::String(L"Close App"), ref new Platform::String(L""),
-                ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->closeAppButton_Click(nullptr, nullptr); } catch(...) {}
-                })));
-        } else if (anyRunning && runningApp != nullptr && this->currentApp != nullptr && !this->currentApp->CurrentlyRunning) {
-            lm->AddPageItem(ref new MenuItem(
-                ref new Platform::String(L"Close and Start App"), ref new Platform::String(L""),
-                ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->closeAndStartButton_Click(nullptr, nullptr); } catch(...) {}
-                })));
-        } else {
-            lm->AddPageItem(ref new MenuItem(
-                ref new Platform::String(L"Start App"), ref new Platform::String(L""),
-                ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->resumeAppButton_Click(nullptr, nullptr); } catch(...) {}
-                })));
-        }
-
-        lm->AddPageItem(ref new MenuItem(
-            ref new Platform::String(L"Host Settings"), ref new Platform::String(L""),
-            ref new EventHandler<Platform::Object^>([](Platform::Object^, Platform::Object^) {
-                try {
-                    auto rootFrame = dynamic_cast<Frame^>(Windows::UI::Xaml::Window::Current->Content);
-                    if (rootFrame != nullptr) rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid));
-                } catch(...) {}
-            })));
-
-        try {
-            lm->Title = (this->currentApp != nullptr && this->currentApp->Name != nullptr)
-                ? this->currentApp->Name : ref new Platform::String(L"");
-        } catch(...) {}
-
-        if (!wasMenuOpen) lm->Open();
-    } catch(...) {
-        if (anchor != nullptr) this->ActionsFlyout->ShowAt(anchor);
-        else this->ActionsFlyout->ShowAt(this->AppsGrid);
+        create_task(dialog->ShowAsync());
+        if (e != nullptr) e->Handled = true;
+    } catch (...) {
+        if (e != nullptr) e->Handled = false;
     }
 }
 
@@ -242,6 +216,22 @@ void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::
             ModalDialog::HideDialogByToken(progressToken);
         }));
     }));
+}
+
+// ── AppPage::moonlightSettingsButton_Click ────────────────────────────────────
+
+void AppPage::moonlightSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    try {
+        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+    } catch(...) {}
+}
+
+// ── AppPage::hostSettingsFlyoutButton_Click ───────────────────────────────────
+
+void AppPage::hostSettingsFlyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    try {
+        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid));
+    } catch(...) {}
 }
 
 } // namespace moonlight_xbox_dx

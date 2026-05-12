@@ -789,17 +789,9 @@ void AppPage::settingsButton_Click(Platform::Object^, RoutedEventArgs^) {
 }
 
 void AppPage::Page_RightTapped(Platform::Object^, RightTappedRoutedEventArgs^ e) {
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr) {
-            try {
-                lm->Title = (this->currentApp != nullptr && this->currentApp->Name != nullptr)
-                    ? this->currentApp->Name : ref new Platform::String(L"");
-            } catch(...) {}
-            lm->Open();
-        }
-        e->Handled = true;
-    } catch(...) {}
+    if (e != nullptr) {
+        e->Handled = false;
+    }
 }
 
 void AppPage::helpButton_Click(Platform::Object^, RoutedEventArgs^) {

@@ -21,12 +21,12 @@ namespace moonlight_xbox_dx
 	/// </summary>
 
 	class moonlight_xbox_dxMain;
-	public ref class StreamPage sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
+	public ref class StreamPage sealed
 	{
 	public:
 		StreamPage();
 		virtual ~StreamPage();
-		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
+		event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
 		void OnPropertyChanged(Platform::String^ propertyName);
 		bool ShouldRefreshGamepads();
 		void RequestRefreshGamepads();

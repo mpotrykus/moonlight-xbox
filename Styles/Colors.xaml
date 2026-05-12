@@ -8,7 +8,8 @@
     <!-- Fallback theme resources used at compile time -->
     <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
     <SolidColorBrush x:Key="ButtonForegroundColor" Color="#44FFFFFF"/>
-    <SolidColorBrush x:Key="ButtonFocusedColor" Color="#333"/>
+    <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#0DFFFFFF"/>
+    <SolidColorBrush x:Key="ButtonForegroundFocusColor" Color="#333"/>
 
     <!-- Theme variables -->
     <ResourceDictionary.ThemeDictionaries>
@@ -22,8 +23,9 @@
 
             <!-- Button -->
             <SolidColorBrush x:Key="ButtonBackgroundColor" Color="#FFF"/>
-            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#22000000"/>
-            <SolidColorBrush x:Key="ButtonFocusedColor" Color="#CCC"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#44FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonForegroundFocusColor" Color="#CCC"/>
 
             <!-- Settings page -->
             <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AAFFFFFF"/>
@@ -40,8 +42,9 @@
 
             <!-- Button -->
             <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
-            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#44FFFFFF"/>
-            <SolidColorBrush x:Key="ButtonFocusedColor" Color="#333"/>
+            <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#44000000"/>
+            <SolidColorBrush x:Key="ButtonForegroundFocusColor" Color="#333"/>
 
             <!-- Settings page -->
             <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AA000000"/>

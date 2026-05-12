@@ -399,6 +399,9 @@
     <ClInclude Include="Pages\AppPage.xaml.h">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Pages\AppActionsDialog.xaml.h">
+      <DependentUpon>Pages\AppActionsDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Pages\AppPage.Helpers.h" />
     <ClInclude Include="Pages\HostSelectorPage.xaml.h">
       <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
@@ -555,6 +558,9 @@
     <ClCompile Include="State\MoonlightApp.cpp" />
     <ClCompile Include="Pages\AppPage.xaml.cpp">
       <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\AppActionsDialog.xaml.cpp">
+      <DependentUpon>Pages\AppActionsDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Pages\AppPage.Helpers.cpp" />
     <ClCompile Include="Pages\AppPage.Blur.cpp" />
