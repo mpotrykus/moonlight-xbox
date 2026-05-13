@@ -23,12 +23,35 @@
         <SolidColorBrush x:Key="DialogButtonPressedBackground" Color="{ThemeResource SystemAccentColor}"/>
         <SolidColorBrush x:Key="DialogButtonFocusedBackground" Color="#EE000000"/>
 
+        <Style x:Key="ButtonIconContainerStyle" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Spacing" Value="12"/>
+        </Style>
+
+        <Style x:Key="ButtonIconStyle" TargetType="FontIcon">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Bahnschrift"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="WrapWholeWords"/>
+        </Style>
+
         <Style x:Key="DialogButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource DialogButtonBackground}"/>
             <Setter Property="Foreground" Value="{StaticResource DialogButtonForeground}"/>
-            <Setter Property="Padding" Value="8,6,8,10"/>
+            <Setter Property="Padding" Value="12"/>
             <Setter Property="Margin" Value="0"/>
             <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Width" Value="125"/>
+            <Setter Property="Height" Value="80"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="UseSystemFocusVisuals" Value="False"/>
             <Setter Property="FocusVisualPrimaryThickness" Value="0"/>
             <Setter Property="FocusVisualSecondaryThickness" Value="0"/>
@@ -91,32 +114,74 @@
 
     <Grid Background="Transparent" Padding="0">
         <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="0">
-            <Border CornerRadius="12" Margin="0,0,0,24">
-
+            <Border CornerRadius="12" Margin="0,0,0,16">
               <Border.Background>
                 <AcrylicBrush TintOpacity="0.75" TintLuminosityOpacity="0.25" TintColor="{ThemeResource SystemAccentColor}"/>
               </Border.Background>
-              
               <TextBlock x:Name="HostNameHeader"
                           HorizontalAlignment="Center"
                           TextAlignment="Center"
                           FontFamily="Bahnschrift"
-                          FontSize="20"
+                          FontSize="12"
                           FontWeight="SemiBold"
                           Foreground="White"
                           Padding="32,12,32,10"
                           TextWrapping="WrapWholeWords" />
             </Border>
 
-            <Button x:Name="HostDetailsButton" Style="{StaticResource DialogButtonStyle}" Content="Host Details" HorizontalAlignment="Stretch" />
-            <Button x:Name="WakeHostButton" Style="{StaticResource DialogButtonStyle}" Content="Wake Host" HorizontalAlignment="Stretch" />
-            <Button x:Name="TestConnectionButton" Style="{StaticResource DialogButtonStyle}" Content="Test Connection" HorizontalAlignment="Stretch" />
-            <Button x:Name="RemoveHostButton" Style="{StaticResource DialogButtonStyle}" Content="Remove Host" HorizontalAlignment="Stretch" />
+            <Grid ColumnSpacing="16" RowSpacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <Border x:Name="ActionsSeparator" Height="1" Opacity="0.0" Background="White" Margin="0,8" />
+                <Button x:Name="HostDetailsButton" Grid.Row="0" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE946;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Host Details"/>
+                    </StackPanel>
+                </Button>
 
-            <Button x:Name="HostSettingsButton" Style="{StaticResource DialogButtonStyle}" Content="Host Settings" HorizontalAlignment="Stretch" />
-            <Button x:Name="MoonlightSettingsButton" Style="{StaticResource DialogButtonStyle}" Content="Moonlight Settings" HorizontalAlignment="Stretch" />
+                <Button x:Name="RemoveHostButton" Grid.Row="0" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE74D;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Remove Host"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="WakeHostButton" Grid.Row="1" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE7E8;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Wake Host"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="TestConnectionButton" Grid.Row="1" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE701;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Test Connection"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="HostSettingsButton" Grid.Row="2" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE713;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Host Settings"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="MoonlightSettingsButton" Grid.Row="2" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
+                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
+                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE708;"/>
+                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Moonlight Settings"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
         </StackPanel>
     </Grid>
 </ContentDialog>
