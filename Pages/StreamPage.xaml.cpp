@@ -163,8 +163,12 @@ void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::
 
 void StreamPage::SetMouseMode(bool enabled)
 {
-	this->MouseMode = enabled;
-	if (m_main) m_main->mouseMode = this->MouseMode;
+    this->MouseMode = enabled;
+    if (m_main) m_main->mouseMode = this->MouseMode;
+    // Update UI text explicitly since we don't rely on INotifyPropertyChanged here
+    if (this->MouseModeText != nullptr) {
+        this->MouseModeText->Text = this->MouseMode ? ref new Platform::String(L"Mouse On") : ref new Platform::String(L"Mouse Off");
+    }
 }
 
 void StreamPage::ShowToast(Platform::String^ message) {
@@ -201,7 +205,10 @@ void StreamPage::toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::X
 }
 
 void StreamPage::SetShowLogs(bool enabled) {
-	this->ShowLogs = enabled;
+    this->ShowLogs = enabled;
+    if (this->ShowLogsText != nullptr) {
+        this->ShowLogsText->Text = this->ShowLogs ? ref new Platform::String(L"Logs On") : ref new Platform::String(L"Logs Off");
+    }
 }
 
 void StreamPage::toggleStatsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
@@ -210,7 +217,10 @@ void StreamPage::toggleStatsButton_Click(Platform::Object ^ sender, Windows::UI:
 }
 
 void StreamPage::SetShowStats(bool enabled) {
-	this->ShowStats = enabled;
+    this->ShowStats = enabled;
+    if (this->ShowStatsText != nullptr) {
+        this->ShowStatsText->Text = this->ShowStats ? ref new Platform::String(L"Stats On") : ref new Platform::String(L"Stats Off");
+    }
 }
 
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -340,7 +350,7 @@ void StreamPage::toggleFramePacing_Click(Platform::Object^ sender, Windows::UI::
 
 void StreamPage::OnPropertyChanged(Platform::String^ propertyName)
 {
-	PropertyChanged(this, ref new Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
+    // Intentionally empty: bindings on this page are updated explicitly by Set* helpers.
 }
 
 void StreamPage::OnGamepadAdded(Platform::Object^ sender, Gamepad^ gamepad)

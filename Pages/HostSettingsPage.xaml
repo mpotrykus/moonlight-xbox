@@ -21,27 +21,27 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Margin="0" Name="backButton" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
+            <Button Grid.Column="0" Name="backButton" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
             </Button>
 
-            <StackPanel Grid.Column="1" Margin="16 0 0 0" VerticalAlignment="Center">
+            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{x:Bind Host.ComputerName}" Style="{StaticResource PageTitleStyle}" />
                 <TextBlock Text="{x:Bind Host.LastHostname}" FontSize="12" Opacity="0.5" Margin="2,2,0,0" />
             </StackPanel>
 
             <Button Grid.Column="2" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
                     XYFocusDown="{x:Bind DisplayTab}">
-                Open Global Settings
+                Open Moonlight Settings
             </Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" Padding="16,0" CornerRadius="8">
-            <local:TabsLayout x:Name="rightTabs" Padding="24">
+        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" CornerRadius="8">
+            <local:TabsLayout x:Name="rightTabs" Margin="24">
                 <local:TabsLayout.LeftContent>
-                    <Grid Margin="0,16">
+                    <Grid>
 
                         <!-- Display -->
 

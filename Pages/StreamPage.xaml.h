@@ -20,14 +20,13 @@ namespace moonlight_xbox_dx
 	/// A page that hosts a DirectX SwapChainPanel.
 	/// </summary>
 
-	class moonlight_xbox_dxMain;
-	public ref class StreamPage sealed
+    class moonlight_xbox_dxMain;
+    public ref class StreamPage sealed
 	{
 	public:
 		StreamPage();
 		virtual ~StreamPage();
-		event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
-		void OnPropertyChanged(Platform::String^ propertyName);
+        void OnPropertyChanged(Platform::String^ propertyName);
 		bool ShouldRefreshGamepads();
 		void RequestRefreshGamepads();
 		void SetMouseMode(bool enabled);
@@ -81,7 +80,7 @@ namespace moonlight_xbox_dx
 
 		property Button^ m_flyoutButton {
 			Button^ get() {
-				return this->flyoutButton;
+				return this->otherActionsButton;
 			}
 		}
 

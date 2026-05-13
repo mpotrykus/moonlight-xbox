@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     Background="{ThemeResource ThemeSecondaryBackgroundColor}">
+    
     <Grid Padding="8,16,8,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -20,7 +21,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Margin="0,0,0,16" Name="backButton" Click="backButton_Click">
+            <Button Grid.Column="0" Name="backButton" Click="backButton_Click">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
@@ -32,7 +33,7 @@
             <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,16">Open Welcome Wizard</Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" CornerRadius="8">
+        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,35" CornerRadius="8">
             <local:TabsLayout x:Name="tabsLayout" Margin="24">
 
                 <local:TabsLayout.TabsContent>

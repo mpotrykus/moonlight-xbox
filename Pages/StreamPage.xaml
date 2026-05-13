@@ -13,6 +13,70 @@
 
     <Page.Resources>
         <local:BoolToTextConverter x:Key="BoolToTextConverter" TrueText="On" FalseText="Off" />
+        <Style x:Key="StreamActionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="85" />
+            <Setter Property="Height" Value="85" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="AllowFocusOnInteraction" Value="False" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="FocusVisualPrimaryThickness" Value="0" />
+            <Setter Property="FocusVisualSecondaryThickness" Value="0" />
+            <Setter Property="Foreground" Value="#FFF" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Root" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <Border x:Name="BackgroundBorder" CornerRadius="12" Background="Transparent">
+                                <Grid>
+                                    <!-- base subtle acrylic -->
+                                    <Rectangle x:Name="BackgroundBase" RadiusX="12" RadiusY="12">
+                                        <Rectangle.Fill>
+                                            <AcrylicBrush BackgroundSource="Backdrop" TintColor="#000" TintOpacity="0.5" TintLuminosityOpacity="0.5" />
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <!-- accent acrylic overlay that becomes visible when enabled/active -->
+                                    <Rectangle x:Name="BackgroundAccent" RadiusX="12" RadiusY="12" Opacity="0">
+                                        <Rectangle.Fill>
+                                            <AcrylicBrush BackgroundSource="Backdrop" TintColor="{ThemeResource SystemAccentColor}" TintOpacity="0.5" TintLuminosityOpacity="0.5" />
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <!-- white overlay shown when focused/selected -->
+                                    <Rectangle x:Name="FocusLayer" RadiusX="12" RadiusY="12" Fill="White" Opacity="0" />
+                                </Grid>
+                            </Border>
+
+                            <ContentPresenter x:Name="contentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
+
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="FocusStates">
+                                    <VisualState x:Name="Focused">
+                                        <VisualState.Setters>
+                                            <!-- white background when focused/selected -->
+                                            <Setter Target="FocusLayer.Opacity" Value="0" />
+                                            <Setter Target="BackgroundAccent.Opacity" Value="1" />
+                                            <Setter Target="BackgroundBorder.BorderThickness" Value="0"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Unfocused">
+                                        <VisualState.Setters>
+                                            <Setter Target="FocusLayer.Opacity" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Storyboard x:Name="ToastStoryboard" Completed="ToastStoryboard_Completed">
             <DoubleAnimationUsingKeyFrames Storyboard.TargetName="ToastView" Storyboard.TargetProperty="Opacity">
                 <DiscreteDoubleKeyFrame KeyTime="0:0:0" Value="0" />
@@ -39,20 +103,50 @@
                 </StackPanel.Background>
                 <local:KeyboardControl OnKeyDown="Keyboard_OnKeyDown" OnKeyUp="Keyboard_OnKeyUp" x:Name="Keyboard"/>
             </StackPanel>
-            <Button Click="flyoutButton_Click" IsTabStop="False" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,20" x:Name="flyoutButton" AllowFocusOnInteraction="false" Grid.Column="1" Opacity="0">
-                <FlyoutBase.AttachedFlyout>
-                    <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
-                        <MenuFlyoutItem x:Name="toggleMouseButton" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Exit Mouse Mode|Enter Mouse Mode'}" Click="toggleMouseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE962;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="showKeyboardButton" Text="Show Keyboard" Click="showKeyboardButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE92E;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutSubItem Text="Other Actions">
+
+            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20,0,20,20" MaxWidth="980">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0" Style="{StaticResource StreamActionButtonStyle}" Click="toggleMouseButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE962;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="MouseModeText" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Mouse On|Mouse Off'}" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="1" Style="{StaticResource StreamActionButtonStyle}" Click="showKeyboardButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE92E;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock Text="Keyboard" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="2" Style="{StaticResource StreamActionButtonStyle}" Click="toggleStatsButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xEC48;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="ShowStatsText" Text="{x:Bind ShowStats, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Stats On|Stats Off'}" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="3" Style="{StaticResource StreamActionButtonStyle}" Click="toggleLogsButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xF0B5;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock x:Name="ShowLogsText" Text="{x:Bind ShowLogs, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Logs On|Logs Off'}" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="4" x:Name="otherActionsButton" Style="{StaticResource StreamActionButtonStyle}" Click="flyoutButton_Click">
+                    <FlyoutBase.AttachedFlyout>
+                        <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
                             <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xe80f;" />
@@ -78,32 +172,28 @@
                                     <FontIcon Glyph="&#xE8B9;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                        </MenuFlyoutSubItem>
-                        <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                        <MenuFlyoutItem x:Name="toggleStatsButton" Text="{x:Bind ShowStats, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Hide Stats|Show Stats'}" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" Click="toggleStatsButton_Click">
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xEC48;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="toggleLogsButton" Text="{x:Bind ShowLogs, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Hide Logs|Show Logs'}" AllowFocusOnInteraction="false" Click="toggleLogsButton_Click"  FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xF0B5;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutSeparator></MenuFlyoutSeparator>
-                        <MenuFlyoutItem x:Name="disonnectButton" Text="Disconnect" Click="disonnectButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE72D;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                        <MenuFlyoutItem x:Name="disconnectAndCloseButton" Text="Disconnect and Close" Click="disconnectAndCloseButton_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
-                            <MenuFlyoutItem.Icon>
-                                <FontIcon Glyph="&#xE71A;" />
-                            </MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
-                    </MenuFlyout>
-                </FlyoutBase.AttachedFlyout>
-            </Button>
+                        </MenuFlyout>
+                    </FlyoutBase.AttachedFlyout>
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE712;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock Text="Other" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="6" Style="{StaticResource StreamActionButtonStyle}" Click="disonnectButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE72D;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock Text="Disconnect" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+
+                <Button Grid.Column="7" Style="{StaticResource StreamActionButtonStyle}" Click="disconnectAndCloseButton_Click">
+                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE71A;" FontSize="24" HorizontalAlignment="Center" />
+                        <TextBlock Text="Close App" TextAlignment="Center" FontSize="12" />
+                    </StackPanel>
+                </Button>
+            </Grid>
         </SwapChainPanel>
         <Grid x:Name="ProgressView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <StackPanel x:Name="ProgressStack" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
