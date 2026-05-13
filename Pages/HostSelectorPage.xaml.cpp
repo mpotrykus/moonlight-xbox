@@ -14,6 +14,7 @@
 #include "MoonlightWelcome.xaml.h"
 #include "Common\ModalDialog.xaml.h"
 #include "Pages\HostActionsDialog.xaml.h"
+#include "Pages\TestConnectionResultDialog.xaml.h"
 #include <string>
 #include <algorithm>
 #include <cmath>
@@ -633,7 +634,8 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Win
 	auto pos = hostname.find(':');
 	std::string hostOnly = (pos == std::string::npos) ? hostname : hostname.substr(0, pos);
 
-	concurrency::create_task([hostOnly]() {
+	Platform::WeakReference weakThis(this);
+	concurrency::create_task([hostOnly, weakThis]() {
 		WSADATA wsaData;
 		std::string resultMsg = "Unknown";
 		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -700,12 +702,17 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Win
 			WSACleanup();
 		}
 
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([resultMsg, hostOnly]() {
-			                                                                                             auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-			                                                                                             dialog->Title = Utils::StringFromStdString("Test Connection");
-			                                                                                             dialog->Content = Utils::StringFromStdString(hostOnly + ": " + resultMsg);
-			                                                                                             dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-			                                                                                             concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
-		                                                                                             }));
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([resultMsg, hostOnly, weakThis]() {
+			auto dialog = ref new TestConnectionResultDialog();
+			dialog->Configure(
+				Utils::StringFromStdString(hostOnly),
+				Utils::StringFromStdString(resultMsg)
+			);
+			auto page = weakThis.Resolve<HostSelectorPage>();
+			if (page != nullptr) {
+				try { dialog->XamlRoot = page->XamlRoot; } catch (...) {}
+			}
+			concurrency::create_task(dialog->ShowAsync());
+		}));
 	});
 }
