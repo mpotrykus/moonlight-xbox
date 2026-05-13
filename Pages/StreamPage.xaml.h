@@ -84,6 +84,14 @@ namespace moonlight_xbox_dx
 			}
 		}
 
+		property Grid^ m_streamMenuGrid {
+			Grid^ get() {
+				return this->StreamMenuGrid;
+			}
+		}
+
+		void SetStreamMenuVisible(bool visible);
+
 		property Grid^ m_progressView {
 			Grid^ get() {
 				return this->ProgressView;
@@ -178,6 +186,7 @@ namespace moonlight_xbox_dx
         bool m_mouseMode = false;
 	    bool m_showLogs = false;
 	    bool m_showStats = false;
+	    bool m_streamMenuVisible = false;
 	    void ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	};
 }

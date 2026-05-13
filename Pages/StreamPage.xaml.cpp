@@ -144,16 +144,28 @@ void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::
 }
 
 
+void StreamPage::SetStreamMenuVisible(bool visible) {
+	m_streamMenuVisible = visible;
+	if (!visible) {
+		this->ActionsFlyout->Hide();
+	}
+	this->StreamMenuGrid->Visibility = visible
+		? Windows::UI::Xaml::Visibility::Visible
+		: Windows::UI::Xaml::Visibility::Collapsed;
+	if (visible) {
+		this->FirstMenuButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+	}
+	if (m_main) m_main->SetMenuVisible(visible);
+}
+
 void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout((FrameworkElement^)sender);
-	m_main->SetFlyoutOpened(true);
 }
 
 
 void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
 {
-	if(m_main != nullptr) m_main->SetFlyoutOpened(false);
 }
 
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -185,6 +197,7 @@ void StreamPage::ToastStoryboard_Completed(Platform::Object^ sender, Platform::O
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	if (!m_main) return;
+	SetStreamMenuVisible(false);
 	if (GetApplicationState()->EnableKeyboard) {
 		m_main->keyboardMode = true;
 

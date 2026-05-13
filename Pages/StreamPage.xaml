@@ -104,7 +104,7 @@
                 <local:KeyboardControl OnKeyDown="Keyboard_OnKeyDown" OnKeyUp="Keyboard_OnKeyUp" x:Name="Keyboard"/>
             </StackPanel>
 
-            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20,0,20,20" MaxWidth="980">
+            <Grid x:Name="StreamMenuGrid" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="20,0,20,20" MaxWidth="980" Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -116,7 +116,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0" Style="{StaticResource StreamActionButtonStyle}" Click="toggleMouseButton_Click">
+                <Button x:Name="FirstMenuButton" Grid.Column="0" Style="{StaticResource StreamActionButtonStyle}" Click="toggleMouseButton_Click">
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xE962;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock x:Name="MouseModeText" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Mouse On|Mouse Off'}" TextAlignment="Center" FontSize="12" />

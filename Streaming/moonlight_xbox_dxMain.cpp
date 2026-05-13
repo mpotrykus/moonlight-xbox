@@ -408,20 +408,20 @@ void moonlight_xbox_dxMain::ProcessInput() {
 		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
-			DISPATCH_UI(([this]() {
-				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
+			bool newVisible = !insideMenu;
+			DISPATCH_UI(([this, newVisible]() {
+				m_streamPage->SetStreamMenuVisible(newVisible);
 			}));
 
 			// send an empty controller packet, otherwise Sunshine may see View being kept held down,
 			// triggering the "Home/Guide Button Emulation Timeout" to send a Guide button press after a few seconds.
 			SendGamepadReadingForState(state, EmptyReading());
 
-			// disable future input until the flyout is closed
-			insideFlyout = true;
+			insideMenu = newVisible;
 			continue;
 		}
 
-		if (insideFlyout) {
+		if (insideMenu) {
 			state.reading = EmptyReading();
 			state.previousReading = EmptyReading();
 			continue;
@@ -745,7 +745,11 @@ void moonlight_xbox_dxMain::OnDeviceRestored() {
 }
 
 void moonlight_xbox_dxMain::SetFlyoutOpened(bool value) {
-	insideFlyout = value;
+	// Input is now gated by insideMenu (menu visibility).
+}
+
+void moonlight_xbox_dxMain::SetMenuVisible(bool value) {
+	insideMenu = value;
 }
 
 void moonlight_xbox_dxMain::Disconnect() {
