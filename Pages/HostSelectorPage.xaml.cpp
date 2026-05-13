@@ -252,7 +252,8 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 	auto abkg = ref new AcrylicBrush();
 	abkg->BackgroundSource = AcrylicBackgroundSource::HostBackdrop;
 	abkg->TintColor = Windows::UI::Colors::Black;
-	abkg->TintOpacity = 0.01;
+	abkg->TintOpacity = 0.75;
+	abkg->TintLuminosityOpacity = 0.5;
 	
 	dialog->Background = abkg;
 	dialog->Content = dialogHostnameTextBox;

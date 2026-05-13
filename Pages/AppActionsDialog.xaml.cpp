@@ -66,15 +66,26 @@ void AppActionsDialog::Configure(
 
     try {
         if (this->AppNameHeader != nullptr) this->AppNameHeader->Text = appName;
-        if (this->ResumeButton != nullptr) this->ResumeButton->Visibility = showResumeClose ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-        if (this->CloseButton != nullptr) this->CloseButton->Visibility = showResumeClose ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-        if (this->CloseAndStartButton != nullptr) this->CloseAndStartButton->Visibility = showCloseAndStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-        if (this->StartButton != nullptr) this->StartButton->Visibility = showStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-        if (this->ActionsSeparator != nullptr) {
-            this->ActionsSeparator->Visibility = (showResumeClose || showCloseAndStart || showStart) ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+
+        if (this->ResumeButton != nullptr)
+            this->ResumeButton->Visibility = showResumeClose ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+        if (this->CloseButton != nullptr)
+            this->CloseButton->Visibility = showResumeClose ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+
+        if (this->CloseAndStartButton != nullptr) {
+            bool spans = showCloseAndStart && !showStart;
+            this->CloseAndStartButton->Visibility = showCloseAndStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+            Grid::SetColumn(this->CloseAndStartButton, 0);
+            Grid::SetColumnSpan(this->CloseAndStartButton, spans ? 2 : 1);
+			this->CloseAndStartButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
         }
-        if (this->MoonlightSettingsButton != nullptr) this->MoonlightSettingsButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
-        if (this->HostSettingsButton != nullptr) this->HostSettingsButton->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        if (this->StartButton != nullptr) {
+            bool spans = showStart && !showCloseAndStart;
+            this->StartButton->Visibility = showStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+            Grid::SetColumn(this->StartButton, showCloseAndStart ? 1 : 0);
+            Grid::SetColumnSpan(this->StartButton, spans ? 2 : 1);
+            this->StartButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
+        }
     } catch (...) {}
 }
 
