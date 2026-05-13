@@ -152,29 +152,29 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8" >
-                    <Button x:Name="ResumeButton" Style="{StaticResource HamburgerButtonStyle}">
+                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+                    <Button x:Name="ResumeButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
                         <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
                             <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE768;"/>
                             <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Resume App"/>
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="CloseButton" Style="{StaticResource HamburgerButtonStyle}">
+                    <Button x:Name="CloseButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
                         <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
                             <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE711;"/>
                             <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Close App"/>
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="CloseAndStartButton" Style="{StaticResource HamburgerButtonStyle}">
+                    <Button x:Name="CloseAndStartButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
                         <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
                             <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE8AF;"/>
                             <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Close &amp; Start"/>
                         </StackPanel>
                     </Button>
 
-                    <Button x:Name="StartButton" Style="{StaticResource HamburgerButtonStyle}">
+                    <Button x:Name="StartButton" Margin="0,0,0,8" Style="{StaticResource HamburgerButtonStyle}">
                         <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
                             <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE72A;"/>
                             <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Start App"/>
