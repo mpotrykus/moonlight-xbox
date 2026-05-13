@@ -72,20 +72,10 @@ void AppActionsDialog::Configure(
         if (this->CloseButton != nullptr)
             this->CloseButton->Visibility = showResumeClose ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
 
-        if (this->CloseAndStartButton != nullptr) {
-            bool spans = showCloseAndStart && !showStart;
+        if (this->CloseAndStartButton != nullptr)
             this->CloseAndStartButton->Visibility = showCloseAndStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-            Grid::SetColumn(this->CloseAndStartButton, 0);
-            Grid::SetColumnSpan(this->CloseAndStartButton, spans ? 2 : 1);
-			this->CloseAndStartButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
-        }
-        if (this->StartButton != nullptr) {
-            bool spans = showStart && !showCloseAndStart;
+        if (this->StartButton != nullptr)
             this->StartButton->Visibility = showStart ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-            Grid::SetColumn(this->StartButton, showCloseAndStart ? 1 : 0);
-            Grid::SetColumnSpan(this->StartButton, spans ? 2 : 1);
-            this->StartButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
-        }
     } catch (...) {}
 }
 

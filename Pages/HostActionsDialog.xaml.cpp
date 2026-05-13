@@ -66,20 +66,10 @@ void HostActionsDialog::Configure(
     try {
         if (this->HostNameHeader != nullptr) this->HostNameHeader->Text = hostName;
 
-        if (this->WakeHostButton != nullptr) {
-            bool spans = showWake && !showTestConnection;
-			this->WakeHostButton->Visibility = showWake ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-            Grid::SetColumn(this->WakeHostButton, 0);
-            Grid::SetColumnSpan(this->WakeHostButton, spans ? 2 : 1);
-            this->WakeHostButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
-        }
-        if (this->TestConnectionButton != nullptr) {
-            bool spans = showTestConnection && !showWake;
+        if (this->WakeHostButton != nullptr)
+            this->WakeHostButton->Visibility = showWake ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+        if (this->TestConnectionButton != nullptr)
             this->TestConnectionButton->Visibility = showTestConnection ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
-            Grid::SetColumn(this->TestConnectionButton, showWake ? 1 : 0);
-            Grid::SetColumnSpan(this->TestConnectionButton, spans ? 2 : 1);
-            this->TestConnectionButton->HorizontalAlignment = spans ? Windows::UI::Xaml::HorizontalAlignment::Left : Windows::UI::Xaml::HorizontalAlignment::Stretch;
-        }
     } catch (...) {}
 }
 

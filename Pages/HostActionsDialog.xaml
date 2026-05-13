@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    MinWidth="100" Width="Auto"
+    Width="350"
     CornerRadius="12"
     BorderBrush="Transparent"
     BorderThickness="0">
@@ -25,6 +25,13 @@
 
         <Style x:Key="ButtonIconContainerStyle" TargetType="StackPanel">
             <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Spacing" Value="12"/>
+        </Style>
+
+        <Style x:Key="HamburgerButtonIconContainerStyle" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Orientation" Value="Horizontal"/>
             <Setter Property="Spacing" Value="12"/>
         </Style>
 
@@ -110,6 +117,11 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="HamburgerButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
+            <Setter Property="Width" Value="NaN"/>
+            <Setter Property="Height" Value="56"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
     </ContentDialog.Resources>
 
     <Grid Background="Transparent" Padding="0">
@@ -137,45 +149,48 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Button x:Name="HostDetailsButton" Grid.Row="0" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
-                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
-                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE946;"/>
-                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Host Details"/>
-                    </StackPanel>
-                </Button>
+                <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Spacing="8">
 
-                <Button x:Name="RemoveHostButton" Grid.Row="0" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
-                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
-                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE74D;"/>
-                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Remove Host"/>
-                    </StackPanel>
-                </Button>
+                  <Button x:Name="HostDetailsButton" Style="{StaticResource HamburgerButtonStyle}">
+                      <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                          <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE946;"/>
+                          <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Host Details"/>
+                      </StackPanel>
+                  </Button>
 
-                <Button x:Name="WakeHostButton" Grid.Row="1" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
-                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
-                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE7E8;"/>
-                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Wake Host"/>
-                    </StackPanel>
-                </Button>
+                  <Button x:Name="RemoveHostButton" Style="{StaticResource HamburgerButtonStyle}">
+                      <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                          <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE74D;"/>
+                          <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Remove Host"/>
+                      </StackPanel>
+                  </Button>
 
-                <Button x:Name="TestConnectionButton" Grid.Row="1" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
-                    <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
-                        <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE701;"/>
-                        <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Test Connection"/>
-                    </StackPanel>
-                </Button>
+                  <Button x:Name="WakeHostButton" Style="{StaticResource HamburgerButtonStyle}">
+                      <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                          <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE7E8;"/>
+                          <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Wake Host"/>
+                      </StackPanel>
+                  </Button>
 
-                <Button x:Name="HostSettingsButton" Grid.Row="2" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
+                  <Button x:Name="TestConnectionButton" Style="{StaticResource HamburgerButtonStyle}">
+                      <StackPanel Style="{StaticResource HamburgerButtonIconContainerStyle}">
+                          <FontIcon Style="{StaticResource ButtonIconStyle}" VerticalAlignment="Center" Glyph="&#xE701;"/>
+                          <TextBlock Style="{StaticResource ButtonLabelStyle}" VerticalAlignment="Center" Text="Test Connection"/>
+                      </StackPanel>
+                  </Button>
+
+                </StackPanel>
+
+                <Button x:Name="HostSettingsButton" Grid.Row="1" Grid.Column="0" Style="{StaticResource DialogButtonStyle}">
                     <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
                         <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE713;"/>
                         <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Host Settings"/>
                     </StackPanel>
                 </Button>
 
-                <Button x:Name="MoonlightSettingsButton" Grid.Row="2" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
+                <Button x:Name="MoonlightSettingsButton" Grid.Row="1" Grid.Column="1" Style="{StaticResource DialogButtonStyle}">
                     <StackPanel Style="{StaticResource ButtonIconContainerStyle}">
                         <FontIcon Style="{StaticResource ButtonIconStyle}" Glyph="&#xE708;"/>
                         <TextBlock Style="{StaticResource ButtonLabelStyle}" Text="Moonlight Settings"/>
