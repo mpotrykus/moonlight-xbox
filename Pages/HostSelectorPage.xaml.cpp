@@ -245,61 +245,35 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 
 void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	dialogHostnameTextBox = ref new TextBox();
-	dialogHostnameTextBox->AcceptsReturn = false;
-	dialogHostnameTextBox->KeyDown += ref new Windows::UI::Xaml::Input::KeyEventHandler(this, &HostSelectorPage::OnKeyDown);
-	ContentDialog^ dialog = ref new ContentDialog();
-	
-	auto abkg = ref new AcrylicBrush();
-	abkg->BackgroundSource = AcrylicBackgroundSource::HostBackdrop;
-	abkg->TintColor = Windows::UI::Colors::Black;
-	abkg->TintOpacity = 0.75;
-	abkg->TintLuminosityOpacity = 0.5;
-	
-	dialog->Background = abkg;
-	dialog->Content = dialogHostnameTextBox;
-	auto titleText = ref new TextBlock();
-	titleText->Text = L"Add new Host";
-	titleText->TextAlignment = TextAlignment::Center;
-	dialog->Title = titleText;
-	dialog->BorderBrush = ref new SolidColorBrush(Windows::UI::Colors::Transparent);
-	dialog->IsSecondaryButtonEnabled = true;
-	dialog->PrimaryButtonText = "Ok";
-	dialog->SecondaryButtonText = "Cancel";
-	concurrency::create_task(dialog->ShowAsync());
-	dialog->PrimaryButtonClick += ref new Windows::Foundation::TypedEventHandler<Windows::UI::Xaml::Controls::ContentDialog^, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^>(this, &HostSelectorPage::OnNewHostDialogPrimaryClick);
-}
+	auto dialog = ref new AddHostDialog();
+	Platform::WeakReference weakThis(this);
 
-void HostSelectorPage::OnNewHostDialogPrimaryClick(Windows::UI::Xaml::Controls::ContentDialog^ sender, Windows::UI::Xaml::Controls::ContentDialogButtonClickEventArgs^ args)
-{
-	sender->IsPrimaryButtonEnabled = false;
-	Platform::String^ hostname = dialogHostnameTextBox->Text;
-	auto def = args->GetDeferral();
-	Concurrency::create_task([def, hostname, this, args, sender]() {
-		bool status = state->AddHost(hostname);
-		if (!status) {
-			Platform::WeakReference weakThis(this);
-			concurrency::create_task(Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([sender, weakThis, hostname, def, args]() {
-				args->Cancel = true;
-				sender->Content = L"Failed to Connect to " + hostname;
-				def->Complete();
-				}))) .then([](concurrency::task<void> t) {
-					try {
-						t.get();
-					}
-					catch (const std::exception &e) {
-						Utils::Logf("HostSelectorPage NewHost create_task exception: %s", e.what());
-					}
-					catch (...) {
-						Utils::Log("HostSelectorPage NewHost create_task unknown exception");
-					}
-				});
-			return;
-		}
-		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([def]() {
-			def->Complete();
-			}));
-		});
+	dialog->Configure(
+		ref new Windows::UI::Xaml::RoutedEventHandler([weakThis, dialog](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+			auto that = weakThis.Resolve<HostSelectorPage>();
+			if (that == nullptr) return;
+			Platform::String^ hostname = dialog->GetHostname();
+			if (hostname == nullptr || hostname->Length() == 0) return;
+			dialog->SetAddButtonEnabled(false);
+			Concurrency::create_task([that, dialog, hostname]() {
+				bool status = that->state->AddHost(hostname);
+				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+					Windows::UI::Core::CoreDispatcherPriority::High,
+					ref new Windows::UI::Core::DispatchedHandler([dialog, status, hostname]() {
+						if (!status) {
+							dialog->ShowError("Failed to connect to " + hostname);
+							dialog->SetAddButtonEnabled(true);
+						} else {
+							try { dialog->Hide(); } catch (...) {}
+						}
+					}));
+			});
+		}),
+		nullptr
+	);
+
+	try { dialog->XamlRoot = this->XamlRoot; } catch (...) {}
+	concurrency::create_task(dialog->ShowAsync());
 }
 
 void HostSelectorPage::GridView_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e)

@@ -28,7 +28,7 @@
             </Button>
 
             <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="App Settings" Style="{StaticResource PageTitleStyle}" />
+                <TextBlock Text="Moonlight Settings" Style="{StaticResource PageTitleStyle}" />
             </StackPanel>
             <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,16">Open Welcome Wizard</Button>
         </Grid>
