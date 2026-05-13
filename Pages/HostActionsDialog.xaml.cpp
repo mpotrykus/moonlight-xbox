@@ -22,10 +22,6 @@ HostActionsDialog::HostActionsDialog()
             HideIfOpen(this);
             if (m_onHostSettings != nullptr) m_onHostSettings->Invoke(sender, args);
         });
-        this->HostDetailsButton->Click += ref new RoutedEventHandler([this](Platform::Object^ sender, RoutedEventArgs^ args) {
-            HideIfOpen(this);
-            if (m_onHostDetails != nullptr) m_onHostDetails->Invoke(sender, args);
-        });
         this->WakeHostButton->Click += ref new RoutedEventHandler([this](Platform::Object^ sender, RoutedEventArgs^ args) {
             HideIfOpen(this);
             if (m_onWakeHost != nullptr) m_onWakeHost->Invoke(sender, args);
@@ -50,14 +46,12 @@ void HostActionsDialog::Configure(
     bool showWake,
     bool showTestConnection,
     RoutedEventHandler^ onHostSettings,
-    RoutedEventHandler^ onHostDetails,
     RoutedEventHandler^ onWakeHost,
     RoutedEventHandler^ onTestConnection,
     RoutedEventHandler^ onRemoveHost,
     RoutedEventHandler^ onMoonlightSettings)
 {
     m_onHostSettings = onHostSettings;
-    m_onHostDetails = onHostDetails;
     m_onWakeHost = onWakeHost;
     m_onTestConnection = onTestConnection;
     m_onRemoveHost = onRemoveHost;

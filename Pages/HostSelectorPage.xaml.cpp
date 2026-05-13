@@ -343,11 +343,6 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
             if (that == nullptr || that->currentHost == nullptr) return;
-            that->hostDetailsButton_Click(nullptr, nullptr);
-        }),
-        ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
-            auto that = weakThis.Resolve<HostSelectorPage>();
-            if (that == nullptr || that->currentHost == nullptr) return;
             that->wakeHostButton_Click(nullptr, nullptr);
         }),
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
@@ -629,42 +624,6 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 		dialog->PrimaryButtonText = "OK";
 		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 	}
-}
-
-void HostSelectorPage::hostDetailsButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
-	if (currentHost == nullptr) return;
-
-	auto panel = ref new Windows::UI::Xaml::Controls::StackPanel();
-	panel->Spacing = 8;
-
-	auto addLine = [panel](Platform::String ^ label, Platform::String ^ value) {
-		auto val = ref new Windows::UI::Xaml::Controls::TextBlock();
-		val->Text = label + " " + value;
-		panel->Children->Append(val);
-	};
-
-	addLine(Utils::StringFromStdString("Hostname:"), currentHost->LastHostname == nullptr ? Utils::StringFromStdString("(null)") : currentHost->LastHostname);
-	addLine(Utils::StringFromStdString("Instance ID:"), currentHost->InstanceId == nullptr ? Utils::StringFromStdString("(null)") : currentHost->InstanceId);
-	addLine(Utils::StringFromStdString("Computer Name:"), currentHost->ComputerName == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ComputerName);
-	addLine(Utils::StringFromStdString("Server Address:"), currentHost->ServerAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->ServerAddress);
-	addLine(Utils::StringFromStdString("MAC Address:"), currentHost->MacAddress == nullptr ? Utils::StringFromStdString("(null)") : currentHost->MacAddress);
-
-	auto scroll = ref new Windows::UI::Xaml::Controls::ScrollViewer();
-	scroll->Content = panel;
-	scroll->VerticalScrollBarVisibility = Windows::UI::Xaml::Controls::ScrollBarVisibility::Auto;
-	scroll->MaxHeight = 400;
-
-	auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
-	dialog->Title = Utils::StringFromStdString("Host Details");
-	dialog->Content = scroll;
-	dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-
-	try {
-		dialog->XamlRoot = this->XamlRoot;
-	} catch (...) {
-	}
-
-	concurrency::create_task(dialog->ShowAsync());
 }
 
 void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {

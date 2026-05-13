@@ -176,15 +176,14 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &HostSettingsPage::OnBackRequested);
 
 	// Ensure Display tab is visible by default
-	if (this->DisplayPanel != nullptr) {
+	if (this->DisplayPanel != nullptr)
 		this->DisplayPanel->Visibility = Windows::UI::Xaml::Visibility::Visible;
-	}
-	if (this->AudioPanel != nullptr) {
+	if (this->AudioPanel != nullptr)
 		this->AudioPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	}
-	if (this->StreamPanel != nullptr) {
+	if (this->StreamPanel != nullptr)
 		this->StreamPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-	}
+	if (this->DetailsPanel != nullptr)
+		this->DetailsPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 
 	// If TabsLayout buttons exist, set their direct TargetPanel references so TabsLayout can map them without name lookup
 	if (this->rightTabs != nullptr) {
@@ -210,6 +209,9 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 							}
 							else if (name == "StreamPanel") {
 								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->StreamPanel);
+							}
+							else if (name == "DetailsPanel") {
+								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->DetailsPanel);
 							}
 						}
 					}

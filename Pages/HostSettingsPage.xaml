@@ -190,6 +190,60 @@
                             </Border>
                         </StackPanel>
 
+                        <!-- Details -->
+
+                        <StackPanel x:Name="DetailsPanel" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="HOST DETAILS" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <StackPanel>
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Computer Name" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.ComputerName}" VerticalAlignment="Center" Opacity="0.7" />
+                                    </Grid>
+                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Hostname" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center" Opacity="0.7" />
+                                    </Grid>
+                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Server Address" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.ServerAddress}" VerticalAlignment="Center" Opacity="0.7" />
+                                    </Grid>
+                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="MAC Address" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" Opacity="0.7" />
+                                    </Grid>
+                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Instance ID" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" Opacity="0.7" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                         <!-- Controls -->
 
                         <StackPanel x:Name="ControlsPanel" Visibility="Collapsed">
@@ -276,6 +330,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -291,6 +346,8 @@
                                 XYFocusDown="{x:Bind ControlsTab}"
                                 XYFocusRight="{x:Bind AutoStartSelector}" />
                         <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
+                                XYFocusDown="{x:Bind DetailsTab}"/>
+                        <Button Grid.Row="4" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind DisplayTab}"/>
                     </Grid>
                 </local:TabsLayout.TabsContent>

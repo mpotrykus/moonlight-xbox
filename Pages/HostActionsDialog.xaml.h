@@ -15,7 +15,6 @@ namespace moonlight_xbox_dx
             bool showWake,
             bool showTestConnection,
             Windows::UI::Xaml::RoutedEventHandler^ onHostSettings,
-            Windows::UI::Xaml::RoutedEventHandler^ onHostDetails,
             Windows::UI::Xaml::RoutedEventHandler^ onWakeHost,
             Windows::UI::Xaml::RoutedEventHandler^ onTestConnection,
             Windows::UI::Xaml::RoutedEventHandler^ onRemoveHost,
@@ -23,7 +22,6 @@ namespace moonlight_xbox_dx
 
     private:
         Windows::UI::Xaml::RoutedEventHandler^ m_onHostSettings;
-        Windows::UI::Xaml::RoutedEventHandler^ m_onHostDetails;
         Windows::UI::Xaml::RoutedEventHandler^ m_onWakeHost;
         Windows::UI::Xaml::RoutedEventHandler^ m_onTestConnection;
         Windows::UI::Xaml::RoutedEventHandler^ m_onRemoveHost;

@@ -56,7 +56,6 @@ namespace moonlight_xbox_dx
 		void ShowHostActions(MoonlightHost^ host);
 		HostActionsDialog^ m_hostActionsDialog;
 		void wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void hostDetailsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }
