@@ -188,6 +188,7 @@ namespace moonlight_xbox_dx
 	    bool m_showStats = false;
 	    bool m_streamMenuVisible = false;
 	    void ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
+	    void MenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	};
 }
 

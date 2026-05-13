@@ -146,16 +146,22 @@ void StreamPage::OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::
 
 void StreamPage::SetStreamMenuVisible(bool visible) {
 	m_streamMenuVisible = visible;
-	if (!visible) {
-		this->ActionsFlyout->Hide();
-	}
-	this->StreamMenuGrid->Visibility = visible
-		? Windows::UI::Xaml::Visibility::Visible
-		: Windows::UI::Xaml::Visibility::Collapsed;
 	if (visible) {
+		this->MenuHideStoryboard->Stop();
+		this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Visible;
+		this->MenuShowStoryboard->Begin();
 		this->FirstMenuButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+	} else {
+		this->ActionsFlyout->Hide();
+		this->MenuShowStoryboard->Stop();
+		this->MenuHideStoryboard->Begin();
+		// Visibility collapsed after hide animation in MenuHideStoryboard_Completed
 	}
 	if (m_main) m_main->SetMenuVisible(visible);
+}
+
+void StreamPage::MenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e) {
+	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 }
 
 void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

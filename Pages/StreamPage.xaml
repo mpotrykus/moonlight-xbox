@@ -93,6 +93,68 @@
                 </EasingDoubleKeyFrame>
             </DoubleAnimationUsingKeyFrames>
         </Storyboard>
+
+        <Storyboard x:Name="MenuShowStoryboard">
+            <DoubleAnimation Storyboard.TargetName="FirstMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="FirstMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0"/>
+            <DoubleAnimation Storyboard.TargetName="KeyboardMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.04">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="KeyboardMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.04"/>
+            <DoubleAnimation Storyboard.TargetName="StatsMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.08">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="StatsMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.08"/>
+            <DoubleAnimation Storyboard.TargetName="LogsMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.12">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="LogsMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.12"/>
+            <DoubleAnimation Storyboard.TargetName="otherActionsButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.16">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="otherActionsButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.16"/>
+            <DoubleAnimation Storyboard.TargetName="DisconnectMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.2">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="DisconnectMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetName="CloseAppMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.24">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="CloseAppMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.24"/>
+        </Storyboard>
+
+        <Storyboard x:Name="MenuHideStoryboard" Completed="MenuHideStoryboard_Completed">
+            <DoubleAnimation Storyboard.TargetName="FirstMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="FirstMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0"/>
+            <DoubleAnimation Storyboard.TargetName="KeyboardMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.04">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="KeyboardMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.04"/>
+            <DoubleAnimation Storyboard.TargetName="StatsMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.08">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="StatsMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.08"/>
+            <DoubleAnimation Storyboard.TargetName="LogsMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.12">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="LogsMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.12"/>
+            <DoubleAnimation Storyboard.TargetName="otherActionsButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.16">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="otherActionsButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.16"/>
+            <DoubleAnimation Storyboard.TargetName="DisconnectMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.2">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="DisconnectMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.2"/>
+            <DoubleAnimation Storyboard.TargetName="CloseAppMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.24">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="CloseAppMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.24"/>
+        </Storyboard>
     </Page.Resources>
 
     <Grid>
@@ -116,35 +178,40 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="FirstMenuButton" Grid.Column="0" Style="{StaticResource StreamActionButtonStyle}" Click="toggleMouseButton_Click">
+                <Button x:Name="FirstMenuButton" Grid.Column="0" Style="{StaticResource StreamActionButtonStyle}" Click="toggleMouseButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xE962;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock x:Name="MouseModeText" Text="{x:Bind MouseMode, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Mouse On|Mouse Off'}" TextAlignment="Center" FontSize="12" />
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="1" Style="{StaticResource StreamActionButtonStyle}" Click="showKeyboardButton_Click">
+                <Button x:Name="KeyboardMenuButton" Grid.Column="1" Style="{StaticResource StreamActionButtonStyle}" Click="showKeyboardButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xE92E;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock Text="Keyboard" TextAlignment="Center" FontSize="12" />
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="2" Style="{StaticResource StreamActionButtonStyle}" Click="toggleStatsButton_Click">
+                <Button x:Name="StatsMenuButton" Grid.Column="2" Style="{StaticResource StreamActionButtonStyle}" Click="toggleStatsButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xEC48;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock x:Name="ShowStatsText" Text="{x:Bind ShowStats, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Stats On|Stats Off'}" TextAlignment="Center" FontSize="12" />
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="3" Style="{StaticResource StreamActionButtonStyle}" Click="toggleLogsButton_Click">
+                <Button x:Name="LogsMenuButton" Grid.Column="3" Style="{StaticResource StreamActionButtonStyle}" Click="toggleLogsButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xF0B5;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock x:Name="ShowLogsText" Text="{x:Bind ShowLogs, Mode=OneWay, Converter={StaticResource BoolToTextConverter}, ConverterParameter='Logs On|Logs Off'}" TextAlignment="Center" FontSize="12" />
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="4" x:Name="otherActionsButton" Style="{StaticResource StreamActionButtonStyle}" Click="flyoutButton_Click">
+                <Button Grid.Column="4" x:Name="otherActionsButton" Style="{StaticResource StreamActionButtonStyle}" Click="flyoutButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <FlyoutBase.AttachedFlyout>
                         <MenuFlyout x:Name="ActionsFlyout" Closed="ActionsFlyout_Closed" AllowFocusOnInteraction="false" Placement="TopEdgeAlignedRight">
                             <MenuFlyoutItem x:Name="guideButtonShort" Text="Guide Button (short)" Click="guideButtonShort_Click" AllowFocusOnInteraction="false" FocusVisualSecondaryThickness="0.5" >
@@ -180,14 +247,16 @@
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="6" Style="{StaticResource StreamActionButtonStyle}" Click="disonnectButton_Click">
+                <Button x:Name="DisconnectMenuButton" Grid.Column="6" Style="{StaticResource StreamActionButtonStyle}" Click="disonnectButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xE72D;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock Text="Disconnect" TextAlignment="Center" FontSize="12" />
                     </StackPanel>
                 </Button>
 
-                <Button Grid.Column="7" Style="{StaticResource StreamActionButtonStyle}" Click="disconnectAndCloseButton_Click">
+                <Button x:Name="CloseAppMenuButton" Grid.Column="7" Style="{StaticResource StreamActionButtonStyle}" Click="disconnectAndCloseButton_Click" Opacity="0">
+                    <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                     <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <FontIcon Glyph="&#xE71A;" FontSize="24" HorizontalAlignment="Center" />
                         <TextBlock Text="Close App" TextAlignment="Center" FontSize="12" />
@@ -207,10 +276,10 @@
                 VerticalAlignment="Bottom"
                 Margin="0,56"
                 Padding="20,10,20,10"
-                CornerRadius="6"
+                CornerRadius="18"
                 Visibility="Collapsed">
             <Border.Background>
-                <SolidColorBrush Color="DimGray" />
+                <AcrylicBrush TintOpacity="0.75" TintLuminosityOpacity="0.5" TintColor="{ThemeResource SystemAccentColor}"/>
             </Border.Background>
             <TextBlock x:Name="ToastText" Foreground="White" FontSize="12" />
         </Border>

@@ -91,16 +91,21 @@
 
     <Grid Background="Transparent" Padding="0">
         <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center" Spacing="0">
-            <Border Background="{ThemeResource SystemAccentColor}" CornerRadius="12" Margin="0,0,0,24">
-                <TextBlock x:Name="HostNameHeader"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           FontFamily="Bahnschrift"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           Foreground="White"
-                           Padding="32,12,32,10"
-                           TextWrapping="WrapWholeWords" />
+            <Border CornerRadius="12" Margin="0,0,0,24">
+
+              <Border.Background>
+                <AcrylicBrush TintOpacity="0.75" TintLuminosityOpacity="0.25" TintColor="{ThemeResource SystemAccentColor}"/>
+              </Border.Background>
+              
+              <TextBlock x:Name="HostNameHeader"
+                          HorizontalAlignment="Center"
+                          TextAlignment="Center"
+                          FontFamily="Bahnschrift"
+                          FontSize="20"
+                          FontWeight="SemiBold"
+                          Foreground="White"
+                          Padding="32,12,32,10"
+                          TextWrapping="WrapWholeWords" />
             </Border>
 
             <Button x:Name="HostDetailsButton" Style="{StaticResource DialogButtonStyle}" Content="Host Details" HorizontalAlignment="Stretch" />
