@@ -6,11 +6,15 @@
 namespace moonlight_xbox_dx {
 
 struct ParticleState {
-    float x, y;
-    float vx, vy;
+    float t;           // stream position 0..1 (x = t * canvasW)
+    float tSpeed;
+    float spreadY;     // perpendicular offset from wave (pixels)
     float opacity;
     float opacityDelta;
+    float opacityMin;
+    float opacityMax;
     float size;
+    bool isBokeh;
 };
 
 public ref class ParticleBackground sealed {
@@ -23,12 +27,14 @@ private:
     std::vector<ParticleState> m_particles;
     float m_canvasW = 0;
     float m_canvasH = 0;
+    float m_wavePhase = 0.0f;
     bool m_initialized = false;
     std::mt19937 m_rng;
 
     void Canvas_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
     void OnTick(Platform::Object^ sender, Platform::Object^ args);
     void InitParticles();
+    float WaveY(float t);
 };
 
 }
