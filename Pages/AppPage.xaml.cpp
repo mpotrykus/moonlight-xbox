@@ -533,6 +533,36 @@ void AppPage::StartBgPanAnimation() {
     } catch(...) {}
 }
 
+// ── AppPage::StartBannerSlideInAnimation ──────────────────────────────────────
+
+void AppPage::StartBannerSlideInAnimation() {
+    using namespace Windows::UI::Xaml::Media;
+    using namespace Windows::UI::Xaml::Media::Animation;
+
+    try {
+        if (ComputerNameBannerContainer == nullptr) return;
+
+        auto transform = ref new TranslateTransform();
+        ComputerNameBannerContainer->RenderTransform = transform;
+
+        auto ease = ref new CubicEase();
+        ease->EasingMode = EasingMode::EaseInOut;
+
+        auto anim = ref new DoubleAnimation();
+        anim->From = ref new Platform::Box<double>(-200.0);
+        anim->To   = ref new Platform::Box<double>(0.0);
+        TimeSpan ts; ts.Duration = 15000000LL;
+        anim->Duration = DurationHelper::FromTimeSpan(ts);
+        anim->EasingFunction = ease;
+
+        auto sb = ref new Storyboard();
+        sb->Children->Append(anim);
+        Storyboard::SetTarget(anim, transform);
+        Storyboard::SetTargetProperty(anim, ref new Platform::String(L"X"));
+        sb->Begin();
+    } catch(...) {}
+}
+
 // ── AppPage::OnLoaded ─────────────────────────────────────────────────────────
 
 void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
@@ -573,6 +603,7 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
     } catch(...) {}
 
     StartBgPanAnimation();
+    StartBannerSlideInAnimation();
 }
 
 // ── AppPage::OnUnloaded ───────────────────────────────────────────────────────

@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSelectorPage.xaml.h"
+#include "Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "AppPage.xaml.h"
 #include <State\MoonlightClient.h>
 #include "HostSettingsPage.xaml.h"
@@ -460,6 +461,13 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	continueFetch.store(true);
 	m_isNavigatedAway.store(false);
 
+	try {
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
+	} catch (...) {}
+
 	using namespace Windows::System::Threading;
 	using namespace Windows::Foundation;
 
@@ -513,6 +521,10 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 }
 
 void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs ^ e) {
+	try {
+		if (BackgroundHost != nullptr) BackgroundHost->StopAnimations();
+	} catch (...) {}
+
 	m_isNavigatedAway.store(true);
 	continueFetch.store(false);
 	try {

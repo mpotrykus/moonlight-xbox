@@ -89,6 +89,7 @@ namespace moonlight_xbox_dx
         Windows::Foundation::EventRegistrationToken m_scrollviewer_viewchanged_token;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_bgPanStoryboard = nullptr;
         void StartBgPanAnimation();
+        void StartBannerSlideInAnimation();
 
         bool m_isGridLayout = false;
 

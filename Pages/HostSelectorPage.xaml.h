@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Pages\HostSelectorPage.g.h"
+#include "Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "Pages\HostActionsDialog.xaml.h"
 #include "Pages\AddHostDialog.xaml.h"
 #include "State\ApplicationState.h"

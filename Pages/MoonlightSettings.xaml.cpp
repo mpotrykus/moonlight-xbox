@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
+#include "Backgrounds\BackgroundRegistry.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
 #include "Keyboard/KeyboardCommon.h"
@@ -71,6 +72,23 @@ MoonlightSettings::MoonlightSettings()
 		}
 		k++;
 	}
+	// Populate background selector
+	auto bgSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	Platform::String^ savedBg = ref new Platform::String(L"none");
+	if (bgSettings->HasKey("background")) {
+		savedBg = safe_cast<Platform::String^>(bgSettings->Lookup("background"));
+	}
+	for (int i = 0; i < kBackgroundCount; ++i) {
+		auto bgItem = ref new ComboBoxItem();
+		bgItem->Content = ref new Platform::String(kBackgrounds[i].displayName);
+		bgItem->DataContext = ref new Platform::String(kBackgrounds[i].key);
+		BackgroundSelector->Items->Append(bgItem);
+		if (savedBg->Equals(ref new Platform::String(kBackgrounds[i].key))) {
+			BackgroundSelector->SelectedIndex = i;
+		}
+	}
+	if (BackgroundSelector->SelectedIndex < 0) BackgroundSelector->SelectedIndex = 0;
+
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnUnloaded);
 }
@@ -152,4 +170,13 @@ void MoonlightSettings::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
+}
+
+void MoonlightSettings::BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	auto item = dynamic_cast<ComboBoxItem^>(BackgroundSelector->SelectedItem);
+	if (item == nullptr) return;
+	auto key = item->DataContext->ToString();
+	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	localSettings->Insert("background", key);
 }

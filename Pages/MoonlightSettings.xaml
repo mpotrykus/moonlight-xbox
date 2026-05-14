@@ -99,6 +99,19 @@
                                         <TextBlock Grid.Column="0" Text="Theme" VerticalAlignment="Center" />
                                         <ToggleSwitch Grid.Column="1" x:Name="ThemeToggle" Toggled="ThemeToggle_Toggled" OffContent="Light" OnContent="Dark" VerticalAlignment="Center" />
                                     </Grid>
+                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Column="1" x:Name="BackgroundSelector"
+                                                  SelectionChanged="BackgroundSelector_SelectionChanged"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Left"
+                                                  MinWidth="180" />
+                                    </Grid>
                                 </StackPanel>
                             </Border>
 
