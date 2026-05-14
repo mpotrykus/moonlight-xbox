@@ -122,5 +122,7 @@ namespace moonlight_xbox_dx
 
         void FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img);
         void UpdateAverageColorOverlay(MoonlightApp^ app);
+        void FadeInPollingIndicator();
+        void FadeOutPollingIndicator();
     };
 }

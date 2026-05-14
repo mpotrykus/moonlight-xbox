@@ -3,6 +3,7 @@
 #include "AppPage.Helpers.h"
 #include "Controls\SlidingMenu.xaml.h"
 #include "Common\ModalDialog.xaml.h"
+#include "HostSelectorPage.xaml.h"
 #include "HostSettingsPage.xaml.h"
 #include "StreamPage.xaml.h"
 #include "Utils.hpp"
@@ -206,6 +207,45 @@ AppPage::AppPage() {
     m_filteredApps = ref new Platform::Collections::Vector<MoonlightApp^>();
 }
 
+// ── AppPage::PollingIndicator fade helpers ────────────────────────────────────
+
+void AppPage::FadeInPollingIndicator() {
+    try {
+        using namespace Windows::UI::Xaml::Media::Animation;
+        PollingIndicator->Opacity = 0.0;
+        PollingIndicator->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        auto anim = ref new DoubleAnimation();
+        anim->To = ref new Platform::Box<double>(0.3);
+        TimeSpan ts; ts.Duration = 1500000LL; // 400 ms
+        anim->Duration = DurationHelper::FromTimeSpan(ts);
+        auto sb = ref new Storyboard();
+        sb->Children->Append(anim);
+        Storyboard::SetTarget(anim, PollingIndicator);
+        Storyboard::SetTargetProperty(anim, ref new Platform::String(L"(UIElement.Opacity)"));
+        sb->Begin();
+    } catch(...) {}
+}
+
+void AppPage::FadeOutPollingIndicator() {
+    try {
+        using namespace Windows::UI::Xaml::Media::Animation;
+        auto anim = ref new DoubleAnimation();
+        anim->To = ref new Platform::Box<double>(0.0);
+        TimeSpan ts; ts.Duration = 1500000LL; // 400 ms
+        anim->Duration = DurationHelper::FromTimeSpan(ts);
+        auto sb = ref new Storyboard();
+        sb->Children->Append(anim);
+        Storyboard::SetTarget(anim, PollingIndicator);
+        Storyboard::SetTargetProperty(anim, ref new Platform::String(L"(UIElement.Opacity)"));
+        Platform::WeakReference weakThis(this);
+        sb->Completed += ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that) try { that->PollingIndicator->Visibility = Windows::UI::Xaml::Visibility::Collapsed; } catch(...) {}
+        });
+        sb->Begin();
+    } catch(...) {}
+}
+
 // ── AppPage::OnNavigatedTo ────────────────────────────────────────────────────
 
 void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
@@ -214,6 +254,79 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
     host = mhost;
     host->UpdateHostInfo(true);
     host->UpdateApps();
+
+    // Start background polling for app running state and connectivity
+    continueAppFetch.store(true);
+    wasConnected.store(host->Connected);
+    FadeInPollingIndicator();
+
+    {
+        Platform::WeakReference weakThis(this);
+        create_task([weakThis]() {
+            while (true) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that == nullptr) break;
+                if (!that->continueAppFetch.load()) break;
+                CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+                    CoreDispatcherPriority::Normal,
+                    ref new DispatchedHandler([weakThis]() {
+                        auto ui = weakThis.Resolve<AppPage>();
+                        if (ui) try { ui->FadeInPollingIndicator(); } catch(...) {}
+                    }));
+                try {
+                    if (that->host != nullptr) {
+                        that->host->UpdateAppRunningStates();
+                        if (that->wasConnected.load() && !that->host->Connected) {
+                            that->wasConnected.store(false);
+                            CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+                                CoreDispatcherPriority::Normal,
+                                ref new DispatchedHandler([weakThis]() {
+                                    auto inner = weakThis.Resolve<AppPage>();
+                                    if (inner == nullptr) return;
+                                    try {
+                                        auto dialog = ref new ContentDialog();
+                                        dialog->Title = Utils::StringFromStdString("Disconnected");
+                                        dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
+                                        dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
+                                        create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([weakThis](ContentDialogResult result) {
+                                            auto that2 = weakThis.Resolve<AppPage>();
+                                            if (that2 == nullptr) return;
+                                            that2->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([that2]() {
+                                                try {
+                                                    that2->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+                                                } catch (const std::exception &e) {
+                                                    Utils::Logf("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Exception: %s\n", e.what());
+                                                } catch (...) {
+                                                    Utils::Log("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Unknown Exception.\n");
+                                                }
+                                            }));
+                                        });
+                                    } catch (const std::exception &e) {
+                                        Utils::Logf("[AppPage] Failed to show disconnect dialog. Exception: %s\n", e.what());
+                                    } catch (...) {
+                                        Utils::Log("[AppPage] Failed to show disconnect dialog. Unknown Exception.\n");
+                                    }
+                                }));
+                        } else if (!that->wasConnected.load() && that->host->Connected) {
+                            that->wasConnected.store(true);
+                        }
+                    }
+                } catch (const std::exception &e) {
+                    Utils::Logf("[AppPage] Failed to poll app and host running state. Exception: %s\n", e.what());
+                } catch (...) {
+                    Utils::Log("[AppPage] Failed to poll app and host running state. Unknown Exception.\n");
+                }
+                Sleep(3000);
+                CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+                    CoreDispatcherPriority::Normal,
+                    ref new DispatchedHandler([weakThis]() {
+                        auto ui = weakThis.Resolve<AppPage>();
+                        if (ui) try { ui->FadeOutPollingIndicator(); } catch(...) {}
+                    }));
+                Sleep(7000);
+            }
+        });
+    }
 
     try {
         auto obs = dynamic_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(host->Apps);
@@ -467,6 +580,7 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
 void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
     try { Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested -= m_back_cookie; } catch(...) {}
     continueAppFetch.store(false);
+    try { PollingIndicator->Visibility = Windows::UI::Xaml::Visibility::Collapsed; } catch(...) {}
 
     try {
         auto window = CoreApplication::MainView->CoreWindow;
