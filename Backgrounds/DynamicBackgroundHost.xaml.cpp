@@ -4,6 +4,9 @@
 #include "Backgrounds\NoneBackground.xaml.h"
 #include "Backgrounds\GradientBackground.xaml.h"
 #include "Backgrounds\ParticleBackground.xaml.h"
+#include "Backgrounds\BubblesBackground.xaml.h"
+#include "Backgrounds\SpheresBackground.xaml.h"
+#include "Backgrounds\StreaksBackground.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -16,12 +19,18 @@ static void TryStartAnimations(UIElement^ el)
 {
     if (auto g = dynamic_cast<GradientBackground^>(el))  { g->StartAnimations(); return; }
     if (auto p = dynamic_cast<ParticleBackground^>(el))  { p->StartAnimations(); return; }
+    if (auto b = dynamic_cast<BubblesBackground^>(el))   { b->StartAnimations(); return; }
+    if (auto s = dynamic_cast<SpheresBackground^>(el))   { s->StartAnimations(); return; }
+    if (auto k = dynamic_cast<StreaksBackground^>(el))   { k->StartAnimations(); return; }
 }
 
 static void TryStopAnimations(UIElement^ el)
 {
     if (auto g = dynamic_cast<GradientBackground^>(el))  { g->StopAnimations(); return; }
     if (auto p = dynamic_cast<ParticleBackground^>(el))  { p->StopAnimations(); return; }
+    if (auto b = dynamic_cast<BubblesBackground^>(el))   { b->StopAnimations(); return; }
+    if (auto s = dynamic_cast<SpheresBackground^>(el))   { s->StopAnimations(); return; }
+    if (auto k = dynamic_cast<StreaksBackground^>(el))   { k->StopAnimations(); return; }
 }
 
 static UIElement^ CreateBackground(String^ key)
@@ -29,6 +38,9 @@ static UIElement^ CreateBackground(String^ key)
     if (key != nullptr) {
         if (key->Equals(ref new String(L"gradient")))   return ref new GradientBackground();
         if (key->Equals(ref new String(L"particles")))  return ref new ParticleBackground();
+        if (key->Equals(ref new String(L"bubbles")))    return ref new BubblesBackground();
+        if (key->Equals(ref new String(L"spheres")))   return ref new SpheresBackground();
+        if (key->Equals(ref new String(L"streaks")))   return ref new StreaksBackground();
     }
     return ref new NoneBackground();
 }

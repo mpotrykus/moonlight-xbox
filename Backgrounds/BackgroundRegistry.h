@@ -11,8 +11,11 @@ static const BackgroundEntry kBackgrounds[] = {
     { L"none",      L"None"               },
     { L"gradient",  L"Animated Gradient"  },
     { L"particles", L"Floating Particles" },
+    { L"bubbles",   L"Dancing Bubbles"    },
+    { L"spheres",   L"Cell-Shaded Spheres"},
+    { L"streaks",   L"Neon Streaks"       },
 };
 
-static const int kBackgroundCount = 3;
+static const int kBackgroundCount = 6;
 
 }
