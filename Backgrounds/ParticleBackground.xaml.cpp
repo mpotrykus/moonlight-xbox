@@ -12,12 +12,6 @@ using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Shapes;
 using namespace Windows::UI::Xaml::Media;
 
-// ── Color palette ─────────────────────────────────────────────────────────
-// These two colors drive the background gradient, bokeh, and all particles.
-static const Color kColorA = { 255,  80, 150, 255 };  // bright accent  (blue-violet)
-static const Color kColorB = { 255,  10,  25, 160 };  // deep accent    (deep navy)
-// ──────────────────────────────────────────────────────────────────────────
-
 static Color LerpRGB(Color a, Color b, float t, uint8_t alpha = 255) {
     auto ch = [](uint8_t x, uint8_t y, float f) -> uint8_t {
         return static_cast<uint8_t>(x + (static_cast<int>(y) - static_cast<int>(x)) * f);
@@ -36,6 +30,7 @@ static const int kBokehCount    = 50;
 static const int kSmallCount    = 130;
 static const int kParticleCount = kBokehCount + kSmallCount;
 static const float kPi          = 3.14159265f;
+static const float kSpreadRange = 0.18f;  // ± fraction of canvasH for small-particle spread
 
 float ParticleBackground::WaveY(float t) {
     float centerY = m_canvasH * (0.80f - t * 0.60f);
@@ -47,12 +42,17 @@ ParticleBackground::ParticleBackground()
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
 
+    // Derive palette from the system accent color
+    auto uiSettings = ref new Windows::UI::ViewManagement::UISettings();
+	m_colorA = uiSettings->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
+	m_colorB = ScaleRGB(m_colorA, 0.35f); // dark version: same hue, ~35% brightness
+
     // Background gradient derived from the palette: dark-A (bottom-left) → dark-B (top-right)
     auto bg  = ref new LinearGradientBrush();
     bg->StartPoint = Point(0.0f, 1.0f);
     bg->EndPoint   = Point(1.0f, 0.0f);
-    auto gs0 = ref new GradientStop(); gs0->Color = ScaleRGB(kColorA, 0.08f); gs0->Offset = 0.0;
-    auto gs1 = ref new GradientStop(); gs1->Color = ScaleRGB(kColorB, 0.05f); gs1->Offset = 1.0;
+    auto gs0 = ref new GradientStop(); gs0->Color = ScaleRGB(m_colorA, 0.12f); gs0->Offset = 0.0;
+    auto gs1 = ref new GradientStop(); gs1->Color = ScaleRGB(m_colorB, 0.05f); gs1->Offset = 1.0;
     bg->GradientStops->Append(gs0);
     bg->GradientStops->Append(gs1);
     ParticleCanvas->Background = bg;
@@ -83,17 +83,17 @@ void ParticleBackground::InitParticles()
 
     // Bokeh brushes: two lerp stops between A and B at very low opacity
     SolidColorBrush^ bokehBrushes[2];
-    bokehBrushes[0] = ref new SolidColorBrush(LerpRGB(kColorA, kColorB, 0.3f, 45));
-    bokehBrushes[1] = ref new SolidColorBrush(LerpRGB(kColorA, kColorB, 0.7f, 40));
+    bokehBrushes[0] = ref new SolidColorBrush(LerpRGB(m_colorA, m_colorB, 0.3f, 45));
+    bokehBrushes[1] = ref new SolidColorBrush(LerpRGB(m_colorA, m_colorB, 0.7f, 40));
 
     // Small-particle brushes: 5 bands from bright-A (core) → deep-B (edge)
     Color white = { 255, 255, 255, 255 };
-    Color coreCol = LerpRGB(kColorA, white, 0.45f, 220);
+    Color coreCol = LerpRGB(m_colorA, white, 0.45f, 220);
     SolidColorBrush^ smallBrushes[5];
     for (int b = 0; b < 5; ++b) {
         float   t = b / 4.0f;
         uint8_t a = static_cast<uint8_t>(220 - t * 65);
-        smallBrushes[b] = ref new SolidColorBrush(LerpRGB(coreCol, kColorB, t, a));
+        smallBrushes[b] = ref new SolidColorBrush(LerpRGB(coreCol, m_colorB, t, a));
     }
 
     std::uniform_real_distribution<float> distT(0.0f, 1.0f);
@@ -130,7 +130,6 @@ void ParticleBackground::InitParticles()
     }
 
     // --- Small bright particles (in front) ---
-    const float kSpreadRange = 5.0f;
     std::uniform_real_distribution<float> sSpread(-kSpreadRange, kSpreadRange);
     std::uniform_real_distribution<float> sSpeed(0.0010f, 0.0030f);
     std::uniform_real_distribution<float> sSize(1.5f, 5.5f);
@@ -174,7 +173,6 @@ void ParticleBackground::OnTick(Object^ sender, Object^ args)
     m_wavePhase += 0.008f;
     if (m_wavePhase > kPi * 2.0f) m_wavePhase -= kPi * 2.0f;
 
-    const float kSpreadRange = 0.09f;
     std::uniform_real_distribution<float> bSpread(-0.35f, 0.35f);
     std::uniform_real_distribution<float> sSpread(-kSpreadRange, kSpreadRange);
 

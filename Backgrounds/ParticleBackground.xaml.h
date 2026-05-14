@@ -30,6 +30,8 @@ private:
     float m_wavePhase = 0.0f;
     bool m_initialized = false;
     std::mt19937 m_rng;
+    Windows::UI::Color m_colorA;  // system accent color
+    Windows::UI::Color m_colorB;  // darkened accent, derived in constructor
 
     void Canvas_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
     void OnTick(Platform::Object^ sender, Platform::Object^ args);
