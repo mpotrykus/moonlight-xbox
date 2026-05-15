@@ -6,9 +6,15 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ThemeSecondaryBackgroundColor}">
-    
-    <Grid Padding="8,16,8,8">
+    Background="Black">
+
+    <Grid>
+        <local:DynamicBackgroundHost x:Name="BackgroundHost"
+                                     HorizontalAlignment="Stretch"
+                                     VerticalAlignment="Stretch"
+                                     IsHitTestVisible="False" />
+
+        <Grid Padding="8,16,8,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -191,5 +197,6 @@
                 </local:TabsLayout.LeftContent>
             </local:TabsLayout>
         </Border>
+        </Grid>
     </Grid>
 </Page>

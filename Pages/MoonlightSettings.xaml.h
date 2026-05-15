@@ -15,7 +15,10 @@ namespace moonlight_xbox_dx
 	[Windows::Foundation::Metadata::WebHostHidden]
 	public ref class MoonlightSettings sealed
 	{
-	private: 
+	protected:
+		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+		virtual void OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+	private:
 		ApplicationState^ state;
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
 	public:

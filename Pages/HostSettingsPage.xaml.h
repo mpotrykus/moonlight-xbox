@@ -27,6 +27,7 @@ namespace moonlight_xbox_dx
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
+		virtual void OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	public:
 		HostSettingsPage();
 		property MoonlightHost^ Host {

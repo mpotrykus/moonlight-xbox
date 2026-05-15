@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
+#include "Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "Backgrounds\BackgroundRegistry.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
@@ -93,6 +94,21 @@ MoonlightSettings::MoonlightSettings()
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnUnloaded);
 }
 
+void MoonlightSettings::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	try {
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
+	} catch (...) {}
+}
+
+void MoonlightSettings::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	try {
+		if (BackgroundHost != nullptr) BackgroundHost->StopAnimations();
+	} catch (...) {}
+}
+
 void MoonlightSettings::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	GetApplicationState()->UpdateFile();
@@ -179,4 +195,10 @@ void MoonlightSettings::BackgroundSelector_SelectionChanged(Platform::Object^ se
 	auto key = item->DataContext->ToString();
 	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
 	localSettings->Insert("background", key);
+	try {
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
+	} catch (...) {}
 }

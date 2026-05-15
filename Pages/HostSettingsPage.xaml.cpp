@@ -5,6 +5,7 @@
 
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
+#include "Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "Controls/TabsLayout.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
@@ -37,6 +38,13 @@ HostSettingsPage::HostSettingsPage()
 
 
 void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	try {
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
+	} catch (...) {}
+
 	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
 	if (mhost == nullptr)return;
 	GAMING_DEVICE_MODEL_INFORMATION info = {};
@@ -101,6 +109,12 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
+}
+
+void HostSettingsPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	try {
+		if (BackgroundHost != nullptr) BackgroundHost->StopAnimations();
+	} catch (...) {}
 }
 
 void HostSettingsPage::backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
