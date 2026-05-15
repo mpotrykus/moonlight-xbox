@@ -21,11 +21,11 @@ static const int   kGlowBase   = 0;
 static const int   kCoreBase   = kStreakCount;
 
 static const Color kStreakPalette[] = {
-    { 255, 255,  30,  30 },  // red
-    { 255,  40,  80, 255 },  // blue
-    { 255, 255,  40, 200 },  // pink/magenta
-    { 255, 130,  30, 255 },  // purple
-    { 255,  20, 200, 255 },  // cyan
+    { 255, 255,   0,   0 },  // pure red
+    { 255,   0,  60, 255 },  // vivid blue
+    { 255, 255,   0, 220 },  // vivid magenta
+    { 255, 140,   0, 255 },  // vivid violet
+    { 255,   0, 220, 255 },  // vivid cyan
 };
 static const int kStreakColors = 5;
 
@@ -103,8 +103,8 @@ void StreaksBackground::InitStreaks()
         s.lane       = distLane(m_rng);
         s.halfLen    = 120.0f + static_cast<float>(m_rng() % 380);
         s.speed      = distSpeed(m_rng);
-        s.glowH      = 5.0f  + static_cast<float>(m_rng() % 11);
-        s.coreH      = 1.0f  + static_cast<float>(m_rng() % 2);
+        s.glowH      = 10.0f + static_cast<float>(m_rng() % 22);
+        s.coreH      = 2.0f  + static_cast<float>(m_rng() % 3);
 
         float tMin = EntryT(s);
         float tMax = ExitT(s, W, H);
@@ -119,7 +119,7 @@ void StreaksBackground::InitStreaks()
         const auto& s = m_streaks[i];
         Color col    = kStreakPalette[s.colorIndex];
         float glowRectW = 2.0f * (s.halfLen + kGlowExtend) * kSqrt2;
-        float opacity = 0.10f + static_cast<float>(m_rng() % 16) / 100.0f;
+        float opacity = 0.55f + static_cast<float>(m_rng() % 45) / 100.0f;
 
         auto glow = MakeStreakRect(glowRectW, s.glowH, col, opacity);
         float cx = (s.t + s.lane) * 0.5f;
@@ -133,7 +133,7 @@ void StreaksBackground::InitStreaks()
         const auto& s = m_streaks[i];
         Color col   = kStreakPalette[s.colorIndex];
         float rectW = 2.0f * s.halfLen * kSqrt2;
-        float opacity = 0.65f + static_cast<float>(m_rng() % 30) / 100.0f;
+        float opacity = 0.90f + static_cast<float>(m_rng() % 10) / 100.0f;
 
         auto core = MakeStreakRect(rectW, s.coreH, col, opacity);
         float cx = (s.t + s.lane) * 0.5f;

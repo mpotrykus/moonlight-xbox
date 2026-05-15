@@ -18,8 +18,9 @@
             </Border.Background>
         </Border>
 
+        <Border Background="#000005" Opacity="0.65" />
 
-        <Grid Opacity="0.35">
+        <Grid Opacity="0.6">
             <Rectangle x:Name="VignetteOverlayHorizontal"
                        IsHitTestVisible="False"
                        HorizontalAlignment="Stretch"

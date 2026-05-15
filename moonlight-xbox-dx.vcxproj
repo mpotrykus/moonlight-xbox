@@ -367,8 +367,14 @@
       <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
+    <ClInclude Include="Pages\AddHostDialog.xaml.h">
+      <DependentUpon>Pages\AddHostDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Pages\HostActionsDialog.xaml.h">
       <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Pages\TestConnectionResultDialog.xaml.h">
+      <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
@@ -420,6 +426,31 @@
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
+    <ClInclude Include="Backgrounds\BackgroundRegistry.h" />
+    <ClInclude Include="Backgrounds\ParticleBackground.xaml.h">
+      <DependentUpon>Backgrounds\ParticleBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\SpheresBackground.xaml.h">
+      <DependentUpon>Backgrounds\SpheresBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\StreaksBackground.xaml.h">
+      <DependentUpon>Backgrounds\StreaksBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\SwipeRevealBackground.xaml.h">
+      <DependentUpon>Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\GlobeGridBackground.xaml.h">
+      <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\BlobsBackground.xaml.h">
+      <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\PaperCutBackground.xaml.h">
+      <DependentUpon>Backgrounds\PaperCutBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\DynamicBackgroundHost.xaml.h">
+      <DependentUpon>Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Utils\FloatBuffer.h" />
     <ClInclude Include="ViewModels\AppPageViewModel.h" />
   </ItemGroup>
@@ -537,8 +568,38 @@
     <ClCompile Include="Common\ModalDialog.xaml.cpp">
       <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Backgrounds\ParticleBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\ParticleBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\SpheresBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\SpheresBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\StreaksBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\StreaksBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\SwipeRevealBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\GlobeGridBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\BlobsBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\PaperCutBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\PaperCutBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\DynamicBackgroundHost.xaml.cpp">
+      <DependentUpon>Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\AddHostDialog.xaml.cpp">
+      <DependentUpon>Pages\AddHostDialog.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="Pages\HostActionsDialog.xaml.cpp">
       <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Pages\TestConnectionResultDialog.xaml.cpp">
+      <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
@@ -723,6 +784,14 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Backgrounds\ParticleBackground.xaml" />
+    <Page Include="Backgrounds\SpheresBackground.xaml" />
+    <Page Include="Backgrounds\StreaksBackground.xaml" />
+    <Page Include="Backgrounds\SwipeRevealBackground.xaml" />
+    <Page Include="Backgrounds\GlobeGridBackground.xaml" />
+    <Page Include="Backgrounds\BlobsBackground.xaml" />
+    <Page Include="Backgrounds\PaperCutBackground.xaml" />
+    <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="Controls\AspectRatioBox.xaml" />
     <Page Include="Controls\TabsLayout.xaml" />
     <Page Include="MoonlightWelcome.xaml">
@@ -737,7 +806,9 @@
     <Page Include="Pages\HelpDialog.xaml">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </Page>
+    <Page Include="Pages\AddHostDialog.xaml" />
     <Page Include="Pages\HostActionsDialog.xaml" />
+    <Page Include="Pages\TestConnectionResultDialog.xaml" />
     <Page Include="Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>
@@ -762,11 +833,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Pages\HelpDialog.xaml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Pages\AppActionsDialog.xaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
