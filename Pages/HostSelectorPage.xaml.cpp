@@ -242,6 +242,10 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 		if (grid == nullptr || grid->SelectedIndex < 0) return;
 		CenterSelectedHost(4, false);
 	} catch (...) {}
+
+	try {
+		if (BackgroundHost != nullptr) BackgroundHost->ResetBackground();
+	} catch (...) {}
 }
 
 void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -463,6 +467,7 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 
 	try {
 		if (BackgroundHost != nullptr) {
+			BackgroundHost->SetHosts(State->SavedHosts);
 			BackgroundHost->Refresh();
 			BackgroundHost->StartAnimations();
 		}

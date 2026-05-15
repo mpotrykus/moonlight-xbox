@@ -8,5 +8,12 @@
     <Canvas x:Name="SphereCanvas"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            SizeChanged="Canvas_SizeChanged" />
+            SizeChanged="Canvas_SizeChanged" >
+        <Canvas.Background>
+            <LinearGradientBrush StartPoint="0.5,0.0" EndPoint="0.5,1.1">
+                <GradientStop Color="#04a" Offset="0.0"/>
+                <GradientStop Color="#027" Offset="1.0"/>
+            </LinearGradientBrush>
+        </Canvas.Background>
+    </Canvas>
 </UserControl>

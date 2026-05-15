@@ -14,8 +14,15 @@ static const BackgroundEntry kBackgrounds[] = {
     { L"bubbles",   L"Dancing Bubbles"    },
     { L"spheres",   L"Cell-Shaded Spheres"},
     { L"streaks",   L"Neon Streaks"       },
+    { L"wavylines", L"Wavy Lines"         },
+    { L"appgrid",     L"App Gallery"        },
+    { L"cornerboom",  L"Corner Bloom"       },
+    { L"blobs",       L"Morphing Blobs"     },
+    { L"moonnight",   L"Moon & Stars"       },
+    { L"papercut",    L"Paper Cut"          },
+    { L"swipereveal", L"Swipe Reveal"       },
 };
 
-static const int kBackgroundCount = 6;
+static const int kBackgroundCount = 13;
 
 }

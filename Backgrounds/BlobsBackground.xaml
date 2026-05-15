@@ -1,25 +1,27 @@
 <UserControl
-    x:Class="moonlight_xbox_dx.StreaksBackground"
+    x:Class="moonlight_xbox_dx.BlobsBackground"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
     <Grid>
-        <Canvas x:Name="StreakCanvas"
+        <Canvas x:Name="BlobCanvas"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 SizeChanged="Canvas_SizeChanged" />
         <Border HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Opacity="1.0">
+                Opacity="1">
             <Border.Background>
-                <AcrylicBrush  TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0" />
+                <AcrylicBrush TintColor="#000"
+                              TintOpacity="0.0"
+                              TintLuminosityOpacity="0.65" />
             </Border.Background>
         </Border>
 
 
-        <Grid Opacity="0.35">
+        <Grid Opacity="0.75">
             <Rectangle x:Name="VignetteOverlayHorizontal"
                        IsHitTestVisible="False"
                        HorizontalAlignment="Stretch"

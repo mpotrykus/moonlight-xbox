@@ -42,20 +42,8 @@ ParticleBackground::ParticleBackground()
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
 
-    // Derive palette from the system accent color
-    auto uiSettings = ref new Windows::UI::ViewManagement::UISettings();
-	m_colorA = uiSettings->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
-	m_colorB = ScaleRGB(m_colorA, 0.35f); // dark version: same hue, ~35% brightness
-
-    // Background gradient derived from the palette: dark-A (bottom-left) → dark-B (top-right)
-    auto bg  = ref new LinearGradientBrush();
-    bg->StartPoint = Point(0.0f, 1.0f);
-    bg->EndPoint   = Point(1.0f, 0.0f);
-    auto gs0 = ref new GradientStop(); gs0->Color = ScaleRGB(m_colorA, 0.12f); gs0->Offset = 0.0;
-    auto gs1 = ref new GradientStop(); gs1->Color = ScaleRGB(m_colorB, 0.05f); gs1->Offset = 1.0;
-    bg->GradientStops->Append(gs0);
-    bg->GradientStops->Append(gs1);
-    ParticleCanvas->Background = bg;
+    m_colorA = {255, 210, 165, 75};            // warm champagne gold
+    m_colorB = ScaleRGB(m_colorA, 0.35f);     // dark version: same hue, ~35% brightness
 
     TimeSpan interval;
     interval.Duration = 33 * 10000LL;

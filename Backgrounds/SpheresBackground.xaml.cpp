@@ -13,30 +13,12 @@ using namespace Windows::UI::Xaml::Shapes;
 using namespace Windows::UI::Xaml::Media;
 
 static const int kSphereCount    = 14;
-static const int kSphereColors   = 5;
 static const int kElemsPerSphere = 1;
-
-static const Color kSpherePalette[kSphereColors] = {
-    { 255, 255,  70, 100 },
-    { 255, 255, 140,  30 },
-    { 255,  60, 220, 140 },
-    { 255, 180,  60, 255 },
-    { 255,  60, 180, 255 },
-};
 
 SpheresBackground::SpheresBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
-
-    auto bg  = ref new LinearGradientBrush();
-    bg->StartPoint = Point(0.0f, 0.0f);
-    bg->EndPoint   = Point(1.0f, 1.0f);
-    auto gs0 = ref new GradientStop(); gs0->Color = { 255, 5, 8, 30 };  gs0->Offset = 0.0;
-    auto gs1 = ref new GradientStop(); gs1->Color = { 255, 12, 5, 45 }; gs1->Offset = 1.0;
-    bg->GradientStops->Append(gs0);
-    bg->GradientStops->Append(gs1);
-    SphereCanvas->Background = bg;
 
     TimeSpan interval;
     interval.Duration = 16 * 10000LL;
@@ -87,7 +69,6 @@ void SpheresBackground::InitSpheres()
         s.x          = distX(m_rng);
         s.y          = distY(m_rng);
         s.opacity    = distOpacity(m_rng);
-        s.colorIndex = m_rng() % kSphereColors;
 
         float angle = distAngle(m_rng);
         float speed = distSpeed(m_rng);
@@ -96,13 +77,11 @@ void SpheresBackground::InitSpheres()
 
         m_spheres.push_back(s);
 
-        Color col   = kSpherePalette[s.colorIndex];
         float bodyD = s.radius * 2.0f;
 
         auto sphere = ref new Ellipse();
         sphere->Width           = bodyD;
         sphere->Height          = bodyD;
-        // sphere->Fill            = ref new SolidColorBrush(ColorHelper::FromArgb(255, col.R, col.G, col.B));
         sphere->Stroke          = ref new SolidColorBrush(ColorHelper::FromArgb(255, 255, 255, 255));
         sphere->StrokeThickness = 1.0;
         sphere->Opacity         = s.opacity;

@@ -1,0 +1,162 @@
+#include "pch.h"
+#include "Backgrounds\BlobsBackground.xaml.h"
+#include <cmath>
+
+using namespace moonlight_xbox_dx;
+using namespace Platform;
+using namespace Windows::Foundation;
+using namespace Windows::UI;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml::Shapes;
+using namespace Windows::UI::Xaml::Media;
+
+static const float kPi = 3.14159265358979f;
+
+// Red / magenta / purple palette — ARGB
+static const Color kBlobColors[kBlobCount] = {
+    { 170, 210,  10,  55 },  // crimson-red
+    { 170, 185,   0, 185 },  // pure magenta
+    { 170, 100,   0, 200 },  // deep indigo-purple
+};
+
+BlobsBackground::BlobsBackground()
+{
+    m_rng = std::mt19937(std::random_device{}());
+    InitializeComponent();
+
+    BlobCanvas->Background = ref new SolidColorBrush(ColorHelper::FromArgb(255, 8, 0, 16));
+
+    TimeSpan interval;
+    interval.Duration = 16 * 10000LL;
+    m_timer = ref new DispatcherTimer();
+    m_timer->Interval = interval;
+    m_timer->Tick += ref new EventHandler<Object^>(this, &BlobsBackground::OnTick);
+}
+
+void BlobsBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
+{
+    m_canvasW = static_cast<float>(e->NewSize.Width);
+    m_canvasH = static_cast<float>(e->NewSize.Height);
+    if (m_canvasW > 0 && m_canvasH > 0 && !m_ready) {
+        m_ready = true;
+        InitBlobs();
+    }
+}
+
+void BlobsBackground::InitBlobs()
+{
+    m_blobs.clear();
+    BlobCanvas->Children->Clear();
+
+    std::uniform_real_distribution<float> distR(170.0f, 240.0f);       // base radius (px) — overall blob size
+    std::uniform_real_distribution<float> distWobR(70.0f, 160.0f);     // radius wobble amplitude (px) — how much each anchor stretches in/out
+    std::uniform_real_distribution<float> distWobA(0.2f, 0.5f);        // angle wobble amplitude (radians) — how much each anchor drifts sideways
+    std::uniform_real_distribution<float> distPhase(0.0f, kPi * 2.0f); // random start phase — staggers anchors so blobs don't pulse in sync
+    std::uniform_real_distribution<float> distFreqR(0.03f, 0.08f);     // radius wobble frequency — how fast each anchor pulses in/out (higher = faster)
+    std::uniform_real_distribution<float> distFreqA(0.02f, 0.06f);     // angle wobble frequency — how fast each anchor drifts angularly (higher = faster)
+    std::uniform_real_distribution<float> distTime(0.0f, 200.0f);      // random time offset — prevents all blobs from starting at the same animation frame
+    std::uniform_real_distribution<float> distSpeed(0.2f, 0.5f);       // master time step per tick — scales all wobble; raise both ends to speed up everything
+
+    // Fixed anchor positions as fractions of canvas size {x, y} — move blobs by changing these
+    float positions[kBlobCount][2] = {
+        { m_canvasW * 0.0f,  m_canvasH * 0.7f },  // left blob
+        { m_canvasW * 0.5f,  m_canvasH * 0.2f },  // center blob
+        { m_canvasW * 0.9f,  m_canvasH * 0.7f },  // right blob
+    };
+
+    for (int i = 0; i < kBlobCount; i++) {
+        BlobData b{};
+        b.cx        = positions[i][0];
+        b.cy        = positions[i][1];
+        b.baseRadius = distR(m_rng);
+        b.time      = distTime(m_rng);
+        b.timeSpeed  = distSpeed(m_rng);
+
+        for (int j = 0; j < kBlobPts; j++) {
+            b.rAmp[j]   = distWobR(m_rng);
+            b.rPhase[j] = distPhase(m_rng);
+            b.rFreq[j]  = distFreqR(m_rng);
+            b.aAmp[j]   = distWobA(m_rng);
+            b.aFreq[j]  = distFreqA(m_rng);
+            b.aPhase[j] = distPhase(m_rng);
+        }
+
+        auto s0 = ref new BezierSegment();
+        auto s1 = ref new BezierSegment();
+        auto s2 = ref new BezierSegment();
+        auto s3 = ref new BezierSegment();
+        auto s4 = ref new BezierSegment();
+        auto s5 = ref new BezierSegment();
+        b.s0 = s0; b.s1 = s1; b.s2 = s2;
+        b.s3 = s3; b.s4 = s4; b.s5 = s5;
+
+        auto figure = ref new PathFigure();
+        figure->IsClosed = true;
+        figure->IsFilled = true;
+        figure->Segments->Append(s0);
+        figure->Segments->Append(s1);
+        figure->Segments->Append(s2);
+        figure->Segments->Append(s3);
+        figure->Segments->Append(s4);
+        figure->Segments->Append(s5);
+        b.figure = figure;
+
+        auto geom = ref new PathGeometry();
+        geom->Figures->Append(figure);
+
+        auto path = ref new Path();
+        path->Data = geom;
+        path->Fill = ref new SolidColorBrush(kBlobColors[i]);
+
+        BlobCanvas->Children->Append(path);
+        m_blobs.push_back(b);
+        UpdateBlob(m_blobs.back());
+    }
+}
+
+void BlobsBackground::UpdateBlob(BlobData& b)
+{
+    b.time += b.timeSpeed;
+
+    // Compute 6 anchor points: each point wobbles in radius and angular position
+    float px[kBlobPts], py[kBlobPts];
+    for (int i = 0; i < kBlobPts; i++) {
+        float baseAngle = i * (2.0f * kPi / kBlobPts);
+        float angle = baseAngle + b.aAmp[i] * sinf(b.time * b.aFreq[i] + b.aPhase[i]);
+        float r     = b.baseRadius + b.rAmp[i] * sinf(b.time * b.rFreq[i] + b.rPhase[i]);
+        px[i] = b.cx + r * cosf(angle);
+        py[i] = b.cy + r * sinf(angle);
+    }
+
+    // Catmull-Rom -> Cubic Bezier control point helpers (tension 1/6)
+    auto cp1x = [&](int i) { return px[i] + (px[(i+1)%kBlobPts] - px[(i-1+kBlobPts)%kBlobPts]) / 6.0f; };
+    auto cp1y = [&](int i) { return py[i] + (py[(i+1)%kBlobPts] - py[(i-1+kBlobPts)%kBlobPts]) / 6.0f; };
+    auto cp2x = [&](int i) { return px[(i+1)%kBlobPts] - (px[(i+2)%kBlobPts] - px[i]) / 6.0f; };
+    auto cp2y = [&](int i) { return py[(i+1)%kBlobPts] - (py[(i+2)%kBlobPts] - py[i]) / 6.0f; };
+
+    b.figure->StartPoint = Point(px[0], py[0]);
+
+    b.s0->Point1 = Point(cp1x(0), cp1y(0)); b.s0->Point2 = Point(cp2x(0), cp2y(0)); b.s0->Point3 = Point(px[1], py[1]);
+    b.s1->Point1 = Point(cp1x(1), cp1y(1)); b.s1->Point2 = Point(cp2x(1), cp2y(1)); b.s1->Point3 = Point(px[2], py[2]);
+    b.s2->Point1 = Point(cp1x(2), cp1y(2)); b.s2->Point2 = Point(cp2x(2), cp2y(2)); b.s2->Point3 = Point(px[3], py[3]);
+    b.s3->Point1 = Point(cp1x(3), cp1y(3)); b.s3->Point2 = Point(cp2x(3), cp2y(3)); b.s3->Point3 = Point(px[4], py[4]);
+    b.s4->Point1 = Point(cp1x(4), cp1y(4)); b.s4->Point2 = Point(cp2x(4), cp2y(4)); b.s4->Point3 = Point(px[5], py[5]);
+    b.s5->Point1 = Point(cp1x(5), cp1y(5)); b.s5->Point2 = Point(cp2x(5), cp2y(5)); b.s5->Point3 = Point(px[0], py[0]);
+}
+
+void BlobsBackground::OnTick(Object^ sender, Object^ args)
+{
+    if (!m_ready) return;
+    for (auto& b : m_blobs) UpdateBlob(b);
+}
+
+void BlobsBackground::StartAnimations()
+{
+    if (m_timer != nullptr) m_timer->Start();
+}
+
+void BlobsBackground::StopAnimations()
+{
+    if (m_timer != nullptr) m_timer->Stop();
+}

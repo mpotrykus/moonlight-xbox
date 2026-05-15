@@ -1,5 +1,6 @@
 #pragma once
 #include "Backgrounds\DynamicBackgroundHost.g.h"
+#include "State\MoonlightHost.h"
 
 namespace moonlight_xbox_dx {
 
@@ -9,8 +10,11 @@ public:
     void Refresh();
     void StartAnimations();
     void StopAnimations();
+    void ResetBackground();
+    void SetHosts(Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts);
 private:
     Platform::String^ m_currentKey;
+    Windows::Foundation::Collections::IVector<MoonlightHost^>^ m_hosts;
     void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 };
 
