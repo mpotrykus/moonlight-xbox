@@ -10,6 +10,7 @@
 #include "Pages\HostActionsDialog.xaml.h"
 #include "Pages\AddHostDialog.xaml.h"
 #include "State\ApplicationState.h"
+#include "Controls\LunarPhaseControl.xaml.h"
 
 #include <atomic>
 
@@ -57,5 +58,7 @@ namespace moonlight_xbox_dx
 		HostActionsDialog^ m_hostActionsDialog;
 		void wakeHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void UpdateAllMoonPhases(bool animated);
+		LunarPhaseControl^ FindLunarControl(Windows::UI::Xaml::DependencyObject^ root);
 	};
 }

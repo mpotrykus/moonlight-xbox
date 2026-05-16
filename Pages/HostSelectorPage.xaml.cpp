@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "HostSelectorPage.xaml.h"
 #include "Backgrounds\DynamicBackgroundHost.xaml.h"
+#include "Controls\LunarPhaseControl.xaml.h"
 #include "AppPage.xaml.h"
 #include <State\MoonlightClient.h>
 #include "HostSettingsPage.xaml.h"
@@ -223,6 +224,7 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 
 		EnsureCenteringPadding(3);
 		CenterSelectedHost(4, true);
+		UpdateAllMoonPhases(false);
 	} catch (...) {}
 }
 
@@ -241,6 +243,7 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 		auto grid = dynamic_cast<ListViewBase^>(sender);
 		if (grid == nullptr || grid->SelectedIndex < 0) return;
 		CenterSelectedHost(4, false);
+		UpdateAllMoonPhases(true);
 	} catch (...) {}
 
 	try {
@@ -616,6 +619,46 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 		dialog->PrimaryButtonText = "OK";
 		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
 	}
+}
+
+LunarPhaseControl^ HostSelectorPage::FindLunarControl(Windows::UI::Xaml::DependencyObject^ root)
+{
+	if (root == nullptr) return nullptr;
+	if (auto ctrl = dynamic_cast<LunarPhaseControl^>(root)) return ctrl;
+	try {
+		int count = VisualTreeHelper::GetChildrenCount(root);
+		for (int i = 0; i < count; ++i) {
+			auto found = FindLunarControl(VisualTreeHelper::GetChild(root, i));
+			if (found != nullptr) return found;
+		}
+	} catch (...) {}
+	return nullptr;
+}
+
+void HostSelectorPage::UpdateAllMoonPhases(bool animated)
+{
+	try {
+		auto grid = HostsGrid;
+		if (grid == nullptr) return;
+		int selectedIdx = grid->SelectedIndex;
+		if (selectedIdx < 0) selectedIdx = 0;
+		unsigned int count = grid->Items->Size;
+		for (unsigned int i = 0; i < count; ++i) {
+			try {
+				auto container = dynamic_cast<Windows::UI::Xaml::DependencyObject^>(
+					grid->ContainerFromIndex(i));
+				if (container == nullptr) continue;
+				auto ctrl = FindLunarControl(container);
+				if (ctrl == nullptr) continue;
+				int dist = (int)i - selectedIdx;
+				double fillAmount = dist < 0 ? -dist * 0.4 : dist * 0.4;
+				if (fillAmount > 1.0) fillAmount = 1.0;
+				int side = dist < 0 ? 1 : dist > 0 ? -1 : 0;
+				ctrl->UpdatePhase(fillAmount, side, animated);
+				ctrl->SetSelected(i == (unsigned int)selectedIdx, animated);
+			} catch (...) {}
+		}
+	} catch (...) {}
 }
 
 void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {

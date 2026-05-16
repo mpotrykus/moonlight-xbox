@@ -341,6 +341,9 @@
     <ClInclude Include="Controls\AspectRatioBox.xaml.h">
       <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Controls\LunarPhaseControl.xaml.h">
+      <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Controls\TabsLayout.xaml.h">
       <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
     </ClInclude>
@@ -462,6 +465,9 @@
     <ClCompile Include="Common\XamlHelper.cpp" />
     <ClCompile Include="Controls\AspectRatioBox.xaml.cpp">
       <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Controls\LunarPhaseControl.xaml.cpp">
+      <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Controls\TabsLayout.xaml.cpp">
       <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
@@ -793,6 +799,7 @@
     <Page Include="Backgrounds\PaperCutBackground.xaml" />
     <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="Controls\AspectRatioBox.xaml" />
+    <Page Include="Controls\LunarPhaseControl.xaml" />
     <Page Include="Controls\TabsLayout.xaml" />
     <Page Include="MoonlightWelcome.xaml">
       <SubType>Designer</SubType>
