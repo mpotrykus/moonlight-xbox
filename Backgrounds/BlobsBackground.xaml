@@ -16,12 +16,12 @@
             <Border.Background>
                 <AcrylicBrush TintColor="#000"
                               TintOpacity="0.0"
-                              TintLuminosityOpacity="0.65" />
+                              TintLuminosityOpacity="0.4" />
             </Border.Background>
         </Border>
 
 
-        <Grid Opacity="0.75">
+        <Grid Opacity="0.5">
             <Rectangle x:Name="VignetteOverlayHorizontal"
                        IsHitTestVisible="False"
                        HorizontalAlignment="Stretch"

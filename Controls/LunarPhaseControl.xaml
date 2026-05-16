@@ -15,28 +15,72 @@
                 <VisualState x:Name="NotOrbiting"/>
                 <VisualState x:Name="Orbiting">
                     <Storyboard>
-                        <DoubleAnimation
-                            Storyboard.TargetName="OrbitRotation"
-                            Storyboard.TargetProperty="Angle"
-                            From="0" To="360"
+                        <!-- 3D orbit: ellipse a=83 (horizontal), b=28 (vertical tilt).
+                             x(t)=83·sin(t), y(t)=28·cos(t). Starts at bottom-front, goes right → top-back → left → bottom.
+                             16 linear keyframes at 22.5° intervals give smooth elliptical motion. -->
+                        <DoubleAnimationUsingKeyFrames
+                            Storyboard.TargetName="OrbitDot"
+                            Storyboard.TargetProperty="(Canvas.Left)"
                             Duration="0:0:2"
-                            RepeatBehavior="Forever"/>
+                            RepeatBehavior="Forever">
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.000" Value="-5"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.125" Value="26.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.250" Value="53.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.375" Value="71.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.500" Value="78"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.625" Value="71.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.750" Value="53.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.875" Value="26.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.000" Value="-5"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.125" Value="-36.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.250" Value="-63.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.375" Value="-81.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.500" Value="-88"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.625" Value="-81.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.750" Value="-63.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.875" Value="-36.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:2.000" Value="-5"/>
+                        </DoubleAnimationUsingKeyFrames>
+                        <DoubleAnimationUsingKeyFrames
+                            Storyboard.TargetName="OrbitDot"
+                            Storyboard.TargetProperty="(Canvas.Top)"
+                            Duration="0:0:2"
+                            RepeatBehavior="Forever">
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.000" Value="23"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.125" Value="20.9"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.250" Value="14.8"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.375" Value="5.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.500" Value="-5"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.625" Value="-15.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.750" Value="-24.8"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:0.875" Value="-30.9"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.000" Value="-33"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.125" Value="-30.9"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.250" Value="-24.8"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.375" Value="-15.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.500" Value="-5"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.625" Value="5.7"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.750" Value="14.8"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:1.875" Value="20.9"/>
+                            <LinearDoubleKeyFrame KeyTime="0:0:2.000" Value="23"/>
+                        </DoubleAnimationUsingKeyFrames>
 
-                        <!-- Hide dot while it's behind the moon (66° arc on each side).
-                             Moon r=76, orbit r=83 → arcsin(76/83)≈66° → 0.37s into 2s cycle. -->
+                        <!-- Hide when dot is behind the moon disk.
+                             Occlusion begins/ends where orbit ellipse intersects moon circle:
+                             solve (83·sin t)²+(28·cos t)²=76² → t≈115.3° and 244.7° → 0.64s and 1.36s.
+                             The dot is visible on the far side until it actually crosses behind the moon edge. -->
                         <DoubleAnimationUsingKeyFrames
                             Storyboard.TargetName="OrbitDot"
                             Storyboard.TargetProperty="Opacity"
                             Duration="0:0:2"
                             RepeatBehavior="Forever">
                             <LinearDoubleKeyFrame   KeyTime="0:0:0.00" Value="1"/>
-                            <LinearDoubleKeyFrame   KeyTime="0:0:0.35" Value="1"/>
-                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.37" Value="0"/>
-                            <DiscreteDoubleKeyFrame KeyTime="0:0:1.63" Value="1"/>
+                            <DiscreteDoubleKeyFrame KeyTime="0:0:0.64" Value="0"/>
+                            <DiscreteDoubleKeyFrame KeyTime="0:0:1.36" Value="1"/>
                             <LinearDoubleKeyFrame   KeyTime="0:0:2.00" Value="1"/>
                         </DoubleAnimationUsingKeyFrames>
 
-                        <!-- Scale pulse: larger at front (top), smaller at back (bottom). -->
+                        <!-- Scale: larger at front-bottom (1.3), smaller at back-top (0.7). -->
                         <DoubleAnimationUsingKeyFrames
                             Storyboard.TargetName="OrbitDotScale"
                             Storyboard.TargetProperty="ScaleX"
@@ -110,17 +154,14 @@
                Visibility="Collapsed"
                HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-        <!-- Orbit pivot at ring center -->
+        <!-- Orbit pivot at ring center; dot position driven entirely by keyframe animations -->
         <Canvas x:Name="OrbitCanvas"
                 Width="0" Height="0"
                 HorizontalAlignment="Left" VerticalAlignment="Top"
                 Margin="80,80,0,0"
                 Visibility="Collapsed">
-            <Canvas.RenderTransform>
-                <RotateTransform x:Name="OrbitRotation" CenterX="0" CenterY="0"/>
-            </Canvas.RenderTransform>
             <Ellipse x:Name="OrbitDot" Width="10" Height="10" Fill="White"
-                     Canvas.Left="-5" Canvas.Top="-88"
+                     Canvas.Left="-5" Canvas.Top="23"
                      RenderTransformOrigin="0.5,0.5">
                 <Ellipse.RenderTransform>
                     <ScaleTransform x:Name="OrbitDotScale"/>

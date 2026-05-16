@@ -17,8 +17,10 @@ using namespace Windows::UI::Xaml::Media;
 static const float kSqrt2      = 1.41421356f;
 static const float kGlowExtend = 5.0f;   // extra pixels each end of the glow beyond the core
 static const int   kStreakCount = 24;
+static const int   kStarCount  = 80;
 static const int   kGlowBase   = 0;
 static const int   kCoreBase   = kStreakCount;
+static const int   kStarBase   = kStreakCount * 2;
 
 static const Color kStreakPalette[] = {
     { 255, 255,   0,   0 },  // pure red
@@ -91,9 +93,12 @@ void StreaksBackground::InitStreaks()
 {
     m_streaks.clear();
     m_streaks.reserve(kStreakCount);
+    m_stars.clear();
+    m_stars.reserve(kStarCount);
     StreakCanvas->Children->Clear();
 
     float W = m_canvasW, H = m_canvasH;
+
     std::uniform_real_distribution<float> distLane(-H, W);
     std::uniform_real_distribution<float> distSpeed(3.0f, 9.5f);
 
@@ -142,11 +147,44 @@ void StreaksBackground::InitStreaks()
         Canvas::SetTop(core,  cy - s.coreH   * 0.5f);
         StreakCanvas->Children->Append(core);
     }
+
+    // Stars — appended last so they render on top of all streaks
+    static const float kStarRadii[] = { 5.0f, 5.0f, 6.0f, 7.0f, 8.0f, 10.0f };
+    std::uniform_real_distribution<float> distX(0.0f, W);
+    std::uniform_real_distribution<float> distY(0.0f, H);
+    std::uniform_real_distribution<float> distPhase(0.0f, 6.2832f);
+    for (int i = 0; i < kStarCount; ++i) {
+        StarState st;
+        st.x           = distX(m_rng);
+        st.y           = distY(m_rng);
+        st.radius      = kStarRadii[m_rng() % 6];
+        st.phase       = distPhase(m_rng);
+        st.phaseSpeed  = 0.015f + static_cast<float>(m_rng() % 50) / 1000.0f;
+        st.baseOpacity = 1.0f;
+        m_stars.push_back(st);
+
+        auto el = ref new Ellipse();
+        el->Width  = st.radius * 2.0f;
+        el->Height = st.radius * 2.0f;
+        el->Fill   = ref new SolidColorBrush(ColorHelper::FromArgb(255, 255, 255, 255));
+        el->Opacity = 0.85f + 0.15f * sinf(st.phase);
+        Canvas::SetLeft(el, st.x - st.radius);
+        Canvas::SetTop(el,  st.y - st.radius);
+        StreakCanvas->Children->Append(el);
+    }
 }
 
 void StreaksBackground::OnTick(Object^ sender, Object^ args)
 {
     if (!m_initialized) return;
+
+    // Twinkle stars
+    for (int i = 0; i < kStarCount; ++i) {
+        auto& st = m_stars[i];
+        st.phase += st.phaseSpeed;
+        auto el = safe_cast<Ellipse^>(StreakCanvas->Children->GetAt(kStarBase + i));
+        el->Opacity = 0.85f + 0.15f * sinf(st.phase);
+    }
 
     float W = m_canvasW, H = m_canvasH;
     int count = static_cast<int>(m_streaks.size());

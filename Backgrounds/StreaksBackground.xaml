@@ -12,7 +12,7 @@
                 SizeChanged="Canvas_SizeChanged" />
         <Border HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                Opacity="1.0">
+                Opacity="1">
             <Border.Background>
                 <AcrylicBrush  TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0" />
             </Border.Background>

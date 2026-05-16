@@ -29,7 +29,7 @@
     <x:Double x:Key="UnselectedBlurGlowOpacity">0.0</x:Double>
   
     <x:Double x:Key="SelectedDesaturatorOpacity">0.0</x:Double>
-    <x:Double x:Key="UnselectedDesaturatorOpacity">0.8</x:Double>
+    <x:Double x:Key="UnselectedDesaturatorOpacity">0.6</x:Double>
 
     <!-- ItemsPanel templates for list (horizontal) and grid (vertical) layouts -->
     <ItemsPanelTemplate x:Key="HorizontalItemsPanelTemplate">

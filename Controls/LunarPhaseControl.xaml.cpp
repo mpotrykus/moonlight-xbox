@@ -10,7 +10,8 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Media::Animation;
 using namespace Windows::Foundation;
 
-static constexpr long long kAnimationMs = 500;
+static constexpr long long kAnimationMs = 150;
+static constexpr double kShadowTravelPx = 100.0;
 
 Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_showOrbitProperty =
     DependencyProperty::Register(
@@ -229,9 +230,9 @@ void LunarPhaseControl::UpdatePhase(double fillAmount, int side, bool animated)
     if (side == 0) {
         targetX = 80.0;
     } else if (side > 0) {
-        targetX = 80.0 - fillAmount * 150.0;
+        targetX = 80.0 - fillAmount * kShadowTravelPx;
     } else {
-        targetX = 80.0 + fillAmount * 150.0;
+        targetX = 80.0 + fillAmount * kShadowTravelPx;
     }
 
     // Capture current displayed value BEFORE Stop(), which reverts the

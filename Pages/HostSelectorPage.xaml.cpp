@@ -64,8 +64,8 @@ Windows::UI::Xaml::Controls::ScrollViewer^ HostSelectorPage::FindScrollViewer(Wi
 // Layout widths once LunarPhaseControl reaches its final state:
 //   selected:     LunarPhaseControl.Width(160) + LunarPhase margins(24+24) + ItemRoot margins(8+8)
 //   non-selected: LunarPhaseControl.Width(96)  + LunarPhase margins(24+24) + ItemRoot margins(8+8)
-static const double kSelectedHostContainerWidth    = 224.0;
-static const double kNonSelectedHostContainerWidth = 160.0;
+static const double kSelectedHostContainerWidth =    230; // 224.0;
+static const double kNonSelectedHostContainerWidth = 166; // 160.0;
 
 void HostSelectorPage::EnsureCenteringPadding(int attempts)
 {
