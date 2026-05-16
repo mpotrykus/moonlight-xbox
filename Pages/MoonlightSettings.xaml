@@ -39,7 +39,10 @@
             <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,16">Open Welcome Wizard</Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,35" CornerRadius="8">
+        <Border Grid.Row="1" Margin="50,35" CornerRadius="8">
+            <Border.Background>
+                    <AcrylicBrush TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0.45"/>
+                </Border.Background>
             <local:TabsLayout x:Name="tabsLayout" Margin="24">
 
                 <local:TabsLayout.TabsContent>

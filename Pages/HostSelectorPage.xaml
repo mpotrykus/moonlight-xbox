@@ -90,9 +90,9 @@
 
         <Grid Background="Transparent">
             <Grid.RowDefinitions>
-                <RowDefinition Height="75" />
+                <RowDefinition Height="100" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="75" />
+                <RowDefinition Height="100" />
             </Grid.RowDefinitions>
 
             <local:DynamicBackgroundHost x:Name="BackgroundHost"
@@ -166,10 +166,10 @@
                         HorizontalAlignment="Center"
                         Margin="0,24,0,0"
                         Padding="24,12"
-                        CornerRadius="10"
+                        CornerRadius="12"
                         Background="#BB000000">
                     <TextBlock FontFamily="Bahnschrift"
-                               FontSize="12"
+                               FontSize="10"
                                TextAlignment="Center"
                                Text="{Binding ElementName=HostsGrid, Path=SelectedItem.ComputerName}" />
                 </Border>

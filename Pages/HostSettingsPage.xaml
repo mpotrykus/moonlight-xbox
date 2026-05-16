@@ -44,8 +44,11 @@
             </Button>
         </Grid>
 
-        <Border Grid.Row="1" Background="{ThemeResource ThemeBackgroundColor}" Margin="75,50" CornerRadius="8">
-            <local:TabsLayout x:Name="rightTabs" Margin="24">
+        <Border Grid.Row="1" Margin="50,35" CornerRadius="8">
+            <Border.Background>
+                <AcrylicBrush TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0.45"/>
+            </Border.Background>
+                <local:TabsLayout x:Name="rightTabs" Margin="24">
                 <local:TabsLayout.LeftContent>
                     <Grid>
 
