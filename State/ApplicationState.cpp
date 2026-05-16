@@ -122,17 +122,22 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 }
 
 void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
-	if (host == nullptr)return;
+	if (host == nullptr) return;
 	unsigned int index;
 	bool found = SavedHosts->IndexOf(host, &index);
+	if (!found) return;
 	SavedHosts->RemoveAt(index);
-	if (!host->Connected) {
-		host->Connect();
-	}
-	if (host->Connected) {
-		host->Unpair();
-	}
 	UpdateFile();
+	Concurrency::create_task([host]() {
+		try {
+			if (!host->Connected) {
+				host->Connect();
+			}
+			if (host->Connected) {
+				host->Unpair();
+			}
+		} catch (...) {}
+	});
 }
 
 void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName)

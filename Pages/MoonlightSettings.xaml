@@ -41,7 +41,7 @@
 
         <Border Grid.Row="1" Margin="50,35" CornerRadius="8">
             <Border.Background>
-                    <AcrylicBrush TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0.45"/>
+                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0" TintLuminosityOpacity="0.1"/>
                 </Border.Background>
             <local:TabsLayout x:Name="tabsLayout" Margin="24">
 

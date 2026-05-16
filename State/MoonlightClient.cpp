@@ -407,6 +407,10 @@ void connection_trigger_rumble(unsigned short controllerNumber, unsigned short l
 }
 
 int MoonlightClient::Connect(const char *hostname) {
+	if (this->hostname != NULL) {
+		free(this->hostname);
+		this->hostname = NULL;
+	}
 	this->hostname = (char *)malloc(2048 * sizeof(char));
 	strcpy_s(this->hostname, 2048, hostname);
 	if (strchr(this->hostname, ':') != 0) {

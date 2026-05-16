@@ -11,8 +11,9 @@
     BorderThickness="0">
 
     <ContentDialog.Background>
-        <AcrylicBrush TintColor="#000"
+        <AcrylicBrush TintColor="#FFF"
                       TintOpacity="0.01"
+                      TintLuminosityOpacity="0.05"
                       FallbackColor="Transparent" />
     </ContentDialog.Background>
 

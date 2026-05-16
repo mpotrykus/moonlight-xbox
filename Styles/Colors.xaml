@@ -39,7 +39,7 @@
             <SolidColorBrush x:Key="ButtonForegroundColor" Color="#FFFFFF"/>
 
             <!-- Settings page -->
-            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#AA000000"/>
+            <SolidColorBrush x:Key="SettingsGroupBackgroundColor" Color="#33000000"/>
             <SolidColorBrush x:Key="SettingsSeparatorColor" Color="Transparent"/>
 
         </ResourceDictionary>

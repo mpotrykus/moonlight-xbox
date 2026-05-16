@@ -61,6 +61,12 @@ Windows::UI::Xaml::Controls::ScrollViewer^ HostSelectorPage::FindScrollViewer(Wi
 	return nullptr;
 }
 
+// Layout widths once LunarPhaseControl reaches its final state:
+//   selected:     LunarPhaseControl.Width(160) + LunarPhase margins(24+24) + ItemRoot margins(8+8)
+//   non-selected: LunarPhaseControl.Width(96)  + LunarPhase margins(24+24) + ItemRoot margins(8+8)
+static const double kSelectedHostContainerWidth    = 224.0;
+static const double kNonSelectedHostContainerWidth = 160.0;
+
 void HostSelectorPage::EnsureCenteringPadding(int attempts)
 {
 	try {
@@ -95,8 +101,10 @@ void HostSelectorPage::EnsureCenteringPadding(int attempts)
 		}
 
 		double viewport = m_hostsScrollViewer->ViewportWidth;
-		double width = container->ActualWidth;
-		if (!std::isfinite(viewport) || !std::isfinite(width) || viewport <= 0.0 || width <= 0.0) {
+		// Use the known final selected-container width rather than ActualWidth, which is
+		// stale during the LunarPhaseControl width animation triggered by selection change.
+		double width = kSelectedHostContainerWidth;
+		if (!std::isfinite(viewport) || viewport <= 0.0) {
 			queueRetry();
 			return;
 		}
@@ -160,46 +168,20 @@ void HostSelectorPage::CenterSelectedHost(int attempts, bool immediate)
 			return;
 		}
 
-		double containerWidth = container->ActualWidth;
-		if (!std::isfinite(containerWidth) || containerWidth <= 0.0) {
-			queueRetry();
-			return;
-		}
-
-		double viewport = m_hostsScrollViewer->ViewportWidth;
-		if (!std::isfinite(viewport) || viewport <= 0.0) {
-			queueRetry();
-			return;
-		}
-
-		auto content = dynamic_cast<UIElement^>(m_hostsScrollViewer->Content);
-		if (content == nullptr) {
-			queueRetry();
-			return;
-		}
-
-		Point origin; origin.X = 0.0f; origin.Y = 0.0f;
-		Point inContent;
-		try {
-			inContent = container->TransformToVisual(content)->TransformPoint(origin);
-		} catch (...) {
-			queueRetry();
-			return;
-		}
-
-		double itemCenter = inContent.X + (containerWidth * 0.5);
+		// Derive scroll target analytically from steady-state layout.
+		// padding = (viewport - kSelectedHostContainerWidth) / 2
+		// target  = padding + index * kNonSelectedHostContainerWidth
+		//           + kSelectedHostContainerWidth / 2 - viewport / 2
+		//         = index * kNonSelectedHostContainerWidth
+		// (padding and selected-width terms cancel exactly, so no viewport read needed.)
 		double scrollable = m_hostsScrollViewer->ScrollableWidth;
 		double current = m_hostsScrollViewer->HorizontalOffset;
-		if (!std::isfinite(itemCenter) || !std::isfinite(scrollable) || !std::isfinite(current)) {
+		if (!std::isfinite(scrollable) || !std::isfinite(current)) {
 			queueRetry();
 			return;
 		}
-		double target = itemCenter - (viewport * 0.5);
+		double target = grid->SelectedIndex * kNonSelectedHostContainerWidth;
 		target = std::max(0.0, std::min(target, std::max(0.0, scrollable)));
-		if (!std::isfinite(target)) {
-			queueRetry();
-			return;
-		}
 
 		if (std::fabs(target - current) < 0.5) return;
 
@@ -224,7 +206,7 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 
 		EnsureCenteringPadding(3);
 		CenterSelectedHost(4, true);
-		UpdateAllMoonPhases(false);
+		UpdateAllMoonPhases(false, 4);
 	} catch (...) {}
 }
 
@@ -336,7 +318,13 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
             if (that == nullptr || that->currentHost == nullptr) return;
+            int removedIdx = that->HostsGrid->SelectedIndex;
             that->State->RemoveHost(that->currentHost);
+            that->currentHost = nullptr;
+            int newSize = (int)that->State->SavedHosts->Size;
+            if (newSize > 0) {
+                that->HostsGrid->SelectedIndex = removedIdx < newSize ? removedIdx : newSize - 1;
+            }
         }),
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
@@ -416,6 +404,20 @@ void HostSelectorPage::OnStateLoaded() {
 	if (GetApplicationState()->FirstTime) {
 		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
 		return;
+	}
+
+	// Items are now populated. Dispatch at Low priority so the layout pass
+	// that creates item containers completes before we try to update phases.
+	{
+		auto weakThis = WeakReference(this);
+		try {
+			this->Dispatcher->RunAsync(
+				Windows::UI::Core::CoreDispatcherPriority::Low,
+				ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+					auto that = weakThis.Resolve<HostSelectorPage>();
+					if (that != nullptr) that->UpdateAllMoonPhases(true, 4);
+				}));
+		} catch (...) {}
 	}
 
 	Concurrency::create_task([this]() {
@@ -635,7 +637,7 @@ LunarPhaseControl^ HostSelectorPage::FindLunarControl(Windows::UI::Xaml::Depende
 	return nullptr;
 }
 
-void HostSelectorPage::UpdateAllMoonPhases(bool animated)
+void HostSelectorPage::UpdateAllMoonPhases(bool animated, int attempts)
 {
 	try {
 		auto grid = HostsGrid;
@@ -643,19 +645,33 @@ void HostSelectorPage::UpdateAllMoonPhases(bool animated)
 		int selectedIdx = grid->SelectedIndex;
 		if (selectedIdx < 0) selectedIdx = 0;
 		unsigned int count = grid->Items->Size;
+		bool anyMissing = false;
 		for (unsigned int i = 0; i < count; ++i) {
 			try {
 				auto container = dynamic_cast<Windows::UI::Xaml::DependencyObject^>(
 					grid->ContainerFromIndex(i));
-				if (container == nullptr) continue;
+				if (container == nullptr) { anyMissing = true; continue; }
 				auto ctrl = FindLunarControl(container);
-				if (ctrl == nullptr) continue;
+				if (ctrl == nullptr) { anyMissing = true; continue; }
 				int dist = (int)i - selectedIdx;
 				double fillAmount = dist < 0 ? -dist * 0.4 : dist * 0.4;
 				if (fillAmount > 1.0) fillAmount = 1.0;
 				int side = dist < 0 ? 1 : dist > 0 ? -1 : 0;
 				ctrl->UpdatePhase(fillAmount, side, animated);
 				ctrl->SetSelected(i == (unsigned int)selectedIdx, animated);
+			} catch (...) {}
+		}
+		if (anyMissing && attempts > 0) {
+			Platform::WeakReference weakThis(this);
+			bool capturedAnimated = animated;
+			int next = attempts - 1;
+			try {
+				this->Dispatcher->RunAsync(
+					Windows::UI::Core::CoreDispatcherPriority::Normal,
+					ref new Windows::UI::Core::DispatchedHandler([weakThis, capturedAnimated, next]() {
+						auto that = weakThis.Resolve<HostSelectorPage>();
+						if (that != nullptr) that->UpdateAllMoonPhases(capturedAnimated, next);
+					}));
 			} catch (...) {}
 		}
 	} catch (...) {}

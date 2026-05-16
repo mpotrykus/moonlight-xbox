@@ -10,7 +10,7 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Media::Animation;
 using namespace Windows::Foundation;
 
-static constexpr long long kAnimationMs = 5000;
+static constexpr long long kAnimationMs = 500;
 
 Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_showOrbitProperty =
     DependencyProperty::Register(
@@ -40,6 +40,7 @@ LunarPhaseControl::LunarPhaseControl()
 {
     InitializeComponent();
     m_phaseStoryboard = nullptr;
+    m_selectionStoryboard = nullptr;
 
     // Build PathGeometry for the crescent shape entirely in code so no x:Name
     // is needed on geometry objects inside Path.Data.
@@ -185,6 +186,39 @@ void LunarPhaseControl::SetCrescentPath(double sx)
 void LunarPhaseControl::SetSelected(bool selected, bool animated)
 {
     VisualStateManager::GoToState(this, selected ? "Selected" : "Normal", animated);
+
+    double targetWidth = selected ? 160.0 : 96.0; // 160 * 0.6 = 96
+
+    double fromWidth = this->Width;
+
+    if (m_selectionStoryboard != nullptr) {
+        try { m_selectionStoryboard->Stop(); } catch (...) {}
+        m_selectionStoryboard = nullptr;
+    }
+
+    if (!animated) {
+        this->Width = targetWidth;
+        return;
+    }
+
+    this->Width = fromWidth;
+
+    auto anim = ref new DoubleAnimation();
+    anim->From = fromWidth;
+    anim->To = targetWidth;
+
+    TimeSpan ts;
+    ts.Duration = 125LL * 10000LL; // match visual state duration (0.125s)
+    anim->Duration = Windows::UI::Xaml::Duration(ts);
+    anim->EnableDependentAnimation = true;
+
+    auto sb = ref new Storyboard();
+    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTargetProperty(anim, "Width");
+    sb->Children->Append(anim);
+
+    m_selectionStoryboard = sb;
+    sb->Begin();
 }
 
 void LunarPhaseControl::UpdatePhase(double fillAmount, int side, bool animated)

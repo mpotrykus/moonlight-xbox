@@ -71,5 +71,6 @@ namespace moonlight_xbox_dx {
         Windows::UI::Xaml::Media::ArcSegment^ m_outerArc;
         Windows::UI::Xaml::Media::ArcSegment^ m_innerArc;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_phaseStoryboard;
+        Windows::UI::Xaml::Media::Animation::Storyboard^ m_selectionStoryboard;
     };
 }

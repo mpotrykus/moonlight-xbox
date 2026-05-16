@@ -10,7 +10,7 @@
     
     <!--Background-->
     <x:Double x:Key="BackgroundImageZoom">1.5</x:Double>
-    <x:Double x:Key="BackgroundOverlayOpacity">0.1</x:Double>
+    <x:Double x:Key="BackgroundOverlayOpacity">0.2</x:Double>
     <Thickness x:Key="PageBackgroundOverscan">-150</Thickness>
   
     <!--Apps-->

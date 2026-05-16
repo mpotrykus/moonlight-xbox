@@ -45,7 +45,7 @@ void SpheresBackground::InitSpheres()
     SphereCanvas->Children->Clear();
 
     std::uniform_real_distribution<float> distAngle(0.0f, 6.28318f);
-    std::uniform_real_distribution<float> distOpacity(0.01f, 0.15f);
+    std::uniform_real_distribution<float> distOpacity(0.05f, 0.25f);
 
     for (int i = 0; i < kSphereCount; ++i) {
         SphereState s;
