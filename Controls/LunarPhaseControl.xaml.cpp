@@ -10,9 +10,7 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Media::Animation;
 using namespace Windows::Foundation;
 
-static constexpr long long kAnimationMs = 500;
-static constexpr float kSelectedScale = 1.0;
-static constexpr float kUnselectedScale = 0.7;
+static constexpr long long kAnimationMs = 5000;
 
 Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_showOrbitProperty =
     DependencyProperty::Register(
@@ -42,7 +40,6 @@ LunarPhaseControl::LunarPhaseControl()
 {
     InitializeComponent();
     m_phaseStoryboard = nullptr;
-    m_scaleStoryboard = nullptr;
 
     // Build PathGeometry for the crescent shape entirely in code so no x:Name
     // is needed on geometry objects inside Path.Data.
@@ -187,46 +184,7 @@ void LunarPhaseControl::SetCrescentPath(double sx)
 
 void LunarPhaseControl::SetSelected(bool selected, bool animated)
 {
-    double targetScale = selected ? kSelectedScale : kUnselectedScale;
-
-    if (m_scaleStoryboard != nullptr) {
-        try { m_scaleStoryboard->Stop(); } catch (...) {}
-        m_scaleStoryboard = nullptr;
-    }
-
-    if (!animated) {
-        ScaleXform->ScaleX = targetScale;
-        ScaleXform->ScaleY = targetScale;
-        return;
-    }
-
-    TimeSpan ts;
-    ts.Duration = kAnimationMs * 10000LL;
-
-    auto makeAnim = [&](double from) {
-        auto anim = ref new DoubleAnimation();
-        anim->From = from;
-        anim->To = targetScale;
-        anim->Duration = Windows::UI::Xaml::Duration(ts);
-        auto ease = ref new CubicEase();
-        ease->EasingMode = EasingMode::EaseOut;
-        anim->EasingFunction = ease;
-        return anim;
-    };
-
-    auto animX = makeAnim(ScaleXform->ScaleX);
-    auto animY = makeAnim(ScaleXform->ScaleY);
-
-    auto sb = ref new Storyboard();
-    Storyboard::SetTarget(animX, ScaleXform);
-    Storyboard::SetTargetProperty(animX, "ScaleX");
-    Storyboard::SetTarget(animY, ScaleXform);
-    Storyboard::SetTargetProperty(animY, "ScaleY");
-    sb->Children->Append(animX);
-    sb->Children->Append(animY);
-
-    m_scaleStoryboard = sb;
-    sb->Begin();
+    VisualStateManager::GoToState(this, selected ? "Selected" : "Normal", animated);
 }
 
 void LunarPhaseControl::UpdatePhase(double fillAmount, int side, bool animated)
@@ -242,6 +200,10 @@ void LunarPhaseControl::UpdatePhase(double fillAmount, int side, bool animated)
         targetX = 80.0 + fillAmount * 150.0;
     }
 
+    // Capture current displayed value BEFORE Stop(), which reverts the
+    // dependency property to its base value and would lose the mid-animation position.
+    double fromX = ShadowCenterX;
+
     if (m_phaseStoryboard != nullptr) {
         try { m_phaseStoryboard->Stop(); } catch (...) {}
         m_phaseStoryboard = nullptr;
@@ -252,8 +214,11 @@ void LunarPhaseControl::UpdatePhase(double fillAmount, int side, bool animated)
         return;
     }
 
+    // Re-commit as base value so a future Stop() also lands here, not at the original default.
+    ShadowCenterX = fromX;
+
     auto anim = ref new DoubleAnimation();
-    anim->From = ShadowCenterX;
+    anim->From = fromX;
     anim->To = targetX;
 
     TimeSpan ts;

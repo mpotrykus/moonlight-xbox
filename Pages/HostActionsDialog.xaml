@@ -11,17 +11,18 @@
     BorderThickness="0">
 
     <ContentDialog.Background>
-        <AcrylicBrush TintColor="#000"
+        <AcrylicBrush TintColor="#FFF"
                       TintOpacity="0.01"
+                      TintLuminosityOpacity="0.05"
                       FallbackColor="Transparent" />
     </ContentDialog.Background>
 
     <ContentDialog.Resources>
-        <SolidColorBrush x:Key="DialogButtonBackground" Color="#99000000"/>
+        <SolidColorBrush x:Key="DialogButtonBackground" Color="#0CFFFFFF"/>
         <SolidColorBrush x:Key="DialogButtonForeground" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="DialogButtonPointerOverBackground" Color="#3A3A3A"/>
         <SolidColorBrush x:Key="DialogButtonPressedBackground" Color="{ThemeResource SystemAccentColor}"/>
-        <SolidColorBrush x:Key="DialogButtonFocusedBackground" Color="#EE000000"/>
+        <SolidColorBrush x:Key="DialogButtonFocusedBackground" Color="#77000000"/>
 
         <Style x:Key="ButtonIconContainerStyle" TargetType="StackPanel">
             <Setter Property="HorizontalAlignment" Value="Center"/>

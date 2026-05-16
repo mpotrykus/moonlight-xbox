@@ -8,7 +8,7 @@
     Width="160" Height="160">
     <Grid Width="160" Height="160" RenderTransformOrigin="0.5,0.5">
         <Grid.RenderTransform>
-            <ScaleTransform x:Name="ScaleXform"/>
+            <ScaleTransform x:Name="ScaleXform" ScaleX="0.6" ScaleY="0.6"/>
         </Grid.RenderTransform>
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="OrbitStates">
@@ -21,6 +21,28 @@
                             From="0" To="360"
                             Duration="0:0:2"
                             RepeatBehavior="Forever"/>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+            <VisualStateGroup x:Name="SelectionStates">
+                <VisualState x:Name="Normal">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="ScaleXform"
+                                         Storyboard.TargetProperty="ScaleX"
+                                         To="0.6" Duration="0:0:0.125" EnableDependentAnimation="True"/>
+                        <DoubleAnimation Storyboard.TargetName="ScaleXform"
+                                         Storyboard.TargetProperty="ScaleY"
+                                         To="0.6" Duration="0:0:0.125" EnableDependentAnimation="True"/>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="Selected">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="ScaleXform"
+                                         Storyboard.TargetProperty="ScaleX"
+                                         To="1.0" Duration="0:0:0.125" EnableDependentAnimation="True"/>
+                        <DoubleAnimation Storyboard.TargetName="ScaleXform"
+                                         Storyboard.TargetProperty="ScaleY"
+                                         To="1.0" Duration="0:0:0.125" EnableDependentAnimation="True"/>
                     </Storyboard>
                 </VisualState>
             </VisualStateGroup>
