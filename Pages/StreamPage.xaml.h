@@ -72,18 +72,6 @@ namespace moonlight_xbox_dx
 				return GetApplicationState();
 			}
 		}
-		property MenuFlyout^ m_flyout {
-			MenuFlyout^ get() {
-				return this->ActionsFlyout;
-			}
-		}
-
-		property Button^ m_flyoutButton {
-			Button^ get() {
-				return this->otherActionsButton;
-			}
-		}
-
 		property Grid^ m_streamMenuGrid {
 			Grid^ get() {
 				return this->StreamMenuGrid;
@@ -156,9 +144,16 @@ namespace moonlight_xbox_dx
 	    void Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e);
 
 		void OnSwapChainPanelSizeChanged(Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
-		void flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-		void ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e);
 		void toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OtherButton_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OtherButton_LostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void SubMenuButton_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void SubMenuButton_LostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void SubMenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
+		void OnSubMenuCloseTimer_Tick(Platform::Object^ sender, Platform::Object^ e);
+		void ShowSubMenu();
+		void HideSubMenu();
+		void InstantHideSubMenu();
 		void showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void SetShowLogs(bool show);
@@ -191,6 +186,8 @@ namespace moonlight_xbox_dx
 	    bool m_showLogs = false;
 	    bool m_showStats = false;
 	    bool m_streamMenuVisible = false;
+	    bool m_subMenuVisible = false;
+	    Windows::UI::Xaml::DispatcherTimer^ m_subMenuCloseTimer = nullptr;
 	    void ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	    void MenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	};

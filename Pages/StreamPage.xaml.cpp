@@ -45,6 +45,10 @@ StreamPage::StreamPage():
 	swapChainPanel->SizeChanged +=
 		ref new SizeChangedEventHandler(this, &StreamPage::OnSwapChainPanelSizeChanged);
 	m_deviceResources = std::make_shared<DX::DeviceResources>();
+
+	m_subMenuCloseTimer = ref new Windows::UI::Xaml::DispatcherTimer();
+	m_subMenuCloseTimer->Interval = Windows::Foundation::TimeSpan{ 1000000LL }; // 100ms
+	m_subMenuCloseTimer->Tick += ref new Windows::Foundation::EventHandler<Platform::Object^>(this, &StreamPage::OnSubMenuCloseTimer_Tick);
 }
 
 
@@ -60,6 +64,13 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 
 	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+
+	// Always start with menu and sub-menu hidden, regardless of state from previous stream
+	m_streamMenuVisible = false;
+	this->MenuShowStoryboard->Stop();
+	this->MenuHideStoryboard->Stop();
+	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	InstantHideSubMenu();
 
 	if (m_backgroundImage != nullptr) {
 		StartBgPanAnimation();
@@ -161,7 +172,7 @@ void StreamPage::SetStreamMenuVisible(bool visible) {
 		this->MenuShowStoryboard->Begin();
 		this->FirstMenuButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
 	} else {
-		this->ActionsFlyout->Hide();
+		InstantHideSubMenu();
 		this->MenuShowStoryboard->Stop();
 		this->MenuHideStoryboard->Begin();
 		// Visibility collapsed after hide animation in MenuHideStoryboard_Completed
@@ -173,14 +184,53 @@ void StreamPage::MenuHideStoryboard_Completed(Platform::Object^ sender, Platform
 	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 }
 
-void StreamPage::flyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout((FrameworkElement^)sender);
+void StreamPage::ShowSubMenu() {
+	if (m_subMenuVisible) return;
+	m_subMenuVisible = true;
+	this->SubMenuHideStoryboard->Stop();
+	this->OtherSubMenuPanel->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->SubMenuShowStoryboard->Begin();
 }
 
+void StreamPage::HideSubMenu() {
+	if (!m_subMenuVisible) return;
+	m_subMenuVisible = false;
+	this->SubMenuShowStoryboard->Stop();
+	this->SubMenuHideStoryboard->Begin();
+}
 
-void StreamPage::ActionsFlyout_Closed(Platform::Object^ sender, Platform::Object^ e)
-{
+void StreamPage::InstantHideSubMenu() {
+	if (m_subMenuCloseTimer) m_subMenuCloseTimer->Stop();
+	m_subMenuVisible = false;
+	this->SubMenuShowStoryboard->Stop();
+	this->SubMenuHideStoryboard->Stop();
+	this->OtherSubMenuPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+}
+
+void StreamPage::SubMenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e) {
+	this->OtherSubMenuPanel->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+}
+
+void StreamPage::OtherButton_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	m_subMenuCloseTimer->Stop();
+	ShowSubMenu();
+}
+
+void StreamPage::OtherButton_LostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	m_subMenuCloseTimer->Start();
+}
+
+void StreamPage::SubMenuButton_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	m_subMenuCloseTimer->Stop();
+}
+
+void StreamPage::SubMenuButton_LostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	m_subMenuCloseTimer->Start();
+}
+
+void StreamPage::OnSubMenuCloseTimer_Tick(Platform::Object^ sender, Platform::Object^ e) {
+	m_subMenuCloseTimer->Stop();
+	HideSubMenu();
 }
 
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
