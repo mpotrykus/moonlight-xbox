@@ -29,6 +29,8 @@ using namespace Windows::UI::Xaml::Controls::Primitives;
 using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
+using namespace Windows::UI::Xaml::Media::Animation;
+using namespace Windows::UI::Xaml::Media::Imaging;
 using namespace Windows::UI::Xaml::Navigation;
 using namespace concurrency;
 
@@ -58,7 +60,12 @@ void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequ
 void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 
 	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-	this->m_progressRing->IsActive = true;
+
+	if (m_backgroundImage != nullptr) {
+		StartBgPanAnimation();
+		FadeInBackground();
+	}
+	// this->m_progressRing->IsActive = true;
 
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &StreamPage::OnBackRequested);
@@ -103,6 +110,8 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 }
 
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
+	try { if (m_bgPanStoryboard != nullptr) { m_bgPanStoryboard->Stop(); m_bgPanStoryboard = nullptr; } } catch(...) {}
+
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_cookie;
 
@@ -242,12 +251,64 @@ void StreamPage::SetShowStats(bool enabled) {
     }
 }
 
+void StreamPage::StartBgPanAnimation() {
+	try {
+		if (PageBackgroundImage == nullptr) return;
+
+		auto transform = ref new TranslateTransform();
+		PageBackgroundImage->RenderTransform = transform;
+
+		auto sb = ref new Storyboard();
+		sb->RepeatBehavior = RepeatBehaviorHelper::Forever;
+		sb->AutoReverse = true;
+
+		Windows::UI::Xaml::Duration dur(TimeSpan{ 10LL * 10000000LL });
+
+		auto ease = ref new SineEase();
+		ease->EasingMode = EasingMode::EaseInOut;
+
+		auto animY = ref new DoubleAnimation();
+		animY->To = ref new Platform::Box<double>(120.0);
+		animY->Duration = dur;
+		animY->EasingFunction = ease;
+		Storyboard::SetTarget(animY, transform);
+		Storyboard::SetTargetProperty(animY, ref new Platform::String(L"Y"));
+		sb->Children->Append(animY);
+
+		sb->Begin();
+		m_bgPanStoryboard = sb;
+	} catch(...) {}
+}
+
+void StreamPage::FadeInBackground() {
+	try {
+		if (PageBackgroundImage == nullptr || m_backgroundImage == nullptr) return;
+
+		auto brush = dynamic_cast<ImageBrush^>(PageBackgroundImage->Background);
+		if (brush == nullptr) return;
+		brush->ImageSource = m_backgroundImage;
+
+		auto anim = ref new DoubleAnimation();
+		anim->From = 0.0;
+		anim->To = 0.2;
+		anim->Duration = Windows::UI::Xaml::Duration(TimeSpan{ 2500000LL });
+
+		auto sb = ref new Storyboard();
+		sb->Children->Append(anim);
+		Storyboard::SetTarget(anim, PageBackgroundImage);
+		Storyboard::SetTargetProperty(anim, ref new Platform::String(L"Opacity"));
+		sb->Begin();
+	} catch(...) {}
+}
+
 void StreamPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 
 	configuration = dynamic_cast<StreamConfiguration^>(e->Parameter);
 	SetStreamConfig(configuration);
 
 	if (configuration == nullptr)return;
+
+	m_backgroundImage = configuration->backgroundImage;
 
 	SetMouseMode(false);
 	SetShowLogs(false);

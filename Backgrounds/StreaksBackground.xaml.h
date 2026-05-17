@@ -14,14 +14,7 @@ struct StreakState {
     float coreH;    // core rectangle height
     int   colorIndex;
 };
-
-struct StarState {
-    float x, y;
-    float radius;
-    float phase;
-    float phaseSpeed;
-    float baseOpacity;
-};
+ 
 
 public ref class StreaksBackground sealed {
 public:
@@ -31,7 +24,6 @@ public:
 private:
     Windows::UI::Xaml::DispatcherTimer^ m_timer;
     std::vector<StreakState> m_streaks;
-    std::vector<StarState>   m_stars;
     float m_canvasW = 0;
     float m_canvasH = 0;
     bool  m_initialized = false;

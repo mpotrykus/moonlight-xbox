@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+    Background="{ThemeResource ThemeBackgroundColor}"
     Loaded="Page_Loaded"
     Unloaded="Page_Unloaded">
 
@@ -264,11 +264,24 @@
                 </Button>
             </Grid>
         </SwapChainPanel>
-        <Grid x:Name="ProgressView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid x:Name="ProgressView" Background="{ThemeResource ThemeBackgroundColor}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+            <Border x:Name="PageBackgroundImage"
+                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                    Margin="-150"
+                    IsHitTestVisible="False" Opacity="0">
+                <Border.Background>
+                    <ImageBrush Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Center">
+                        <ImageBrush.RelativeTransform>
+                            <ScaleTransform CenterX="0.5" CenterY="0.5" ScaleX="1.5" ScaleY="1.5" />
+                        </ImageBrush.RelativeTransform>
+                    </ImageBrush>
+                </Border.Background>
+            </Border>
             <StackPanel x:Name="ProgressStack" HorizontalAlignment="Center" VerticalAlignment="Center"  Orientation="Vertical">
-                <muxc:ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />
+                <!--<muxc:ProgressRing x:Name="MainProgressRing" Width="64" Height="64" IsActive="True" Margin="0,0,0,16" />-->
+                <Image x:Name="MainProgressRing" Source="ms-appx:///Assets/logo2.gif" Margin="0,0,0,24" Width="48" Height="48"></Image>
                 <TextBlock x:Name="StatusText" TextAlignment="Center" Text="Initializing Moonlight..."/>
-                <TextBlock x:Name="StepText" FontSize="12px" Foreground="DimGray" TextAlignment="Center" Text="" Margin="0,16,0,0" />
+                <TextBlock x:Name="StepText" FontSize="8px" TextAlignment="Center" Text="" Margin="0,16,0,0" />
             </StackPanel>
         </Grid>
         <Border x:Name="ToastView"

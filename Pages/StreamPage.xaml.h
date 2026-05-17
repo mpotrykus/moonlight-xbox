@@ -98,11 +98,11 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property Microsoft::UI::Xaml::Controls::ProgressRing^ m_progressRing {
-		    Microsoft::UI::Xaml::Controls::ProgressRing ^ get() {
-				return this->MainProgressRing;
-			}
-		}
+		//property Microsoft::UI::Xaml::Controls::ProgressRing^ m_progressRing {
+		//    Microsoft::UI::Xaml::Controls::ProgressRing ^ get() {
+		//		return this->MainProgressRing;
+		//	}
+		//}
 
 		property TextBlock^ m_statusText {
 			TextBlock^ get() {
@@ -163,6 +163,10 @@ namespace moonlight_xbox_dx
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void SetShowLogs(bool show);
 		StreamConfiguration^ configuration;
+		Windows::UI::Xaml::Media::Animation::Storyboard^ m_bgPanStoryboard = nullptr;
+		Windows::UI::Xaml::Media::Imaging::BitmapImage^ m_backgroundImage = nullptr;
+		void StartBgPanAnimation();
+		void FadeInBackground();
 		void toggleStatsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void SetShowStats(bool show);
 		void disonnectButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

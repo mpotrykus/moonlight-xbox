@@ -125,9 +125,26 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		}).then([this, streamPage, configuration](concurrency::task<void> t) {
 			if (this->m_sceneRenderer && this->m_sceneRenderer->IsLoadingSuccessful()) {
 				DISPATCH_UI(([streamPage]() {
-					Sleep(500);
-					streamPage->m_progressRing->IsActive = false;
-					streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+					Sleep(1000);
+					// streamPage->m_progressRing->IsActive = false;
+					using namespace Windows::UI::Xaml::Media::Animation;
+					auto anim = ref new DoubleAnimation();
+					anim->From = ref new Platform::Box<double>(1.0);
+					anim->To   = ref new Platform::Box<double>(0.0);
+					anim->Duration = Windows::UI::Xaml::Duration(Windows::Foundation::TimeSpan{ 5000000LL });
+					auto sb = ref new Storyboard();
+					sb->Children->Append(anim);
+					Storyboard::SetTarget(anim, streamPage->m_progressView);
+					Storyboard::SetTargetProperty(anim, "(UIElement.Opacity)");
+					Platform::WeakReference weakPage(streamPage);
+					sb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+						[weakPage](Platform::Object^, Platform::Object^) {
+							auto page = weakPage.Resolve<StreamPage>();
+							if (page == nullptr) return;
+							page->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+							page->m_progressView->Opacity = 1.0;
+						});
+					sb->Begin();
 				}));
 			}
 		});

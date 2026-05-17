@@ -56,6 +56,7 @@ void AppPage::Connect(int appId) {
     config->enableStats   = host->EnableStats;
     config->enableGraphs  = host->EnableGraphs;
     if (config->enableHDR) host->VideoCodec = "HEVC (H.265)";
+    config->backgroundImage = (this->currentApp != nullptr) ? this->currentApp->BlurredImage : nullptr;
     this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 }
 
