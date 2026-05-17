@@ -344,6 +344,15 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
 
     ApplyAppFilter(nullptr);
 
+    // Restore saved layout for this host
+    try {
+        bool savedGrid = (host->Personalization->AppView == AppHostView::Grid);
+        if (savedGrid != m_isGridLayout && LayoutToggleButton != nullptr) {
+            LayoutToggleButton->IsChecked = savedGrid;
+            LayoutToggleButton_Click(LayoutToggleButton, nullptr);
+        }
+    } catch(...) {}
+
     if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
         GetApplicationState()->shouldAutoConnect = false;
         CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
@@ -759,6 +768,11 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
         bool wantGrid = toggle != nullptr && toggle->IsChecked != nullptr && toggle->IsChecked->Value;
         if (m_isGridLayout == wantGrid) return;
         m_isGridLayout = wantGrid;
+
+        if (host != nullptr) {
+            host->Personalization->AppView = wantGrid ? AppHostView::Grid : AppHostView::List;
+            GetApplicationState()->UpdateFile();
+        }
 
         if (this->AppsGrid != nullptr) {
             auto res = this->Resources;

@@ -3,11 +3,17 @@
 
 namespace moonlight_xbox_dx {
 
+public enum class AppHostView : int {
+    List = 0,
+    Grid  = 1,
+};
+
 [Windows::UI::Xaml::Data::Bindable]
 public ref class UIPersonalization sealed : Windows::UI::Xaml::Data::INotifyPropertyChanged
 {
 private:
     Platform::String^ background = "";
+    AppHostView appView = AppHostView::List;
 
 public:
     virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -24,6 +30,16 @@ public:
             if (background == value) return;
             this->background = value;
             OnPropertyChanged("Background");
+        }
+    }
+
+    property AppHostView AppView
+    {
+        AppHostView get() { return this->appView; }
+        void set(AppHostView value) {
+            if (appView == value) return;
+            this->appView = value;
+            OnPropertyChanged("AppView");
         }
     }
 };

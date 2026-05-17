@@ -50,6 +50,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("personalization")) {
 						auto& p = a["personalization"];
 						if (p.contains("background")) h->Personalization->Background = Utils::StringFromStdString(p["background"].get<std::string>());
+						if (p.contains("app_view")) h->Personalization->AppView = (AppHostView)p["app_view"].get<int>();
 					}
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
@@ -113,6 +114,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			{
 				nlohmann::json pJson;
 				pJson["background"] = Utils::PlatformStringToStdString(host->Personalization->Background);
+				pJson["app_view"] = (int)host->Personalization->AppView;
 				hostJson["personalization"] = pJson;
 			}
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
