@@ -102,6 +102,7 @@ namespace moonlight_xbox_dx
 		void BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void AccentColorPicker_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void DisplayTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void AudioTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

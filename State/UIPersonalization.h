@@ -14,6 +14,8 @@ public ref class UIPersonalization sealed : Windows::UI::Xaml::Data::INotifyProp
 private:
     Platform::String^ background = "";
     AppHostView appView = AppHostView::List;
+    Windows::UI::Color accentColor = Windows::UI::Color{ 255, 0, 120, 215 };
+    bool useSystemAccent = true;
 
 public:
     virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -40,6 +42,25 @@ public:
             if (appView == value) return;
             this->appView = value;
             OnPropertyChanged("AppView");
+        }
+    }
+
+    property Windows::UI::Color AccentColor
+    {
+        Windows::UI::Color get() { return this->accentColor; }
+        void set(Windows::UI::Color value) {
+            this->accentColor = value;
+            OnPropertyChanged("AccentColor");
+        }
+    }
+
+    property bool UseSystemAccent
+    {
+        bool get() { return this->useSystemAccent; }
+        void set(bool value) {
+            if (useSystemAccent == value) return;
+            this->useSystemAccent = value;
+            OnPropertyChanged("UseSystemAccent");
         }
     }
 };

@@ -347,6 +347,28 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
+
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="COLORS" Margin="0,16,0,0" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <StackPanel>
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="Accent Color" />
+                                            <TextBlock Text="&#x2605; = system accent"
+                                                       FontSize="11"
+                                                       Opacity="0.6"
+                                                       Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <local:SwatchPicker Grid.Column="1"
+                                                            x:Name="AccentColorPicker"
+                                                            VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
 
                     </Grid>

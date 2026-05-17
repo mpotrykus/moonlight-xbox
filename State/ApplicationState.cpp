@@ -51,6 +51,15 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 						auto& p = a["personalization"];
 						if (p.contains("background")) h->Personalization->Background = Utils::StringFromStdString(p["background"].get<std::string>());
 						if (p.contains("app_view")) h->Personalization->AppView = (AppHostView)p["app_view"].get<int>();
+						if (p.contains("use_system_accent")) h->Personalization->UseSystemAccent = p["use_system_accent"].get<bool>();
+						if (p.contains("accent_r") && p.contains("accent_g") && p.contains("accent_b")) {
+							Windows::UI::Color c;
+							c.A = 255;
+							c.R = (uint8_t)p["accent_r"].get<int>();
+							c.G = (uint8_t)p["accent_g"].get<int>();
+							c.B = (uint8_t)p["accent_b"].get<int>();
+							h->Personalization->AccentColor = c;
+						}
 					}
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
@@ -115,6 +124,10 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 				nlohmann::json pJson;
 				pJson["background"] = Utils::PlatformStringToStdString(host->Personalization->Background);
 				pJson["app_view"] = (int)host->Personalization->AppView;
+				pJson["use_system_accent"] = host->Personalization->UseSystemAccent;
+				pJson["accent_r"] = (int)host->Personalization->AccentColor.R;
+				pJson["accent_g"] = (int)host->Personalization->AccentColor.G;
+				pJson["accent_b"] = (int)host->Personalization->AccentColor.B;
 				hostJson["personalization"] = pJson;
 			}
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);

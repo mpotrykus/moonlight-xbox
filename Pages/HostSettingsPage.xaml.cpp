@@ -8,6 +8,7 @@
 #include "Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "Backgrounds\BackgroundRegistry.h"
 #include "Controls/TabsLayout.xaml.h"
+#include "Controls/SwatchPicker.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include <gamingdeviceinformation.h>
@@ -120,6 +121,13 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	if (!foundBg) HostBackgroundSelector->SelectedIndex = 0;
 
+	// Wire up accent color picker and restore saved selection
+	AccentColorPicker->ColorChanged += ref new SwatchColorChangedHandler(
+		this, &HostSettingsPage::AccentColorPicker_ColorChanged);
+	AccentColorPicker->SelectColor(
+		host->Personalization->AccentColor,
+		host->Personalization->UseSystemAccent);
+
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
 		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
@@ -230,6 +238,13 @@ void HostSettingsPage::BackgroundSelector_SelectionChanged(Platform::Object^ sen
 			BackgroundHost->StartAnimations();
 		}
 	} catch (...) {}
+}
+
+void HostSettingsPage::AccentColorPicker_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent)
+{
+	if (host == nullptr) return;
+	host->Personalization->AccentColor = color;
+	host->Personalization->UseSystemAccent = useSystemAccent;
 }
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

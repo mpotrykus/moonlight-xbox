@@ -341,6 +341,9 @@
     <ClInclude Include="Controls\AspectRatioBox.xaml.h">
       <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Controls\SwatchPicker.xaml.h">
+      <DependentUpon>Controls\SwatchPicker.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Controls\LunarPhaseControl.xaml.h">
       <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
     </ClInclude>
@@ -425,6 +428,7 @@
     <ClInclude Include="Streaming\StatsRenderer.h" />
     <ClInclude Include="State\ApplicationState.h" />
     <ClInclude Include="State\MoonlightHost.h" />
+    <ClInclude Include="State\UIPersonalization.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
@@ -465,6 +469,9 @@
     <ClCompile Include="Common\XamlHelper.cpp" />
     <ClCompile Include="Controls\AspectRatioBox.xaml.cpp">
       <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Controls\SwatchPicker.xaml.cpp">
+      <DependentUpon>Controls\SwatchPicker.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Controls\LunarPhaseControl.xaml.cpp">
       <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
@@ -799,6 +806,7 @@
     <Page Include="Backgrounds\PaperCutBackground.xaml" />
     <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="Controls\AspectRatioBox.xaml" />
+    <Page Include="Controls\SwatchPicker.xaml" />
     <Page Include="Controls\LunarPhaseControl.xaml" />
     <Page Include="Controls\TabsLayout.xaml" />
     <Page Include="MoonlightWelcome.xaml">
