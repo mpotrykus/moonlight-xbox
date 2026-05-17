@@ -45,6 +45,7 @@ namespace moonlight_xbox_dx
 		void StartPairing(MoonlightHost^ host);
 		void HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
 		MoonlightHost^ currentHost;
+		Platform::String^ m_globalBg;
 		Windows::UI::Xaml::Controls::ScrollViewer^ m_hostsScrollViewer;
 		bool m_adjustingCenterPadding = false;
 		double m_lastCenterPadding = -1.0;

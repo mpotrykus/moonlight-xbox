@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
+#include "State\UIPersonalization.h"
 namespace moonlight_xbox_dx {
 
     [Windows::UI::Xaml::Data::Bindable]
@@ -31,6 +32,7 @@ namespace moonlight_xbox_dx {
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
+        UIPersonalization^ personalization;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -282,6 +284,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableGraphs = value;
                 OnPropertyChanged("EnableGraphs");
+            }
+        }
+
+        property UIPersonalization^ Personalization
+        {
+            UIPersonalization^ get() {
+                if (this->personalization == nullptr)
+                    this->personalization = ref new UIPersonalization();
+                return this->personalization;
             }
         }
     };

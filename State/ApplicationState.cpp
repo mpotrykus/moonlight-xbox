@@ -47,6 +47,10 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
 					if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
+					if (a.contains("personalization")) {
+						auto& p = a["personalization"];
+						if (p.contains("background")) h->Personalization->Background = Utils::StringFromStdString(p["background"].get<std::string>());
+					}
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
@@ -106,6 +110,11 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["enable_sops"] = host->EnableSOPS;
 			hostJson["enable_stats"] = host->EnableStats;
 			hostJson["enable_graphs"] = host->EnableGraphs;
+			{
+				nlohmann::json pJson;
+				pJson["background"] = Utils::PlatformStringToStdString(host->Personalization->Background);
+				hostJson["personalization"] = pJson;
+			}
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);

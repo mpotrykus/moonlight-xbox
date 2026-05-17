@@ -327,6 +327,28 @@
                             </ScrollViewer>
                         </StackPanel>
 
+                        <!-- Personalization -->
+
+                        <StackPanel x:Name="PersonalizationPanel" Visibility="Collapsed">
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="BACKGROUND" />
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <StackPanel>
+                                    <Grid MinHeight="52">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
+                                        <ComboBox Grid.Column="1" x:Name="HostBackgroundSelector"
+                                                  SelectionChanged="BackgroundSelector_SelectionChanged"
+                                                  VerticalAlignment="Center"
+                                                  HorizontalAlignment="Left"
+                                                  MinWidth="180" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
                     </Grid>
                 </local:TabsLayout.LeftContent>
 
@@ -335,6 +357,7 @@
                 <local:TabsLayout.TabsContent>
                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -352,11 +375,14 @@
                                 XYFocusDown="{x:Bind StreamTab}"
                                 XYFocusRight="{x:Bind AudioConfigs}" />
                         <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="StreamPanel" x:Name="StreamTab" Content="Stream" HorizontalAlignment="Stretch"
-                                XYFocusDown="{x:Bind ControlsTab}"
+                                XYFocusDown="{x:Bind PersonalizationTab}"
                                 XYFocusRight="{x:Bind AutoStartSelector}" />
-                        <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
+                        <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="PersonalizationPanel" x:Name="PersonalizationTab" Content="Personalization" HorizontalAlignment="Stretch"
+                                XYFocusDown="{x:Bind ControlsTab}"
+                                XYFocusRight="{x:Bind HostBackgroundSelector}" />
+                        <Button Grid.Row="4" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind DetailsTab}"/>
-                        <Button Grid.Row="4" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
+                        <Button Grid.Row="5" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind DisplayTab}"/>
                     </Grid>
                 </local:TabsLayout.TabsContent>

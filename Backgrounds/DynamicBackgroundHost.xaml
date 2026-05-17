@@ -12,5 +12,9 @@
         <ContentPresenter x:Name="BackgroundPresenter"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch" />
+        <ContentPresenter x:Name="FadePresenter"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Opacity="0" />
     </Grid>
 </UserControl>

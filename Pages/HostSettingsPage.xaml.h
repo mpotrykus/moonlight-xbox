@@ -18,6 +18,7 @@ namespace moonlight_xbox_dx
 	{
 	private:
 		MoonlightHost^ host;
+		Platform::String^ m_savedGlobalBg;
 		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;
@@ -100,6 +101,7 @@ namespace moonlight_xbox_dx
 		void FPSSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void BitrateInput_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
 		void AutoStartSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void DisplayTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void AudioTab_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);

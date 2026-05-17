@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "HostSettingsPage.xaml.h"
 #include "Backgrounds\DynamicBackgroundHost.xaml.h"
+#include "Backgrounds\BackgroundRegistry.h"
 #include "Controls/TabsLayout.xaml.h"
 #include "MoonlightSettings.xaml.h"
 #include "Utils.hpp"
@@ -38,6 +39,21 @@ HostSettingsPage::HostSettingsPage()
 
 
 void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
+	if (mhost == nullptr) return;
+	host = mhost;
+
+	// Save global background and apply host-specific one for preview
+	m_savedGlobalBg = nullptr;
+	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	if (localSettings->HasKey("background")) {
+		m_savedGlobalBg = safe_cast<Platform::String^>(localSettings->Lookup("background"));
+	}
+	auto hostBg = host->Personalization->Background;
+	if (hostBg != nullptr && !hostBg->IsEmpty()) {
+		localSettings->Insert("background", hostBg);
+	}
+
 	try {
 		if (BackgroundHost != nullptr) {
 			BackgroundHost->Refresh();
@@ -45,11 +61,8 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	} catch (...) {}
 
-	MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
-	if (mhost == nullptr)return;
 	GAMING_DEVICE_MODEL_INFORMATION info = {};
 	GetGamingDeviceModelInformation(&info);
-	host = mhost;
 	AvailableResolutions->Append(ref new ScreenResolution(1280, 720));
 	AvailableResolutions->Append(ref new ScreenResolution(1920, 1080));
 	//No 4K for Old Xbox One
@@ -88,6 +101,25 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	}
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 
+	// Populate background selector
+	auto globalItem = ref new ComboBoxItem();
+	globalItem->Content = "Use Global Setting";
+	globalItem->DataContext = ref new Platform::String(L"");
+	HostBackgroundSelector->Items->Append(globalItem);
+	auto hostBgKey = host->Personalization->Background;
+	bool foundBg = false;
+	for (int i = 0; i < kBackgroundCount; ++i) {
+		auto bgItem = ref new ComboBoxItem();
+		bgItem->Content = ref new Platform::String(kBackgrounds[i].displayName);
+		bgItem->DataContext = ref new Platform::String(kBackgrounds[i].key);
+		HostBackgroundSelector->Items->Append(bgItem);
+		if (hostBgKey != nullptr && hostBgKey->Equals(ref new Platform::String(kBackgrounds[i].key))) {
+			HostBackgroundSelector->SelectedIndex = i + 1;
+			foundBg = true;
+		}
+	}
+	if (!foundBg) HostBackgroundSelector->SelectedIndex = 0;
+
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
 		if (info.deviceId == GAMING_DEVICE_DEVICE_ID_XBOX_ONE) {
@@ -112,6 +144,12 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 }
 
 void HostSettingsPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
+	// Restore global background so other pages see the correct setting
+	if (m_savedGlobalBg != nullptr) {
+		auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+		localSettings->Insert("background", m_savedGlobalBg);
+		m_savedGlobalBg = nullptr;
+	}
 	try {
 		if (BackgroundHost != nullptr) BackgroundHost->StopAnimations();
 	} catch (...) {}
@@ -171,6 +209,29 @@ void HostSettingsPage::AutoStartSelector_SelectionChanged(Platform::Object^ send
 }
 
 
+void HostSettingsPage::BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
+{
+	if (host == nullptr) return;
+	auto item = dynamic_cast<ComboBoxItem^>(HostBackgroundSelector->SelectedItem);
+	if (item == nullptr) return;
+	auto key = item->DataContext->ToString();
+	host->Personalization->Background = key;
+
+	// Update LocalSettings so BackgroundHost preview reflects the selection
+	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+	if (key != nullptr && !key->IsEmpty()) {
+		localSettings->Insert("background", key);
+	} else if (m_savedGlobalBg != nullptr) {
+		localSettings->Insert("background", m_savedGlobalBg);
+	}
+	try {
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
+	} catch (...) {}
+}
+
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
@@ -226,6 +287,9 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 							}
 							else if (name == "DetailsPanel") {
 								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->DetailsPanel);
+							}
+							else if (name == "PersonalizationPanel") {
+								moonlight_xbox_dx::TabsLayout::SetTargetPanel(btn, this->PersonalizationPanel);
 							}
 						}
 					}

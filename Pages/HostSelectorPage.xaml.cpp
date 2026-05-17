@@ -229,7 +229,23 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 	} catch (...) {}
 
 	try {
-		if (BackgroundHost != nullptr) BackgroundHost->ResetBackground();
+		auto grid = dynamic_cast<ListViewBase^>(sender);
+		auto selectedHost = (grid != nullptr && grid->SelectedItem != nullptr)
+			? dynamic_cast<MoonlightHost^>(grid->SelectedItem)
+			: nullptr;
+
+		auto bgKey = (selectedHost != nullptr) ? selectedHost->Personalization->Background : nullptr;
+		auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+		if (bgKey != nullptr && !bgKey->IsEmpty()) {
+			ls->Insert("background", bgKey);
+		} else if (m_globalBg != nullptr) {
+			ls->Insert("background", m_globalBg);
+		}
+
+		if (BackgroundHost != nullptr) {
+			BackgroundHost->Refresh();
+			BackgroundHost->StartAnimations();
+		}
 	} catch (...) {}
 }
 
@@ -469,6 +485,12 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	continueFetch.store(true);
 	m_isNavigatedAway.store(false);
+
+	m_globalBg = nullptr;
+	{
+		auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+		if (ls->HasKey("background")) m_globalBg = safe_cast<Platform::String^>(ls->Lookup("background"));
+	}
 
 	try {
 		if (BackgroundHost != nullptr) {

@@ -14,6 +14,7 @@ using namespace moonlight_xbox_dx;
 using namespace Platform;
 using namespace Windows::Foundation;
 using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Media::Animation;
 using namespace Windows::Storage;
 
 static void TryStartAnimations(UIElement^ el)
@@ -72,17 +73,61 @@ void DynamicBackgroundHost::Refresh()
             key = safe_cast<String^>(localSettings->Lookup("background"));
         }
 
-        if (m_currentKey != nullptr && m_currentKey->Equals(key)) return;
+        // Already stable on this key, or already fading to it
+        if (m_incomingKey != nullptr && m_incomingKey->Equals(key)) return;
+        if (m_incomingKey == nullptr && m_currentKey != nullptr && m_currentKey->Equals(key)) return;
 
-        auto oldContent = dynamic_cast<UIElement^>(BackgroundPresenter->Content);
-        if (oldContent != nullptr) {
-            TryStopAnimations(oldContent);
+        // Cancel any in-progress fade
+        if (m_fadeStoryboard != nullptr) {
+            try { m_fadeStoryboard->Stop(); } catch (...) {}
+            m_fadeStoryboard = nullptr;
+            auto incomingEl = dynamic_cast<UIElement^>(FadePresenter->Content);
+            if (incomingEl != nullptr) TryStopAnimations(incomingEl);
+            FadePresenter->Content = nullptr;
+            FadePresenter->Opacity = 0.0;
+            m_incomingKey = nullptr;
         }
 
+        // Load new background into the fade layer
         auto newBg = CreateBackground(key);
         if (auto sr = dynamic_cast<SwipeRevealBackground^>(newBg)) { sr->SetHosts(m_hosts); }
-        BackgroundPresenter->Content = newBg;
-        m_currentKey = key;
+        FadePresenter->Content = newBg;
+        FadePresenter->Opacity = 0.0;
+        m_incomingKey = key;
+
+        // Crossfade: animate FadePresenter from 0 to 1 over 300ms
+        auto anim = ref new DoubleAnimation();
+        anim->From = 0.0;
+        anim->To = 1.0;
+        TimeSpan ts; ts.Duration = 3000000LL; // 300ms
+        anim->Duration = DurationHelper::FromTimeSpan(ts);
+
+        auto sb = ref new Storyboard();
+        Storyboard::SetTarget(anim, FadePresenter);
+        Storyboard::SetTargetProperty(anim, "Opacity");
+        sb->Children->Append(anim);
+        m_fadeStoryboard = sb;
+
+        auto weakThis = WeakReference(this);
+        sb->Completed += ref new EventHandler<Object^>(
+            [weakThis](Object^, Object^) {
+                auto that = weakThis.Resolve<DynamicBackgroundHost>();
+                if (that == nullptr) return;
+                try {
+                    // Stop old background and promote incoming to stable
+                    auto oldEl = dynamic_cast<UIElement^>(that->BackgroundPresenter->Content);
+                    if (oldEl != nullptr) TryStopAnimations(oldEl);
+                    auto incoming = that->FadePresenter->Content;
+                    that->FadePresenter->Content = nullptr;  // detach before re-parenting
+                    that->FadePresenter->Opacity = 0.0;
+                    that->BackgroundPresenter->Content = incoming;
+                    that->m_currentKey = that->m_incomingKey;
+                    that->m_incomingKey = nullptr;
+                    that->m_fadeStoryboard = nullptr;
+                } catch (...) {}
+            });
+
+        sb->Begin();
     } catch (...) {}
 }
 
@@ -101,12 +146,24 @@ void DynamicBackgroundHost::StartAnimations()
         auto el = dynamic_cast<UIElement^>(BackgroundPresenter->Content);
         if (el != nullptr) TryStartAnimations(el);
     } catch (...) {}
+    try {
+        auto el = dynamic_cast<UIElement^>(FadePresenter->Content);
+        if (el != nullptr) TryStartAnimations(el);
+    } catch (...) {}
 }
 
 void DynamicBackgroundHost::StopAnimations()
 {
+    if (m_fadeStoryboard != nullptr) {
+        try { m_fadeStoryboard->Stop(); } catch (...) {}
+        m_fadeStoryboard = nullptr;
+    }
     try {
         auto el = dynamic_cast<UIElement^>(BackgroundPresenter->Content);
+        if (el != nullptr) TryStopAnimations(el);
+    } catch (...) {}
+    try {
+        auto el = dynamic_cast<UIElement^>(FadePresenter->Content);
         if (el != nullptr) TryStopAnimations(el);
     } catch (...) {}
 }
