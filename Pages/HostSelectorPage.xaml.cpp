@@ -246,6 +246,12 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 			BackgroundHost->Refresh();
 			BackgroundHost->StartAnimations();
 		}
+
+		Windows::UI::Color accentColor = (selectedHost != nullptr && !selectedHost->Personalization->UseSystemAccent)
+			? selectedHost->Personalization->AccentColor
+			: (ref new Windows::UI::ViewManagement::UISettings())
+				->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
+		Utils::ApplyAccentColor(accentColor);
 	} catch (...) {}
 }
 
