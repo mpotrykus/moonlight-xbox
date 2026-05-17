@@ -28,7 +28,9 @@ using namespace Windows::UI::Xaml::Data;
 using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
+using namespace Windows::UI::ViewManagement;
 using namespace Windows::UI::ViewManagement::Core;
+
 
 HostSettingsPage::HostSettingsPage()
 {
@@ -127,6 +129,17 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AccentColorPicker->SelectColor(
 		host->Personalization->AccentColor,
 		host->Personalization->UseSystemAccent);
+
+	// Apply the stored (or system) accent color so the page reflects it immediately.
+	{
+		Windows::UI::Color accentColor = host->Personalization->UseSystemAccent
+			? (ref new UISettings())->GetColorValue(UIColorType::Accent)
+			: host->Personalization->AccentColor;
+		Utils::ApplyAccentColor(accentColor);
+		auto cur = this->ActualTheme;
+		this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
+		this->RequestedTheme = ElementTheme::Default;
+	}
 
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
 		// Old Xbox One can only use H264, remove from settings everything else
@@ -245,6 +258,16 @@ void HostSettingsPage::AccentColorPicker_ColorChanged(Platform::Object^ sender, 
 	if (host == nullptr) return;
 	host->Personalization->AccentColor = color;
 	host->Personalization->UseSystemAccent = useSystemAccent;
+
+	Windows::UI::Color effective = useSystemAccent
+		? (ref new UISettings())->GetColorValue(UIColorType::Accent)
+		: color;
+	Utils::ApplyAccentColor(effective);
+
+	// Force {ThemeResource} bindings to re-evaluate with the new color.
+	auto cur = this->ActualTheme;
+	this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
+	this->RequestedTheme = ElementTheme::Default;
 }
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

@@ -58,6 +58,15 @@
                                VerticalAlignment="Bottom"
                                Foreground="White"
                                Margin="0,0,5,5" />
+                    <!-- Custom color pencil badge (bottom-right) -->
+                    <TextBlock Text="&#xE70F;"
+                               FontFamily="Segoe Fluent Icons"
+                               FontSize="10"
+                               Visibility="{Binding CustomIndicatorVisibility}"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Bottom"
+                               Foreground="White"
+                               Margin="0,0,5,5" />
                 </Grid>
             </DataTemplate>
         </GridView.ItemTemplate>

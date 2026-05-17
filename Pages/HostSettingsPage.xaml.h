@@ -7,6 +7,7 @@
 
 #include "Pages\HostSettingsPage.g.h"
 #include "State\ScreenResolution.h"
+#include "Controls\SwatchPicker.xaml.h"
 
 namespace moonlight_xbox_dx
 {

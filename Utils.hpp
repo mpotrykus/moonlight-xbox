@@ -19,5 +19,11 @@ namespace moonlight_xbox_dx {
 		Platform::String^ StringFromStdString(std::string st);
 		std::string PlatformStringToStdString(Platform::String^ input);
 		std::string WideToNarrowString(const std::wstring_view& str);
-		std::wstring NarrowToWideString(const std::string_view& str);	}
+		std::wstring NarrowToWideString(const std::string_view& str);
+
+		// Inserts the given color as SystemAccentColor into Application.Resources
+		// ThemeDictionaries so that {ThemeResource SystemAccentColor} picks it up
+		// app-wide. Call this whenever a per-host accent should become active.
+		void ApplyAccentColor(Windows::UI::Color color);
+	}
 }

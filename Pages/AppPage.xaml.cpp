@@ -353,6 +353,19 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
         }
     } catch(...) {}
 
+    // Apply the per-host accent color so {ThemeResource SystemAccentColor} reflects
+    // this host's personalization throughout the app while AppPage is active.
+    {
+        Windows::UI::Color accentColor = host->Personalization->UseSystemAccent
+            ? (ref new Windows::UI::ViewManagement::UISettings())
+                ->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent)
+            : host->Personalization->AccentColor;
+        Utils::ApplyAccentColor(accentColor);
+        auto cur = this->ActualTheme;
+        this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
+        this->RequestedTheme = ElementTheme::Default;
+    }
+
     if (host->AutostartID >= 0 && GetApplicationState()->shouldAutoConnect) {
         GetApplicationState()->shouldAutoConnect = false;
         CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(

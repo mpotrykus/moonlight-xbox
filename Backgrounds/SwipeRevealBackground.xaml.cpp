@@ -2,6 +2,7 @@
 #include "Backgrounds\SwipeRevealBackground.xaml.h"
 #include <cmath>
 #include <algorithm>
+#include <random>
 #include <ppltasks.h>
 
 using namespace moonlight_xbox_dx;
@@ -122,7 +123,14 @@ void SwipeRevealBackground::LoadAppsAsync()
                 for (auto h : targets)
                     for (auto a : h->Apps) collected->Append(a);
                 if (collected->Size > 0) {
-                    that->m_apps       = collected;
+                    std::vector<MoonlightApp^> vec;
+                    vec.reserve(collected->Size);
+                    for (auto a : collected) vec.push_back(a);
+                    std::mt19937 rng(std::random_device{}());
+                    std::shuffle(vec.begin(), vec.end(), rng);
+                    auto shuffled = ref new Platform::Collections::Vector<MoonlightApp^>();
+                    for (auto a : vec) shuffled->Append(a);
+                    that->m_apps       = shuffled;
                     that->m_appsLoaded = true;
                     that->InitSlides();
                 }
@@ -190,13 +198,13 @@ void SwipeRevealBackground::UpdateDiagonalClip(float swept)
 
 void SwipeRevealBackground::InitSlides()
 {
-    m_backAppIdx = FindNextAppWithImage(0);
-    if (m_backAppIdx < 0) return;
+    // First app wipes in over black — back starts empty
+    m_frontAppIdx = FindNextAppWithImage(0);
+    if (m_frontAppIdx < 0) return;
 
-    BackBrush->ImageSource    = m_apps->GetAt(m_backAppIdx)->Image;
-    m_frontAppIdx = FindNextAppWithImage(m_backAppIdx + 1);
-    if (m_frontAppIdx >= 0)
-        m_frontBrush->ImageSource = m_apps->GetAt(m_frontAppIdx)->Image;
+    m_backAppIdx = -1;
+    BackBrush->ImageSource    = nullptr;
+    m_frontBrush->ImageSource = m_apps->GetAt(m_frontAppIdx)->Image;
 
     InitPanForLayer(m_backPanX,  m_backPanY,  m_backVX,  m_backVY);
     InitPanForLayer(m_frontPanX, m_frontPanY, m_frontVX, m_frontVY);
@@ -205,9 +213,9 @@ void SwipeRevealBackground::InitSlides()
 
     m_wipeDir  = 1;
     m_wipeTick = 0;
-    m_phase    = 0;
+    m_phase    = 1;  // wipe in immediately
     m_holdTick = 0;
-    GlassEdge->Opacity = 0.0;
+    GlassEdge->Opacity = 1.0;
     ZeroFrontClips();
     UpdateGlassEdgeSkew();
 }
@@ -252,7 +260,7 @@ void SwipeRevealBackground::OnTick(Object^ sender, Object^ args)
         return;
     }
 
-    if (m_backAppIdx < 0) {
+    if (m_frontAppIdx < 0) {
         if (++m_imageRetryTick >= 60) {
             m_imageRetryTick = 0;
             InitSlides();
@@ -263,7 +271,7 @@ void SwipeRevealBackground::OnTick(Object^ sender, Object^ args)
     AdvancePan(m_backPanX, m_backPanY, m_backVX, m_backVY, BackPan);
 
     if (m_phase == 0) {
-        if (++m_holdTick >= kHoldTicks && m_frontAppIdx >= 0) {
+        if (++m_holdTick >= kHoldTicks) {
             m_phase    = 1;
             m_wipeTick = 0;
             GlassEdge->Opacity = 1.0;
