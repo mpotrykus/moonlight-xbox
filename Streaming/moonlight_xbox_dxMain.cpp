@@ -439,6 +439,13 @@ void moonlight_xbox_dxMain::ProcessInput() {
 		}
 
 		if (insideMenu) {
+			if (PressedEdge(result.maskedReading, state.previousReading, GamepadButtons::B)) {
+				DISPATCH_UI(([this]() {
+					m_streamPage->SetStreamMenuVisible(false);
+				}));
+				insideMenu = false;
+				SendGamepadReadingForState(state, EmptyReading());
+			}
 			state.reading = EmptyReading();
 			state.previousReading = EmptyReading();
 			continue;
