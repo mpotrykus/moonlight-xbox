@@ -10,6 +10,7 @@ using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Shapes;
 using namespace Windows::UI::Xaml::Media;
+using namespace Windows::UI::Xaml::Media::Animation;
 
 static const float kPi = 3.14159265358979f;
 
@@ -24,6 +25,8 @@ BlobsBackground::BlobsBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
+    this->Opacity = 0.0;
+    this->Loaded += ref new RoutedEventHandler(this, &BlobsBackground::OnLoaded);
 
     BlobCanvas->Background = ref new SolidColorBrush(ColorHelper::FromArgb(255, 8, 0, 16));
 
@@ -149,6 +152,21 @@ void BlobsBackground::OnTick(Object^ sender, Object^ args)
 {
     if (!m_ready) return;
     for (auto& b : m_blobs) UpdateBlob(b);
+}
+
+void BlobsBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
+{
+    auto anim = ref new DoubleAnimation();
+    anim->From = 0.0;
+    anim->To   = 1.0;
+    TimeSpan ts;
+    ts.Duration = 5000000LL; // 500ms in 100ns units
+    anim->Duration = Windows::UI::Xaml::Duration(ts);
+    auto sb = ref new Storyboard();
+    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTargetProperty(anim, "Opacity");
+    sb->Children->Append(anim);
+    sb->Begin();
 }
 
 void BlobsBackground::StartAnimations()

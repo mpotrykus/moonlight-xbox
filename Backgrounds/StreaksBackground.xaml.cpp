@@ -11,6 +11,7 @@ using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Shapes;
 using namespace Windows::UI::Xaml::Media;
+using namespace Windows::UI::Xaml::Media::Animation;
 
 // Rect width for a streak: 2 * halfLen * sqrt(2) so the 45° diagonal spans exactly
 // halfLen pixels in each screen axis (the line ends are at cx±halfLen, cy±halfLen).
@@ -33,6 +34,8 @@ StreaksBackground::StreaksBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
+    this->Opacity = 0.0;
+    this->Loaded += ref new RoutedEventHandler(this, &StreaksBackground::OnLoaded);
     StreakCanvas->Background = ref new SolidColorBrush(ColorHelper::FromArgb(255, 3, 3, 15));
 
     TimeSpan interval;
@@ -177,6 +180,21 @@ void StreaksBackground::OnTick(Object^ sender, Object^ args)
         Canvas::SetLeft(core, cx - coreRectW * 0.5f);
         Canvas::SetTop(core,  cy - s.coreH   * 0.5f);
     }
+}
+
+void StreaksBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
+{
+    auto anim = ref new DoubleAnimation();
+    anim->From = 0.0;
+    anim->To   = 1.0;
+    TimeSpan ts;
+    ts.Duration = 5000000LL; // 500ms in 100ns units
+    anim->Duration = Windows::UI::Xaml::Duration(ts);
+    auto sb = ref new Storyboard();
+    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTargetProperty(anim, "Opacity");
+    sb->Children->Append(anim);
+    sb->Begin();
 }
 
 void StreaksBackground::StartAnimations()

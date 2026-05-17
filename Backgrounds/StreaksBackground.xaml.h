@@ -31,6 +31,7 @@ private:
 
     void Canvas_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
     void OnTick(Platform::Object^ sender, Platform::Object^ args);
+    void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
     void InitStreaks();
 };
 
