@@ -73,6 +73,10 @@ void DynamicBackgroundHost::Refresh()
             key = safe_cast<String^>(localSettings->Lookup("background"));
         }
 
+        // Release any previously discarded background — by the time Refresh() is called
+        // again the message queue has cycled and any pending timer ticks have already fired.
+        m_discardedBg = nullptr;
+
         // Already stable on this key, or already fading to it
         if (m_incomingKey != nullptr && m_incomingKey->Equals(key)) return;
         if (m_incomingKey == nullptr && m_currentKey != nullptr && m_currentKey->Equals(key)) return;
@@ -82,7 +86,10 @@ void DynamicBackgroundHost::Refresh()
             try { m_fadeStoryboard->Stop(); } catch (...) {}
             m_fadeStoryboard = nullptr;
             auto incomingEl = dynamic_cast<UIElement^>(FadePresenter->Content);
-            if (incomingEl != nullptr) TryStopAnimations(incomingEl);
+            if (incomingEl != nullptr) {
+                m_discardedBg = incomingEl;  // keep strong ref until next Refresh()
+                TryStopAnimations(incomingEl);
+            }
             FadePresenter->Content = nullptr;
             FadePresenter->Opacity = 0.0;
             m_incomingKey = nullptr;
@@ -116,7 +123,10 @@ void DynamicBackgroundHost::Refresh()
                 try {
                     // Stop old background and promote incoming to stable
                     auto oldEl = dynamic_cast<UIElement^>(that->BackgroundPresenter->Content);
-                    if (oldEl != nullptr) TryStopAnimations(oldEl);
+                    if (oldEl != nullptr) {
+                        that->m_discardedBg = oldEl;  // keep strong ref until next Refresh()
+                        TryStopAnimations(oldEl);
+                    }
                     auto incoming = that->FadePresenter->Content;
                     that->FadePresenter->Content = nullptr;  // detach before re-parenting
                     that->FadePresenter->Opacity = 0.0;
@@ -154,6 +164,7 @@ void DynamicBackgroundHost::StartAnimations()
 
 void DynamicBackgroundHost::StopAnimations()
 {
+    m_discardedBg = nullptr;
     if (m_fadeStoryboard != nullptr) {
         try { m_fadeStoryboard->Stop(); } catch (...) {}
         m_fadeStoryboard = nullptr;
