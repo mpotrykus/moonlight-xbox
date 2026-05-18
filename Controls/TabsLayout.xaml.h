@@ -19,6 +19,11 @@ namespace moonlight_xbox_dx
             void set(Windows::UI::Xaml::UIElement^ value);
         }
 
+        property Windows::UI::Color AccentColor {
+            Windows::UI::Color get() { return m_accentColor; }
+            void set(Windows::UI::Color value);
+        }
+
         // Attached property to associate a tab button with a panel name
         static void SetTargetPanelName(Windows::UI::Xaml::UIElement^ element, Platform::String^ value);
         static Platform::String^ GetTargetPanelName(Windows::UI::Xaml::UIElement^ element);
@@ -45,8 +50,9 @@ namespace moonlight_xbox_dx
         static Windows::UI::Xaml::DependencyProperty^ TargetPanelNameProperty;
         static Windows::UI::Xaml::DependencyProperty^ TargetPanelProperty;
         // Attached IsSelected property
-        static void SetIsSelected(Windows::UI::Xaml::UIElement^ element, bool value);
+        void SetIsSelected(Windows::UI::Xaml::UIElement^ element, bool value);
         static bool GetIsSelected(Windows::UI::Xaml::UIElement^ element);
         static Windows::UI::Xaml::DependencyProperty^ IsSelectedProperty;
+        Windows::UI::Color m_accentColor;
     };
 }

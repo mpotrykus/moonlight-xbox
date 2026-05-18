@@ -44,6 +44,36 @@
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Controls\LunarPhaseControl.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Controls\SwatchPicker.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\ParticleBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\SpheresBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\StreaksBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\SwipeRevealBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\GlobeGridBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\BlobsBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\PaperCutBackground.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\DynamicBackgroundHost.xaml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="State\MoonlightClient.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -416,6 +446,36 @@
     <ClCompile Include="Converters\UppercaseConverter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Converters\BooleanToVisibilityConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Converters\BoolToTextConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Streaming\FrameCadence.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\AppPage.Helpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\AppPage.Blur.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\AppPage.Selection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Pages\AppPage.Actions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ViewModels\AppPageViewModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Converters\WindowHeightConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Converters\WindowWidthConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="State\MoonlightClient.h">
@@ -463,6 +523,9 @@
     <ClInclude Include="State\MoonlightHost.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="State\UIPersonalization.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Streaming\AudioPlayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -473,6 +536,39 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Controls\LunarPhaseControl.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Controls\SwatchPicker.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\BackgroundRegistry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\ParticleBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\SpheresBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\StreaksBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\SwipeRevealBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\GlobeGridBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\BlobsBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\PaperCutBackground.xaml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backgrounds\DynamicBackgroundHost.xaml.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h">
@@ -536,6 +632,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="State\GamepadState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\ImageHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Converters\BooleanToVisibilityConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Converters\BoolToTextConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FrameCadence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Streaming\FrameQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pages\AppPage.Helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ViewModels\AppPageViewModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Converters\WindowHeightConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Converters\WindowWidthConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -705,6 +828,10 @@
     <Image Include="Assets\logo_a.gif" />
     <Image Include="Assets\logo2.gif" />
     <Image Include="Assets\loading2.gif" />
+    <Image Include="D:\Desktop\orbit_load.gif" />
+    <Image Include="Assets\orbit_load.gif" />
+    <Image Include="Assets\orbit_load2.gif" />
+    <Image Include="Assets\orbit_load3.gif" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -849,6 +976,14 @@
     <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Backgrounds\ParticleBackground.xaml" />
+    <Page Include="Backgrounds\SpheresBackground.xaml" />
+    <Page Include="Backgrounds\StreaksBackground.xaml" />
+    <Page Include="Backgrounds\SwipeRevealBackground.xaml" />
+    <Page Include="Backgrounds\GlobeGridBackground.xaml" />
+    <Page Include="Backgrounds\BlobsBackground.xaml" />
+    <Page Include="Backgrounds\PaperCutBackground.xaml" />
+    <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="Pages\AppPage.xaml" />
     <Page Include="Pages\HostSelectorPage.xaml" />
     <Page Include="Pages\HostSettingsPage.xaml" />
@@ -858,6 +993,8 @@
     <Page Include="MoonlightWelcome.xaml" />
     <Page Include="Common\ModalDialog.xaml" />
     <Page Include="Controls\AspectRatioBox.xaml" />
+    <Page Include="Controls\SwatchPicker.xaml" />
+    <Page Include="Controls\LunarPhaseControl.xaml" />
     <Page Include="Pages\HelpDialog.xaml" />
     <Page Include="Controls\TabsLayout.xaml" />
     <Page Include="Pages\AppActionsDialog.xaml" />
@@ -865,5 +1002,9 @@
     <Page Include="Styles\Controls.xaml" />
     <Page Include="Styles\Colors.xaml" />
     <Page Include="Styles\Globals.xaml" />
+    <Page Include="Pages\AppPage.Resources.xaml" />
+    <Page Include="Pages\AddHostDialog.xaml" />
+    <Page Include="Pages\HostActionsDialog.xaml" />
+    <Page Include="Pages\TestConnectionResultDialog.xaml" />
   </ItemGroup>
 </Project>

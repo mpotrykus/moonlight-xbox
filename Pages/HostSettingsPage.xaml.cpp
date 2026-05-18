@@ -139,6 +139,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		auto cur = this->ActualTheme;
 		this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
 		this->RequestedTheme = ElementTheme::Default;
+		if (rightTabs != nullptr) rightTabs->AccentColor = accentColor;
 	}
 
 	if (info.vendorId == GAMING_DEVICE_VENDOR_ID_MICROSOFT) {
@@ -268,6 +269,8 @@ void HostSettingsPage::AccentColorPicker_ColorChanged(Platform::Object^ sender, 
 	auto cur = this->ActualTheme;
 	this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
 	this->RequestedTheme = ElementTheme::Default;
+
+	if (rightTabs != nullptr) rightTabs->AccentColor = effective;
 }
 
 void HostSettingsPage::GlobalSettingsOption_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

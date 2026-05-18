@@ -112,10 +112,9 @@ void LunarPhaseControl::OnShowOrbitChanged(
     auto ctrl = dynamic_cast<LunarPhaseControl^>(d);
     if (ctrl == nullptr) return;
     bool show = (bool)e->NewValue;
-    ctrl->OrbitCanvas->Visibility = show
+    ctrl->OrbitGif->Visibility = show
         ? Windows::UI::Xaml::Visibility::Visible
         : Windows::UI::Xaml::Visibility::Collapsed;
-    VisualStateManager::GoToState(ctrl, show ? "Orbiting" : "NotOrbiting", true);
 }
 
 void LunarPhaseControl::OnShowLockChanged(

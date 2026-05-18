@@ -120,7 +120,7 @@ void AppPage::AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::
             }),
 		    ref new RoutedEventHandler([weakThis](Platform::Object ^, RoutedEventArgs ^) {
 			    auto that = weakThis.Resolve<AppPage>();
-                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid)); } catch (...) {}
+                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->Host); } catch (...) {}
             }));
 
         create_task(dialog->ShowAsync());
@@ -231,7 +231,7 @@ void AppPage::moonlightSettingsButton_Click(Platform::Object^ sender, Windows::U
 
 void AppPage::hostSettingsFlyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
     try {
-        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid));
+        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), this->Host);
     } catch(...) {}
 }
 

@@ -183,8 +183,15 @@ namespace moonlight_xbox_dx {
 					dict = ref new Windows::UI::Xaml::ResourceDictionary();
 					appThemes->Insert(key, dict);
 				}
-				if (dict != nullptr)
+				if (dict != nullptr) {
 					dict->Insert("SystemAccentColor", boxed);
+					// Override accent-derived brush resources so controls that don't use
+					// SystemAccentColor directly (ToggleButton checked background, TextBox
+					// focus border) also pick up the custom color.
+					auto brush = ref new Windows::UI::Xaml::Media::SolidColorBrush(color);
+					dict->Insert("SystemControlHighlightAccentBrush", brush);
+					dict->Insert("SystemControlBackgroundAccentBrush", brush);
+				}
 			}
 		}
 	}

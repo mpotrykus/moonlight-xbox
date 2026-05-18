@@ -281,6 +281,9 @@
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
     <Image Include="Assets\logo2.gif" />
     <Image Include="Assets\logo_a.gif" />
+    <Image Include="Assets\orbit_load.gif" />
+    <Image Include="Assets\orbit_load2.gif" />
+    <Image Include="Assets\orbit_load3.gif" />
     <Image Include="Assets\play.png" />
     <Image Include="Assets\Play1.png" />
     <Image Include="Assets\SmallTile.scale-100.png" />
@@ -329,6 +332,7 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
     <Image Include="Assets\Wide310x150Logo.scale-400.png" />
     <Image Include="Assets\sheen.png" />
+    <Image Include="D:\Desktop\orbit_load.gif" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.xaml.h">

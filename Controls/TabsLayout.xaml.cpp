@@ -19,6 +19,20 @@ TabsLayout::TabsLayout()
     m_tabButtons = ref new Platform::Collections::Vector<Button^>();
     m_clickTokens = ref new Platform::Collections::Vector<long long>();
     m_focusTokens = ref new Platform::Collections::Vector<long long>();
+    try {
+        auto uiSettings = ref new Windows::UI::ViewManagement::UISettings();
+        m_accentColor = uiSettings->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
+    } catch (...) {
+        m_accentColor = Windows::UI::ColorHelper::FromArgb(0xFF, 0x00, 0x78, 0xD7);
+    }
+}
+
+void TabsLayout::AccentColor::set(Windows::UI::Color value)
+{
+    m_accentColor = value;
+    if (m_selectedButton != nullptr) {
+        m_selectedButton->Background = ref new SolidColorBrush(value);
+    }
 }
 
 UIElement^ TabsLayout::LeftContent::get()
@@ -123,15 +137,7 @@ void TabsLayout::SetIsSelected(UIElement^ element, bool value)
             }
             // Apply selected foreground and accent-colored background
             btn->Foreground = ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
-            // Use system accent color for background
-            try {
-                auto uiSettings = ref new Windows::UI::ViewManagement::UISettings();
-                auto accentColor = uiSettings->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
-                btn->Background = ref new SolidColorBrush(accentColor);
-            } catch(...) {
-                // fallback: use a neutral brush if UISettings unavailable
-                btn->Background = ref new SolidColorBrush(Windows::UI::ColorHelper::FromArgb(0xFF, 0x33, 0x33, 0x33));
-            }
+            btn->Background = ref new SolidColorBrush(m_accentColor);
         }
         else {
             // Restore original brushes if available, otherwise clear to defaults
@@ -230,7 +236,7 @@ void TabsLayout::HookUpTabs()
                 else {
                     // Make direct panel visible as a fallback
                     direct->Visibility = Windows::UI::Xaml::Visibility::Visible;
-                    TabsLayout::SetIsSelected(first, true);
+                    SetIsSelected(first, true);
                     m_selectedButton = first;
                 }
             }
@@ -242,7 +248,7 @@ void TabsLayout::HookUpTabs()
                 }
                 else {
                     // No mapping info; still mark the button selected so it's visually active
-                    TabsLayout::SetIsSelected(first, true);
+                    SetIsSelected(first, true);
                     m_selectedButton = first;
                 }
             }
@@ -352,10 +358,10 @@ void TabsLayout::SelectTabByName(Platform::String^ panelName)
                     if (match) {
                         if (m_selectedButton != nullptr) {
                             // unset previous selection
-                            TabsLayout::SetIsSelected(m_selectedButton, false);
+                            SetIsSelected(m_selectedButton, false);
                         }
                         // mark this button selected
-                        TabsLayout::SetIsSelected(btn, true);
+                        SetIsSelected(btn, true);
                         m_selectedButton = btn;
                         break;
                     }
