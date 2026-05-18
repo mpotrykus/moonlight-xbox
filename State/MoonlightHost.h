@@ -98,6 +98,8 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
+                OnPropertyChanged("StatusIsConnectedAndPaired");
+                OnPropertyChanged("StatusIsNotPaired");
             }
         }
 
@@ -109,6 +111,9 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
+                OnPropertyChanged("StatusIsConnectedAndPaired");
+                OnPropertyChanged("StatusIsNotPaired");
+                OnPropertyChanged("StatusIsDisconnected");
             }
         }
 
@@ -122,6 +127,26 @@ namespace moonlight_xbox_dx {
             bool get() { return this->connected && !this->paired; }
         }
 
+        property bool StatusIsPolling
+        {
+            bool get() { return this->wolPolling || this->loading; }
+        }
+
+        property bool StatusIsConnectedAndPaired
+        {
+            bool get() { return this->connected && this->paired && !StatusIsPolling; }
+        }
+
+        property bool StatusIsNotPaired
+        {
+            bool get() { return this->connected && !this->paired && !StatusIsPolling; }
+        }
+
+        property bool StatusIsDisconnected
+        {
+            bool get() { return !this->connected && !StatusIsPolling; }
+        }
+
         property bool Loading
         {
             bool get() { return this->loading; }
@@ -133,6 +158,10 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Paired");
+                OnPropertyChanged("StatusIsPolling");
+                OnPropertyChanged("StatusIsConnectedAndPaired");
+                OnPropertyChanged("StatusIsNotPaired");
+                OnPropertyChanged("StatusIsDisconnected");
             }
         }
 
@@ -148,6 +177,10 @@ namespace moonlight_xbox_dx {
                 this->wolPolling = value;
                 OnPropertyChanged("WolPolling");
                 OnPropertyChanged("WolPollingVisibility");
+                OnPropertyChanged("StatusIsPolling");
+                OnPropertyChanged("StatusIsConnectedAndPaired");
+                OnPropertyChanged("StatusIsNotPaired");
+                OnPropertyChanged("StatusIsDisconnected");
             }
         }
 

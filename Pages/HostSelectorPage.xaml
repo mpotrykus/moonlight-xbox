@@ -16,6 +16,8 @@
                 <ResourceDictionary Source="ms-appx:///Styles/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+
             <Style x:Key="HostGridViewItemContainerStyle" TargetType="ListViewItem">
                 <Setter Property="UseSystemFocusVisuals" Value="False" />
                 <Setter Property="FocusVisualPrimaryThickness" Value="0" />
@@ -100,9 +102,7 @@
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="local:MoonlightHost" x:DefaultBindMode="OneWay">
                             <local:LunarPhaseControl
-                                ShowOrbit="{x:Bind WolPolling}"
-                                ShowLock="{x:Bind NotPaired}"
-                                ShowDisconnected="{x:Bind NotConnected}"
+                                ShowOrbit="{x:Bind StatusIsPolling}"
                                 Margin="27,0"/>
                         </DataTemplate>
                     </ListView.ItemTemplate>
@@ -113,10 +113,22 @@
                         Padding="24,12"
                         CornerRadius="12"
                         Background="#66000000">
-                    <TextBlock FontFamily="Bahnschrift"
-                               FontSize="10"
-                               TextAlignment="Center"
-                               Text="{Binding ElementName=HostsGrid, Path=SelectedItem.ComputerName}" />
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                        <Grid Width="10" Height="10" VerticalAlignment="Center">
+                            <Ellipse Stroke="#777" StrokeThickness="1" Fill="Transparent"
+                                     Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsDisconnected, Converter={StaticResource BoolToVis}}" />
+                            <Ellipse Stroke="White" StrokeThickness="0" Fill="#FF22C55E"
+                                     Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsConnectedAndPaired, Converter={StaticResource BoolToVis}}" />
+                            <Image Source="ms-appx:///Assets/lock.svg" Width="10" Height="10"
+                                   Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsNotPaired, Converter={StaticResource BoolToVis}}" />
+                            <Image Source="ms-appx:///Assets/loading2.gif" Width="10" Height="10"
+                                   Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsPolling, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                        <TextBlock FontFamily="Bahnschrift"
+                                   FontSize="10"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding ElementName=HostsGrid, Path=SelectedItem.ComputerName}" />
+                    </StackPanel>
                 </Border>
             </Grid>
             <Grid Grid.Row="2">

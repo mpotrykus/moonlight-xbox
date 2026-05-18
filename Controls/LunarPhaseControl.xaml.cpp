@@ -12,6 +12,7 @@ using namespace Windows::Foundation;
 
 static constexpr long long kAnimationMs = 150;
 static constexpr double kShadowTravelPx = 100.0;
+static constexpr long long kOrbitLoopMs = 2040;
 
 Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_showOrbitProperty =
     DependencyProperty::Register(
@@ -42,6 +43,8 @@ LunarPhaseControl::LunarPhaseControl()
     InitializeComponent();
     m_phaseStoryboard = nullptr;
     m_selectionStoryboard = nullptr;
+    m_orbitHideTimer = nullptr;
+    m_orbitShownTick = 0;
 
     // Build PathGeometry for the crescent shape entirely in code so no x:Name
     // is needed on geometry objects inside Path.Data.
@@ -112,9 +115,53 @@ void LunarPhaseControl::OnShowOrbitChanged(
     auto ctrl = dynamic_cast<LunarPhaseControl^>(d);
     if (ctrl == nullptr) return;
     bool show = (bool)e->NewValue;
-    ctrl->OrbitGif->Visibility = show
-        ? Windows::UI::Xaml::Visibility::Visible
-        : Windows::UI::Xaml::Visibility::Collapsed;
+
+    if (show) {
+        if (ctrl->m_orbitHideTimer != nullptr) {
+            try { ctrl->m_orbitHideTimer->Stop(); } catch (...) {}
+            ctrl->m_orbitHideTimer = nullptr;
+        }
+        ctrl->m_orbitShownTick = (long long)GetTickCount64();
+        ctrl->OrbitGif->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        return;
+    }
+
+    // Compute remaining ms in the current gif loop so we hide at a loop boundary.
+    long long rem;
+    if (ctrl->m_orbitShownTick == 0) {
+        rem = kOrbitLoopMs;
+    } else {
+        long long elapsed = (long long)GetTickCount64() - ctrl->m_orbitShownTick;
+        if (elapsed < 0) elapsed = 0;
+        rem = kOrbitLoopMs - (elapsed % kOrbitLoopMs);
+        if (rem <= 50) {
+            // Close enough to a boundary — hide now without starting a timer.
+            ctrl->OrbitGif->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+            return;
+        }
+    }
+
+    if (ctrl->m_orbitHideTimer != nullptr) {
+        try { ctrl->m_orbitHideTimer->Stop(); } catch (...) {}
+    }
+
+    auto timer = ref new Windows::UI::Xaml::DispatcherTimer();
+    TimeSpan ts;
+    ts.Duration = rem * 10000LL;
+    timer->Interval = ts;
+
+    Platform::WeakReference weakCtrl(ctrl);
+    timer->Tick += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+        [weakCtrl](Platform::Object^ sender, Platform::Object^) {
+            auto that = weakCtrl.Resolve<LunarPhaseControl>();
+            try { dynamic_cast<Windows::UI::Xaml::DispatcherTimer^>(sender)->Stop(); } catch (...) {}
+            if (that == nullptr) return;
+            that->m_orbitHideTimer = nullptr;
+            that->OrbitGif->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+        });
+
+    ctrl->m_orbitHideTimer = timer;
+    timer->Start();
 }
 
 void LunarPhaseControl::OnShowLockChanged(
