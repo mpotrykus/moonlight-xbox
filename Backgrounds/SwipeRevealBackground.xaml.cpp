@@ -65,7 +65,15 @@ SwipeRevealBackground::SwipeRevealBackground()
     ts.Duration = 16 * 10000LL;
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = ts;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &SwipeRevealBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<SwipeRevealBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void SwipeRevealBackground::SetHosts(IVector<MoonlightHost^>^ hosts)
@@ -303,6 +311,9 @@ void SwipeRevealBackground::StartAnimations()
 
 void SwipeRevealBackground::StopAnimations()
 {
-    if (m_timer) m_timer->Stop();
+    if (m_timer) {
+        m_timer->Stop();
+        m_timer->Tick -= m_tickToken;
+    }
     GlassEdge->Opacity = 0.0;
 }

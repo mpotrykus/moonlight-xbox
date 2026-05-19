@@ -23,6 +23,7 @@ public:
     void StopAnimations();
 private:
     Windows::UI::Xaml::DispatcherTimer^ m_timer;
+    Windows::Foundation::EventRegistrationToken m_tickToken;
     std::vector<StreakState> m_streaks;
     float m_canvasW = 0;
     float m_canvasH = 0;

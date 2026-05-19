@@ -24,7 +24,15 @@ SpheresBackground::SpheresBackground()
     interval.Duration = 16 * 10000LL;
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = interval;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &SpheresBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<SpheresBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void SpheresBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -121,5 +129,8 @@ void SpheresBackground::StartAnimations()
 
 void SpheresBackground::StopAnimations()
 {
-    if (m_timer != nullptr) m_timer->Stop();
+    if (m_timer != nullptr) {
+        m_timer->Stop();
+        m_timer->Tick -= m_tickToken;
+    }
 }

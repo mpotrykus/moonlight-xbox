@@ -13,6 +13,7 @@ public:
     void SetHosts(Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts);
 private:
     Windows::UI::Xaml::DispatcherTimer^                          m_timer;
+    Windows::Foundation::EventRegistrationToken                  m_tickToken;
     Windows::Foundation::Collections::IVector<MoonlightHost^>^  m_hosts;
     Platform::Collections::Vector<MoonlightApp^>^                m_apps;
 

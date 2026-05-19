@@ -34,7 +34,15 @@ BlobsBackground::BlobsBackground()
     interval.Duration = 16 * 10000LL;
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = interval;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &BlobsBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<BlobsBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void BlobsBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -176,5 +184,8 @@ void BlobsBackground::StartAnimations()
 
 void BlobsBackground::StopAnimations()
 {
-    if (m_timer != nullptr) m_timer->Stop();
+    if (m_timer != nullptr) {
+        m_timer->Stop();
+        m_timer->Tick -= m_tickToken;
+    }
 }

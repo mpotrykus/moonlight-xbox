@@ -42,7 +42,15 @@ StreaksBackground::StreaksBackground()
     interval.Duration = 16 * 10000LL;
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = interval;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &StreaksBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<StreaksBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void StreaksBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -204,5 +212,8 @@ void StreaksBackground::StartAnimations()
 
 void StreaksBackground::StopAnimations()
 {
-    if (m_timer != nullptr) m_timer->Stop();
+    if (m_timer != nullptr) {
+        m_timer->Stop();
+        m_timer->Tick -= m_tickToken;
+    }
 }

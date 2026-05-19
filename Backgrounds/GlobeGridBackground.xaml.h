@@ -21,6 +21,7 @@ public:
     void StopAnimations();
 private:
     Windows::UI::Xaml::DispatcherTimer^ m_timer;
+    Windows::Foundation::EventRegistrationToken m_tickToken;
     std::vector<GlobeStarState>         m_stars;
     std::mt19937                        m_rng;
 

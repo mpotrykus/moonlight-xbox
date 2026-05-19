@@ -35,7 +35,15 @@ GlobeGridBackground::GlobeGridBackground()
     ts.Duration = 16 * 10000LL;
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = ts;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &GlobeGridBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<GlobeGridBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void GlobeGridBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -214,5 +222,8 @@ void GlobeGridBackground::StartAnimations()
 
 void GlobeGridBackground::StopAnimations()
 {
-    if (m_timer) m_timer->Stop();
+    if (m_timer) {
+        m_timer->Stop();
+        m_timer->Tick -= m_tickToken;
+    }
 }

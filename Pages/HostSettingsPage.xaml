@@ -44,7 +44,7 @@
             </Button>
         </Grid>
 
-        <Border Grid.Row="1" Margin="50,35" CornerRadius="8">
+        <Border Grid.Row="1" Margin="50,35" CornerRadius="16" MaxWidth="1000" MaxHeight="600">
             <Border.Background>
                     <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0" TintLuminosityOpacity="0.1"/>
             </Border.Background>

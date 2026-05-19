@@ -45,7 +45,15 @@ PaperCutBackground::PaperCutBackground()
     interval.Duration = 33 * 10000LL;  // ~30 fps
     m_timer = ref new DispatcherTimer();
     m_timer->Interval = interval;
-    m_timer->Tick += ref new EventHandler<Object^>(this, &PaperCutBackground::OnTick);
+    Platform::WeakReference weakSelf(this);
+    m_tickToken = m_timer->Tick += ref new EventHandler<Object^>(
+        [weakSelf](Object^, Object^) {
+            try {
+                auto self = weakSelf.Resolve<PaperCutBackground>();
+                if (self) self->OnTick(nullptr, nullptr);
+            } catch (Platform::DisconnectedException^) {}
+              catch (...) {}
+        });
 }
 
 void PaperCutBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -222,4 +230,4 @@ void PaperCutBackground::OnTick(Object^ sender, Object^ args)
 }
 
 void PaperCutBackground::StartAnimations()  { if (m_timer) m_timer->Start(); }
-void PaperCutBackground::StopAnimations()   { if (m_timer) m_timer->Stop();  }
+void PaperCutBackground::StopAnimations()   { if (m_timer) { m_timer->Stop(); m_timer->Tick -= m_tickToken; } }
