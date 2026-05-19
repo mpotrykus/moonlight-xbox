@@ -91,7 +91,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="GENERAL" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -100,7 +100,7 @@
                                         <ComboBox Grid.Column="1" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -109,7 +109,7 @@
                                         <ToggleSwitch Grid.Column="1" x:Name="ThemeToggle" Toggled="ThemeToggle_Toggled" OffContent="Light" OnContent="Dark" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -127,7 +127,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="DISPLAY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -136,7 +136,7 @@
                                         <Slider Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -158,7 +158,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -172,7 +172,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />
@@ -185,7 +185,7 @@
                                         </StackPanel>
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="250" />
                                             <ColumnDefinition Width="*" />

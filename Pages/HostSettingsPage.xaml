@@ -58,7 +58,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="VIDEO QUALITY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -77,7 +77,7 @@
                                         </ComboBox>
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -86,7 +86,7 @@
                                         <ComboBox Grid.Column="1" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="120" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -95,7 +95,7 @@
                                         <Slider Grid.Column="1" Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -109,7 +109,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="OPTIONS" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -118,7 +118,7 @@
                                         <CheckBox Grid.Column="1" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -137,7 +137,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="AUDIO" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -146,7 +146,7 @@
                                         <ComboBox Grid.Column="1" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -164,7 +164,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="STARTUP" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -178,7 +178,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="PERFORMANCE" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -187,7 +187,7 @@
                                         <CheckBox Grid.Column="1" x:Name="EnableStatsCheckbox" IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -205,49 +205,34 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="HOST DETAILS" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid RowSpacing="8" ColumnSpacing="24" Padding="0,20">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Computer Name" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.ComputerName}" VerticalAlignment="Center" Opacity="0.7" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Hostname" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center" Opacity="0.7" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Server Address" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.ServerAddress}" VerticalAlignment="Center" Opacity="0.7" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="MAC Address" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" Opacity="0.7" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid MinHeight="52">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Instance ID" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Column="1" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" Opacity="0.7" />
+
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>        
+                                            <RowDefinition/>        
+                                            <RowDefinition/>        
+                                            <RowDefinition/>        
+                                            <RowDefinition/>        
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Computer Name" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind Host.ComputerName}" VerticalAlignment="Center" Opacity="0.7" />
+                                    
+                                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Hostname" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center" Opacity="0.7" />
+                                        
+                                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Server Address" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Host.ServerAddress}" VerticalAlignment="Center" Opacity="0.7" />
+                                        
+                                        <TextBlock Grid.Column="0" Grid.Row="3" Text="MAC Address" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="3" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" Opacity="0.7" />
+                                        
+                                        <TextBlock Grid.Column="0" Grid.Row="4" Text="Instance ID" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" Opacity="0.7" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -333,7 +318,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="BACKGROUND" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
@@ -348,10 +333,10 @@
                                 </StackPanel>
                             </Border>
 
-                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="COLORS" Margin="0,16,0,0" />
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="COLORS"/>
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid MinHeight="52">
+                                    <Grid Padding="0,18">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />

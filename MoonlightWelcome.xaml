@@ -28,7 +28,7 @@
         </StackPanel>
         <!-- Page 2 -->
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="600">
-            <TextBlock FontSize="32">Servers</TextBlock>
+            <TextBlock FontSize="32" FontFamily="Bahnschrift">Servers</TextBlock>
             <TextBlock Margin="0,24,0,32">To make Moonlight work, you need a Server. You can use one of the following options:</TextBlock>
             <StackPanel Orientation="Vertical">
                 <Grid>
@@ -84,7 +84,7 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
                 
-                <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Margin="0,0,0,16" FontSize="32">Hints</TextBlock>
+                <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Margin="0,0,0,16" FontSize="32" FontFamily="Bahnschrift">Hints</TextBlock>
                 
                 <Image Grid.Column="0" Grid.Row="1" Source="ms-appx:///Assets/desktop.svg" ></Image>
                 <TextBlock Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="WrapWholeWords">
@@ -138,7 +138,7 @@
         </StackPanel>
         <!--Page 4-->
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock FontSize="32">Support</TextBlock>
+            <TextBlock FontSize="32" FontFamily="Bahnschrift">Support</TextBlock>
             <TextBlock Margin="0,24,0,32">Need some Help?</TextBlock>
             <Grid>
                 <Grid.ColumnDefinitions>
