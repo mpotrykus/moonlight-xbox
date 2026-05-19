@@ -17,6 +17,7 @@
 #include <DirectXColors.h>
 #include <DirectXMath.h>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>

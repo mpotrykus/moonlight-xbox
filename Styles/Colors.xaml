@@ -4,7 +4,7 @@
 
     <!-- Fallback theme resources used at compile time -->
     <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
-    <SolidColorBrush x:Key="ButtonForegroundColor" Color="#44FFFFFF"/>
+    <SolidColorBrush x:Key="ButtonForegroundColor" Color="#444"/>
     <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#11FFFFFF"/>
 
     <!-- Theme variables -->

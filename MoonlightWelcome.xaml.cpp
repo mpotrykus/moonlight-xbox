@@ -24,7 +24,7 @@ using namespace Windows::UI::Xaml::Navigation;
 MoonlightWelcome::MoonlightWelcome()
 {
 	InitializeComponent();
-	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseVisible);
+	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightWelcome::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightWelcome::OnUnloaded);
@@ -81,10 +81,12 @@ void MoonlightWelcome::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 {
     auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
     m_back_token = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightWelcome::OnBackRequested);
+    BackgroundControl->StartAnimations();
 }
 
 void MoonlightWelcome::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	navigation->BackRequested -= m_back_token;
+    BackgroundControl->StopAnimations();
 }

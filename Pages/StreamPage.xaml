@@ -404,6 +404,16 @@
             </Border.Background>
             <TextBlock x:Name="ToastText" Foreground="White" FontSize="12" />
         </Border>
+        <Grid x:Name="ClosingOverlay" Visibility="Collapsed"
+              HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid.Background>
+                <SolidColorBrush Color="#000000" Opacity="0.85"/>
+            </Grid.Background>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                <Image Source="ms-appx:///Assets/loading2.gif" Width="48" Height="48" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="ClosingOverlayText" Text="Closing..." HorizontalAlignment="Center" FontSize="14" Foreground="White"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 
 </Page>

@@ -413,24 +413,26 @@ void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windo
 
 	auto that = this;
 
-	auto progressToken = ::moonlight_xbox_dx::ModalDialog::ShowProgressDialogToken(nullptr, Utils::StringFromStdString("Closing..."));
+	auto name = (configuration != nullptr && configuration->appName != nullptr) ? configuration->appName : nullptr;
+	this->ClosingOverlayText->Text = (name != nullptr && name->Length() > 0)
+		? ref new Platform::String((std::wstring(L"Closing ") + name->Data() + L"...").c_str())
+		: ref new Platform::String(L"Closing...");
+	this->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
-	concurrency::create_task(concurrency::create_async([that, progressToken]() {
+	concurrency::create_task(concurrency::create_async([that]() {
 		try {
 			if (that->m_main) {
 				that->m_main->CloseApp();
 			}
 		} catch (...) {
 		}
-	})).then([that, progressToken](concurrency::task<void> t) {
+	})).then([that](concurrency::task<void> t) {
 		try {
 			t.get();
 
 			// UI is sent back to HostSelectorPage in StartRenderLoop(), after the loop exits
-			// All we need to do is close the progress dialog
-
-			DISPATCH_UI([progressToken] {
-				::moonlight_xbox_dx::ModalDialog::HideDialogByToken(progressToken);
+			DISPATCH_UI([that] {
+				that->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 			});
 		} catch (...) {
 		}

@@ -31,14 +31,13 @@ Platform::String^ ModalDialog::GetMessage() {
 }
 
 void ModalDialog::ShowProgress(bool show) {
-    if (this->ProgressRing == nullptr) return;
-    this->ProgressRing->IsActive = show;
-    this->ProgressRing->Visibility = show ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+    if (this->LoadingGif == nullptr) return;
+    this->LoadingGif->Visibility = show ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
 }
 
 bool ModalDialog::IsProgressShown() {
-    if (this->ProgressRing == nullptr) return false;
-    return this->ProgressRing->IsActive && this->ProgressRing->Visibility == Windows::UI::Xaml::Visibility::Visible;
+    if (this->LoadingGif == nullptr) return false;
+    return this->LoadingGif->Visibility == Windows::UI::Xaml::Visibility::Visible;
 }
 
 // Small wrapper used to publish the UI-owned clone asynchronously. We insert an

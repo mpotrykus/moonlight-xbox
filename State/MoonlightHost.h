@@ -18,6 +18,13 @@ namespace moonlight_xbox_dx {
         bool connected;
         bool loading = true;
         bool wolPolling = false;
+        bool displayedConnected = false;
+        bool displayedPaired = false;
+        bool displayedLoading = true;
+        bool displayedWolPolling = false;
+        std::atomic<int> m_debounceVersion{ 0 };
+        void ScheduleStatusDebounce();
+        void CommitDisplayedStatus();
         bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
@@ -98,8 +105,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
-                OnPropertyChanged("StatusIsConnectedAndPaired");
-                OnPropertyChanged("StatusIsNotPaired");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -111,9 +117,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
-                OnPropertyChanged("StatusIsConnectedAndPaired");
-                OnPropertyChanged("StatusIsNotPaired");
-                OnPropertyChanged("StatusIsDisconnected");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -129,22 +133,22 @@ namespace moonlight_xbox_dx {
 
         property bool StatusIsPolling
         {
-            bool get() { return this->wolPolling || this->loading; }
+            bool get() { return this->displayedWolPolling || this->displayedLoading; }
         }
 
         property bool StatusIsConnectedAndPaired
         {
-            bool get() { return this->connected && this->paired && !StatusIsPolling; }
+            bool get() { return this->displayedConnected && this->displayedPaired && !StatusIsPolling; }
         }
 
         property bool StatusIsNotPaired
         {
-            bool get() { return this->connected && !this->paired && !StatusIsPolling; }
+            bool get() { return this->displayedConnected && !this->displayedPaired && !StatusIsPolling; }
         }
 
         property bool StatusIsDisconnected
         {
-            bool get() { return !this->connected && !StatusIsPolling; }
+            bool get() { return !this->displayedConnected && !StatusIsPolling; }
         }
 
         property bool Loading
@@ -158,10 +162,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Paired");
-                OnPropertyChanged("StatusIsPolling");
-                OnPropertyChanged("StatusIsConnectedAndPaired");
-                OnPropertyChanged("StatusIsNotPaired");
-                OnPropertyChanged("StatusIsDisconnected");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -177,10 +178,7 @@ namespace moonlight_xbox_dx {
                 this->wolPolling = value;
                 OnPropertyChanged("WolPolling");
                 OnPropertyChanged("WolPollingVisibility");
-                OnPropertyChanged("StatusIsPolling");
-                OnPropertyChanged("StatusIsConnectedAndPaired");
-                OnPropertyChanged("StatusIsNotPaired");
-                OnPropertyChanged("StatusIsDisconnected");
+                ScheduleStatusDebounce();
             }
         }
 

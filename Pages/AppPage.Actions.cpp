@@ -57,6 +57,7 @@ void AppPage::Connect(int appId) {
     config->enableGraphs  = host->EnableGraphs;
     if (config->enableHDR) host->VideoCodec = "HEVC (H.265)";
     config->backgroundImage = (this->currentApp != nullptr) ? this->currentApp->BlurredImage : nullptr;
+    config->appName         = (this->currentApp != nullptr) ? this->currentApp->Name : nullptr;
     this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
 }
 
@@ -163,10 +164,13 @@ void AppPage::closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::X
 
 void AppPage::ExecuteCloseAndStart() {
     Platform::WeakReference weakThis(this);
-    auto progressToken = ModalDialog::ShowProgressDialogToken(
-        nullptr, Utils::StringFromStdString("Closing app..."));
+    auto name = (this->currentApp != nullptr && this->currentApp->Name != nullptr) ? this->currentApp->Name : nullptr;
+    this->ClosingOverlayText->Text = (name != nullptr && name->Length() > 0)
+        ? ref new Platform::String((std::wstring(L"Closing ") + name->Data() + L"...").c_str())
+        : ref new Platform::String(L"Closing...");
+    this->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
-    create_task(create_async([weakThis, progressToken]() {
+    create_task(create_async([weakThis]() {
         try {
             auto thatLocal = weakThis.Resolve<AppPage>();
             if (thatLocal == nullptr) return;
@@ -177,12 +181,14 @@ void AppPage::ExecuteCloseAndStart() {
         auto thatLocal2 = weakThis.Resolve<AppPage>();
         if (thatLocal2 == nullptr) return;
         thatLocal2->Dispatcher->RunAsync(CoreDispatcherPriority::High,
-            ref new DispatchedHandler([weakThis, progressToken]() {
+            ref new DispatchedHandler([weakThis]() {
             auto thatUI = weakThis.Resolve<AppPage>();
             try {
-                if (thatUI != nullptr && thatUI->currentApp != nullptr)
-                    thatUI->Connect(thatUI->currentApp->Id);
-                ModalDialog::HideDialogByToken(progressToken);
+                if (thatUI != nullptr) {
+                    thatUI->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+                    if (thatUI->currentApp != nullptr)
+                        thatUI->Connect(thatUI->currentApp->Id);
+                }
             } catch(...) {}
         }));
     })).then([](concurrency::task<void> t) { try { t.get(); } catch(...) {} });
@@ -192,10 +198,13 @@ void AppPage::ExecuteCloseAndStart() {
 
 void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
     Platform::WeakReference weakThis(this);
-    auto progressToken = ModalDialog::ShowProgressDialogToken(
-        Utils::StringFromStdString("Closing"), Utils::StringFromStdString("Closing app..."));
+    auto name = (this->currentApp != nullptr && this->currentApp->Name != nullptr) ? this->currentApp->Name : nullptr;
+    this->ClosingOverlayText->Text = (name != nullptr && name->Length() > 0)
+        ? ref new Platform::String((std::wstring(L"Closing ") + name->Data() + L"...").c_str())
+        : ref new Platform::String(L"Closing...");
+    this->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
-    create_task(create_async([weakThis, progressToken]() {
+    create_task(create_async([weakThis]() {
         try {
             auto thatLocal = weakThis.Resolve<AppPage>();
             if (thatLocal == nullptr) return;
@@ -206,15 +215,15 @@ void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::
         auto thatLocal2 = weakThis.Resolve<AppPage>();
         if (thatLocal2 == nullptr) return;
         thatLocal2->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-            ref new DispatchedHandler([weakThis, progressToken]() {
+            ref new DispatchedHandler([weakThis]() {
             auto thatUI = weakThis.Resolve<AppPage>();
             try {
                 if (thatUI != nullptr) {
                     thatUI->host->UpdateHostInfo(true);
                     thatUI->host->UpdateAppRunningStates();
+                    thatUI->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
                 }
             } catch(...) {}
-            ModalDialog::HideDialogByToken(progressToken);
         }));
     }));
 }

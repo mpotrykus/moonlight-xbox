@@ -6,6 +6,7 @@
 #pragma once
 
 #include "MoonlightWelcome.g.h"
+#include "Backgrounds\StreaksBackground.xaml.h"
 
 namespace moonlight_xbox_dx
 {

@@ -83,4 +83,30 @@ namespace moonlight_xbox_dx {
 			PropertyChanged(this, ref new  Windows::UI::Xaml::Data::PropertyChangedEventArgs(propertyName));
 		}));
 	}
+
+	void MoonlightHost::ScheduleStatusDebounce()
+	{
+		int version = ++m_debounceVersion;
+		auto delay = Windows::Foundation::TimeSpan{ 10000000LL }; // 1 second in 100-ns units
+		Windows::System::Threading::ThreadPoolTimer::CreateTimer(
+			ref new Windows::System::Threading::TimerElapsedHandler([this, version](Windows::System::Threading::ThreadPoolTimer^) {
+				if (m_debounceVersion == version) {
+					CommitDisplayedStatus();
+				}
+			}),
+			delay
+		);
+	}
+
+	void MoonlightHost::CommitDisplayedStatus()
+	{
+		this->displayedConnected = this->connected;
+		this->displayedPaired = this->paired;
+		this->displayedLoading = this->loading;
+		this->displayedWolPolling = this->wolPolling;
+		OnPropertyChanged("StatusIsPolling");
+		OnPropertyChanged("StatusIsConnectedAndPaired");
+		OnPropertyChanged("StatusIsNotPaired");
+		OnPropertyChanged("StatusIsDisconnected");
+	}
 }
