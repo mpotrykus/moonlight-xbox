@@ -15,6 +15,7 @@
 #include "State\MDNSHandler.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Common\ModalDialog.xaml.h"
+#include "Pages\AlertDialog.xaml.h"
 #include "Pages\HostActionsDialog.xaml.h"
 #include "Pages\TestConnectionResultDialog.xaml.h"
 #include <string>
@@ -369,18 +370,18 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	int status = client->Connect(ipAddressStr);
 	if (status != 0)return;
 	char* pin = client->GeneratePIN();
-	ContentDialog^ dialog = ref new ContentDialog();
+	auto dialog = ref new ::moonlight_xbox_dx::AlertDialog();
 	wchar_t msg[4096];
 	swprintf(msg, 4096, L"We need to pair the host before continuing. Type %S on your host to continue", pin);
-	dialog->Content = ref new Platform::String(msg);
-	dialog->PrimaryButtonText = "Ok";
-	concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
+	dialog->Configure("Pair Host", ref new Platform::String(msg), L"\xE72E");
+	try { dialog->XamlRoot = this->XamlRoot; } catch (...) {}
+	concurrency::create_task(dialog->ShowAsync());
 	Concurrency::create_task([dialog, host, client, pin]() {
 			int a = client->Pair();
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a, dialog, host]()
 			{
 				if (a == 0) {
-						::moonlight_xbox_dx::ModalDialog::HideDialog(dialog);
+						try { dialog->Hide(); } catch (...) {}
 				}
 				else {
 				}
@@ -597,17 +598,10 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 	try {
 		bool success = State->WakeHost(currentHost);
 		if (success) {
-			ContentDialog ^ confirm = ref new ContentDialog();
-			confirm->Title = "Wake Host";
-			confirm->Content = "Wake-on-LAN packet sent successfully to " + currentHost->ComputerName;
-			confirm->PrimaryButtonText = "OK";
-			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(confirm));
-		} else {
-			ContentDialog ^ fail = ref new ContentDialog();
-			fail->Title = "Wake Host Failed";
-			fail->Content = "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.";
-			fail->PrimaryButtonText = "OK";
-			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(fail));
+			auto fail = ref new ::moonlight_xbox_dx::AlertDialog();
+			fail->Configure("Wake Host Failed", "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.");
+			try { fail->XamlRoot = this->XamlRoot; } catch (...) {}
+			concurrency::create_task(fail->ShowAsync());
 		}
 
 		if (success) {
@@ -643,11 +637,10 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 			});
 		}
 	} catch (std::exception ex) {
-		ContentDialog ^ dialog = ref new ContentDialog();
-		dialog->Title = "Wake Host Error";
-		dialog->Content = "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char *)ex.what());
-		dialog->PrimaryButtonText = "OK";
-		concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog));
+		auto errDlg = ref new ::moonlight_xbox_dx::AlertDialog();
+		errDlg->Configure("Wake Host Error", "An error occurred while trying to wake the host:\n\n" + Utils::StringFromChars((char *)ex.what()));
+		try { errDlg->XamlRoot = this->XamlRoot; } catch (...) {}
+		concurrency::create_task(errDlg->ShowAsync());
 	}
 }
 

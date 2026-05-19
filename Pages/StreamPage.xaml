@@ -407,7 +407,7 @@
         <Grid x:Name="ClosingOverlay" Visibility="Collapsed"
               HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <Grid.Background>
-                <SolidColorBrush Color="#000000" Opacity="0.85"/>
+                <SolidColorBrush Color="#000000" Opacity="0.65"/>
             </Grid.Background>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
                 <Image Source="ms-appx:///Assets/loading2.gif" Width="48" Height="48" HorizontalAlignment="Center"/>

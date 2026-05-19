@@ -386,6 +386,9 @@
     <ClInclude Include="Pages\TestConnectionResultDialog.xaml.h">
       <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Pages\AlertDialog.xaml.h">
+      <DependentUpon>Pages\AlertDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
@@ -618,6 +621,9 @@
     <ClCompile Include="Pages\TestConnectionResultDialog.xaml.cpp">
       <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="Pages\AlertDialog.xaml.cpp">
+      <DependentUpon>Pages\AlertDialog.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
@@ -828,6 +834,7 @@
     <Page Include="Pages\AddHostDialog.xaml" />
     <Page Include="Pages\HostActionsDialog.xaml" />
     <Page Include="Pages\TestConnectionResultDialog.xaml" />
+    <Page Include="Pages\AlertDialog.xaml" />
     <Page Include="Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>
