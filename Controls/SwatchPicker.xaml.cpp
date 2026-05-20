@@ -231,6 +231,25 @@ void SwatchPicker::SetSwatches(IVector<Windows::UI::Color>^ colors)
     SelectEntry(sysEntry, false);
 }
 
+void SwatchPicker::SetSwatches(Windows::UI::Color* colors, int count)
+{
+    m_entries->Clear();
+    m_selectedEntry = nullptr;
+    m_customEntry   = nullptr;
+
+    auto sysColor = GetSystemAccentColor();
+    auto sysEntry = ref new SwatchEntry(sysColor, true, false);
+    m_entries->Append(sysEntry);
+
+    for (int i = 0; i < count; ++i)
+        m_entries->Append(ref new SwatchEntry(colors[i], false, false));
+
+    m_customEntry = ref new SwatchEntry(Windows::UI::Color{ 255, 108, 108, 108 }, false, true);
+    m_entries->Append(m_customEntry);
+
+    SelectEntry(sysEntry, false);
+}
+
 void SwatchPicker::SelectColor(Windows::UI::Color color, bool useSystem)
 {
     if (useSystem) {

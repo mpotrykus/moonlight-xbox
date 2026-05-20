@@ -14,12 +14,68 @@ using namespace Windows::UI::Xaml::Media::Animation;
 
 static const float kPi = 3.14159265358979f;
 
-// Red / magenta / purple palette — ARGB
-static const Color kBlobColors[kBlobCount] = {
-    { 170, 210,  10,  55 },  // crimson-red
-    { 170, 185,   0, 185 },  // pure magenta
-    { 170, 100,   0, 200 },  // deep indigo-purple
-};
+static bool ParseHex6(Platform::String^ s, Color& out)
+{
+    if (s == nullptr || s->Length() != 6) return false;
+    const wchar_t* p = s->Data();
+    wchar_t buf[7]; wcsncpy_s(buf, p, 6); buf[6] = L'\0';
+    wchar_t* end = nullptr;
+    unsigned long v = wcstoul(buf, &end, 16);
+    if (end != buf + 6) return false;
+    out.R = (uint8_t)((v >> 16) & 0xFF);
+    out.G = (uint8_t)((v >>  8) & 0xFF);
+    out.B = (uint8_t)( v        & 0xFF);
+    return true;
+}
+
+void BlobsBackground::LoadPalette()
+{
+    using namespace Windows::Storage;
+    Platform::String^ scheme = L"crimson";
+    auto ls = ApplicationData::Current->LocalSettings->Values;
+    if (ls->HasKey("blobs.scheme"))
+        scheme = safe_cast<Platform::String^>(ls->Lookup("blobs.scheme"));
+
+    // [0-2] blob colors (will be applied at alpha=170), [3] background (alpha=255)
+    Color schemes[5][4] = {
+        {{170,210,10,55},{170,185,0,185},{170,100,0,200},{255,8,0,16}},     // crimson
+        {{170,0,180,200},{170,0,100,220},{170,0,210,150},{255,0,6,20}},     // ocean
+        {{170,0,200,120},{170,60,190,255},{170,140,40,230},{255,2,4,10}},   // aurora
+        {{170,255,70,0},{170,210,20,20},{170,255,140,20},{255,12,3,0}},     // ember
+        {{170,170,40,230},{170,255,60,180},{170,40,90,255},{255,5,0,18}},   // nebula
+    };
+
+    int idx = -1;
+    if      (scheme->Equals(L"crimson")) idx = 0;
+    else if (scheme->Equals(L"ocean"))   idx = 1;
+    else if (scheme->Equals(L"aurora"))  idx = 2;
+    else if (scheme->Equals(L"ember"))   idx = 3;
+    else if (scheme->Equals(L"nebula"))  idx = 4;
+
+    if (idx >= 0) {
+        for (int i = 0; i < 4; ++i) m_palette[i] = schemes[idx][i];
+        return;
+    }
+
+    // custom — read per-slot hex strings, fall back to crimson defaults
+    static const wchar_t* kKeys[] = {
+        L"blobs.custom.0", L"blobs.custom.1", L"blobs.custom.2", L"blobs.custom.3"
+    };
+    Color defaults[4] = {
+        {170,210,10,55},{170,185,0,185},{170,100,0,200},{255,8,0,16}
+    };
+    for (int i = 0; i < 4; ++i) {
+        m_palette[i] = defaults[i];
+        auto key = ref new Platform::String(kKeys[i]);
+        if (ls->HasKey(key)) {
+            Color c = m_palette[i];
+            if (ParseHex6(safe_cast<Platform::String^>(ls->Lookup(key)), c)) {
+                c.A = (i < 3) ? 170 : 255;
+                m_palette[i] = c;
+            }
+        }
+    }
+}
 
 BlobsBackground::BlobsBackground()
 {
@@ -57,6 +113,8 @@ void BlobsBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs^ e
 
 void BlobsBackground::InitBlobs()
 {
+    LoadPalette();
+    BlobCanvas->Background = ref new SolidColorBrush(m_palette[3]);
     m_blobs.clear();
     BlobCanvas->Children->Clear();
 
@@ -118,7 +176,7 @@ void BlobsBackground::InitBlobs()
 
         auto path = ref new Path();
         path->Data = geom;
-        path->Fill = ref new SolidColorBrush(kBlobColors[i]);
+        path->Fill = ref new SolidColorBrush(m_palette[i]);
 
         BlobCanvas->Children->Append(path);
         m_blobs.push_back(b);
@@ -175,6 +233,17 @@ void BlobsBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
     Storyboard::SetTargetProperty(anim, "Opacity");
     sb->Children->Append(anim);
     sb->Begin();
+}
+
+void BlobsBackground::ReloadColors()
+{
+    if (!m_ready) return;
+    LoadPalette();
+    for (int i = 0; i < kBlobCount; ++i) {
+        safe_cast<Path^>(BlobCanvas->Children->GetAt(i))->Fill =
+            ref new SolidColorBrush(m_palette[i]);
+    }
+    BlobCanvas->Background = ref new SolidColorBrush(m_palette[3]);
 }
 
 void BlobsBackground::StartAnimations()

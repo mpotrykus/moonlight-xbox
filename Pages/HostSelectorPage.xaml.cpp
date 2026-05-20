@@ -597,7 +597,7 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 
 	try {
 		bool success = State->WakeHost(currentHost);
-		if (success) {
+		if (!success) {
 			auto fail = ref new ::moonlight_xbox_dx::AlertDialog();
 			fail->Configure("Wake Host Failed", "Failed to send Wake-on-LAN packet.\n\nPlease check if Wake-on-LAN is enabled on the host.");
 			try { fail->XamlRoot = this->XamlRoot; } catch (...) {}

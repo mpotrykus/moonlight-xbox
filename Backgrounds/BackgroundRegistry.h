@@ -12,9 +12,9 @@ static const BackgroundEntry kBackgrounds[] = {
     { L"spheres",     L"Bouncing Bubbles"   },
     { L"streaks",     L"Neon Streaks"       },
     { L"blobs",       L"Morphing Blobs"     },
-    { L"papercut",    L"Paper Cut"          },
     { L"swipereveal", L"Swipe Reveal"       },
     { L"globegrid",   L"Globe Grid"         },
+    { L"orbs",        L"Dancing Orbs"       },
 };
 
 static const int kBackgroundCount = 7;

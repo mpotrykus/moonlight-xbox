@@ -34,17 +34,55 @@
                     </Storyboard>
                 </VisualState>
             </VisualStateGroup>
+            <VisualStateGroup x:Name="DashedStates">
+                <VisualState x:Name="Solid">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="SolidLayer"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="0:0:0.2"/>
+                        <DoubleAnimation Storyboard.TargetName="DashedLayer"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="0:0:0.2"/>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="Dashed">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetName="SolidLayer"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="0" Duration="0:0:0.2"/>
+                        <DoubleAnimation Storyboard.TargetName="DashedLayer"
+                                         Storyboard.TargetProperty="Opacity"
+                                         To="1" Duration="0:0:0.2"/>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <!-- Crescent path: PathGeometry is assigned entirely in code-behind -->
-        <Path x:Name="CrescentPath" Fill="White"/>
+        <!-- Solid layer: crescent fill + ring outline -->
+        <Grid x:Name="SolidLayer">
+            <!-- Crescent path: PathGeometry is assigned entirely in code-behind -->
+            <Path x:Name="CrescentPath" Fill="White"/>
+            <!-- White stroke ring -->
+            <Ellipse x:Name="RingEllipse"
+                     Width="152" Height="152"
+                     Stroke="#bbFFFFFF" StrokeThickness="1"
+                     Fill="Transparent"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
 
-        <!-- White stroke ring -->
-        <Ellipse x:Name="RingEllipse"
-                 Width="152" Height="152"
-                 Stroke="#bbFFFFFF" StrokeThickness="1"
-                 Fill="Transparent"
-                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <!-- Dashed layer: same geometry, dashed strokes, no fill; fades in when unavailable -->
+        <Grid x:Name="DashedLayer" Opacity="0">
+            <Path x:Name="DashedCrescentPath"
+                  Fill="Transparent"
+                  Stroke="#bbFFFFFF" StrokeThickness="1.2"
+                  StrokeDashArray="4,4"/>
+            <Ellipse x:Name="DashedRingEllipse"
+                     Width="152" Height="152"
+                     Stroke="#bbFFFFFF" StrokeThickness="1"
+                     Fill="Transparent"
+                     StrokeDashArray="5,4"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
 
         <!-- Lock overlay icon -->
         <Image x:Name="LockIcon"

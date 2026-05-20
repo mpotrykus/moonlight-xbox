@@ -44,16 +44,17 @@
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" />
+            <ColumnDefinition Width="1" />
             <ColumnDefinition Width="7*" />
         </Grid.ColumnDefinitions>
 
         <!-- Left: vertical tab headers (scroll when overflow) -->
-        <ScrollViewer Grid.Column="0" Padding="0,0,0,25" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ScrollViewer Grid.Column="0" Padding="0,4,0,16" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ContentControl x:Name="TabsPresenter" Content="{Binding TabsContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" />
         </ScrollViewer>
 
         <!-- Right: main content area (scroll when overflow) -->
-        <ScrollViewer Grid.Column="1" Padding="35,0,0,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ScrollViewer Grid.Column="2" Padding="28,0,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
             <ContentControl x:Name="ContentPresenter" Content="{Binding LeftContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </ScrollViewer>
     </Grid>

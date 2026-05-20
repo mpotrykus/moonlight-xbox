@@ -26,6 +26,21 @@ static Color ScaleRGB(Color c, float s, uint8_t alpha = 255) {
         static_cast<uint8_t>(fminf(c.B * s, 255.0f)));
 }
 
+static bool ParseHex6(Platform::String^ s, Color& out)
+{
+    if (s == nullptr || s->Length() != 6) return false;
+    const wchar_t* p = s->Data();
+    wchar_t buf[7]; wcsncpy_s(buf, p, 6); buf[6] = L'\0';
+    wchar_t* end = nullptr;
+    unsigned long v = wcstoul(buf, &end, 16);
+    if (end != buf + 6) return false;
+    out.A = 255;
+    out.R = (uint8_t)((v >> 16) & 0xFF);
+    out.G = (uint8_t)((v >>  8) & 0xFF);
+    out.B = (uint8_t)( v        & 0xFF);
+    return true;
+}
+
 static const int kBokehCount    = 50;
 static const int kSmallCount    = 130;
 static const int kParticleCount = kBokehCount + kSmallCount;
@@ -37,13 +52,45 @@ float ParticleBackground::WaveY(float t) {
     return centerY + m_canvasH * 0.10f * sinf(t * kPi * 3.0f + m_wavePhase);
 }
 
+void ParticleBackground::LoadPalette()
+{
+    using namespace Windows::Storage;
+    Platform::String^ scheme = L"champagne";
+    auto ls = ApplicationData::Current->LocalSettings->Values;
+    if (ls->HasKey("particles.scheme"))
+        scheme = safe_cast<Platform::String^>(ls->Lookup("particles.scheme"));
+
+    struct { Color particle; Color gradient; } presets[] = {
+        { {255,210,165, 75}, {255, 50, 30,120} },  // champagne — warm gold + deep indigo
+        { {255,255,120, 40}, {255, 15, 80, 90} },  // ember     — bright orange + deep teal
+        { {255, 80,215,190}, {255, 90, 15,150} },  // aurora    — mint teal + deep violet
+        { {255,180, 90,230}, {255, 10, 20,100} },  // nebula    — purple + deep navy
+        { {255,235,110,150}, {255, 15, 85, 60} },  // blossom   — rose pink + deep forest
+    };
+    int idx = 0;
+    if      (scheme->Equals(L"ember"))   idx = 1;
+    else if (scheme->Equals(L"aurora"))  idx = 2;
+    else if (scheme->Equals(L"nebula"))  idx = 3;
+    else if (scheme->Equals(L"blossom")) idx = 4;
+
+    if (scheme->Equals(L"custom")) {
+        m_colorA       = presets[0].particle;
+        m_gradientColor = presets[0].gradient;
+        if (ls->HasKey("particles.custom.0"))
+            ParseHex6(safe_cast<Platform::String^>(ls->Lookup("particles.custom.0")), m_colorA);
+        if (ls->HasKey("particles.custom.1"))
+            ParseHex6(safe_cast<Platform::String^>(ls->Lookup("particles.custom.1")), m_gradientColor);
+    } else {
+        m_colorA        = presets[idx].particle;
+        m_gradientColor = presets[idx].gradient;
+    }
+    m_colorB = ScaleRGB(m_colorA, 0.35f);
+}
+
 ParticleBackground::ParticleBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
-
-    m_colorA = {255, 210, 165, 75};            // warm champagne gold
-    m_colorB = ScaleRGB(m_colorA, 0.35f);     // dark version: same hue, ~35% brightness
 
     TimeSpan interval;
     interval.Duration = 33 * 10000LL;
@@ -71,8 +118,57 @@ void ParticleBackground::Canvas_SizeChanged(Object^ sender, SizeChangedEventArgs
     }
 }
 
+void ParticleBackground::ApplyGradient()
+{
+    Color stop0 = ScaleRGB(m_gradientColor, 0.15f); stop0.A = 255;
+    Color stop1 = { 255, 5, 5, 10 };
+
+    if (m_bgBrush == nullptr) {
+        auto gs0 = ref new GradientStop(); gs0->Color = stop0; gs0->Offset = 0.0;
+        auto gs1 = ref new GradientStop(); gs1->Color = stop1; gs1->Offset = 1.0;
+        m_bgBrush = ref new LinearGradientBrush();
+        m_bgBrush->StartPoint = { 0.0, 1.0 };
+        m_bgBrush->EndPoint   = { 1.0, 0.0 };
+        m_bgBrush->GradientStops->Append(gs0);
+        m_bgBrush->GradientStops->Append(gs1);
+        ParticleCanvas->Background = m_bgBrush;
+    } else {
+        m_bgBrush->GradientStops->GetAt(0)->Color = stop0;
+        m_bgBrush->GradientStops->GetAt(1)->Color = stop1;
+    }
+}
+
+void ParticleBackground::ReloadColors()
+{
+    if (!m_initialized) return;
+    LoadPalette();
+    ApplyGradient();
+
+    SolidColorBrush^ bokehBrushes[2];
+    bokehBrushes[0] = ref new SolidColorBrush(LerpRGB(m_colorA, m_colorB, 0.3f, 45));
+    bokehBrushes[1] = ref new SolidColorBrush(LerpRGB(m_colorA, m_colorB, 0.7f, 40));
+
+    Color white = { 255, 255, 255, 255 };
+    Color coreCol = LerpRGB(m_colorA, white, 0.45f, 220);
+    SolidColorBrush^ smallBrushes[5];
+    for (int b = 0; b < 5; ++b) {
+        float   t = b / 4.0f;
+        uint8_t a = static_cast<uint8_t>(220 - t * 65);
+        smallBrushes[b] = ref new SolidColorBrush(LerpRGB(coreCol, m_colorB, t, a));
+    }
+
+    int count = static_cast<int>(m_particles.size());
+    for (int i = 0; i < count; ++i) {
+        auto& s = m_particles[i];
+        auto el = safe_cast<Ellipse^>(ParticleCanvas->Children->GetAt(i));
+        el->Fill = s.isBokeh ? bokehBrushes[s.colorSlot] : smallBrushes[s.colorSlot];
+    }
+}
+
 void ParticleBackground::InitParticles()
 {
+    LoadPalette();
+    ApplyGradient();
     m_particles.clear();
     m_particles.reserve(kParticleCount);
     ParticleCanvas->Children->Clear();
@@ -112,13 +208,14 @@ void ParticleBackground::InitParticles()
         s.opacityMax   = 0.32f;
         s.opacity      = bOp(m_rng);
         s.opacityDelta = bDelta(m_rng) * (m_rng() % 2 == 0 ? 1.0f : -1.0f);
+        s.colorSlot    = m_rng() % 2;
         m_particles.push_back(s);
 
         float x = s.t * m_canvasW;
         float y = WaveY(s.t) + s.spreadY;
         auto el = ref new Ellipse();
         el->Width = s.size; el->Height = s.size;
-        el->Fill = bokehBrushes[m_rng() % 2];
+        el->Fill = bokehBrushes[s.colorSlot];
         el->Opacity = s.opacity;
         Canvas::SetLeft(el, x - s.size * 0.5f);
         Canvas::SetTop(el, y - s.size * 0.5f);
@@ -146,12 +243,13 @@ void ParticleBackground::InitParticles()
         s.opacity      = s.opacityMin + (s.opacityMax - s.opacityMin)
                          * static_cast<float>(m_rng() % 100) / 100.0f;
         s.opacityDelta = sDelta(m_rng) * (m_rng() % 2 == 0 ? 1.0f : -1.0f);
+        int band = static_cast<int>(normDist * 5.0f);
+        if (band >= 5) band = 4;
+        s.colorSlot    = band;
         m_particles.push_back(s);
 
         float x = s.t * m_canvasW;
         float y = WaveY(s.t) + s.spreadY;
-        int band = static_cast<int>(normDist * 5.0f);
-        if (band >= 5) band = 4;
         auto el = ref new Ellipse();
         el->Width = s.size; el->Height = s.size;
         el->Fill = smallBrushes[band];

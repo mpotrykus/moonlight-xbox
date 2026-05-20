@@ -11,6 +11,7 @@ public:
     void StartAnimations();
     void StopAnimations();
     void ResetBackground();
+    void ReloadBackgroundColors();
     void SetHosts(Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts);
 private:
     Platform::String^ m_currentKey;

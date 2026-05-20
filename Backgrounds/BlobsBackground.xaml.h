@@ -35,7 +35,10 @@ public:
     BlobsBackground();
     void StartAnimations();
     void StopAnimations();
+    void ReloadColors();
 private:
+    Windows::UI::Color m_palette[4]; // [0-2] blob colors, [3] background
+    void LoadPalette();
     Windows::UI::Xaml::DispatcherTimer^ m_timer;
     Windows::Foundation::EventRegistrationToken m_tickToken;
     std::vector<BlobData>               m_blobs;

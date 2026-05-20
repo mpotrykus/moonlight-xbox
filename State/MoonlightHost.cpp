@@ -108,5 +108,6 @@ namespace moonlight_xbox_dx {
 		OnPropertyChanged("StatusIsConnectedAndPaired");
 		OnPropertyChanged("StatusIsNotPaired");
 		OnPropertyChanged("StatusIsDisconnected");
+		OnPropertyChanged("StatusIsUnavailable");
 	}
 }

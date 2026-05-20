@@ -8,12 +8,5 @@
     <Canvas x:Name="ParticleCanvas"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
-            SizeChanged="Canvas_SizeChanged" >
-        <Canvas.Background>
-            <LinearGradientBrush StartPoint="0.0,1.0" EndPoint="1.0,0.0">
-                <GradientStop Color="#12121f" Offset="0.0"/>
-                <GradientStop Color="#08081F" Offset="1.0"/>
-            </LinearGradientBrush>
-        </Canvas.Background>
-    </Canvas>
+            SizeChanged="Canvas_SizeChanged" />
 </UserControl>

@@ -30,6 +30,22 @@ static const Color kStreakPalette[] = {
 };
 static const int kStreakColors = 5;
 
+
+static bool ParseHex6(Platform::String^ s, Color& out)
+{
+    if (s == nullptr || s->Length() != 6) return false;
+    const wchar_t* p = s->Data();
+    wchar_t buf[7]; wcsncpy_s(buf, p, 6); buf[6] = L'\0';
+    wchar_t* end = nullptr;
+    unsigned long v = wcstoul(buf, &end, 16);
+    if (end != buf + 6) return false;
+    out.A = 255;
+    out.R = (uint8_t)((v >> 16) & 0xFF);
+    out.G = (uint8_t)((v >>  8) & 0xFF);
+    out.B = (uint8_t)( v        & 0xFF);
+    return true;
+}
+
 StreaksBackground::StreaksBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
@@ -98,8 +114,52 @@ static Rectangle^ MakeStreakRect(float rectW, float rectH, Color col, float opac
     return rect;
 }
 
+void StreaksBackground::LoadPalette()
+{
+    using namespace Windows::Storage;
+    Platform::String^ scheme = L"neon";
+    auto ls = ApplicationData::Current->LocalSettings->Values;
+    if (ls->HasKey("streaks.scheme"))
+        scheme = safe_cast<Platform::String^>(ls->Lookup("streaks.scheme"));
+
+    Color schemes[5][5] = {
+        {{255,255,0,0},{255,0,60,255},{255,255,0,220},{255,140,0,255},{255,0,220,255}},        // neon
+        {{255,0,80,255},{255,0,200,200},{255,0,229,255},{255,0,184,122},{255,26,58,255}},      // ocean
+        {{255,255,106,0},{255,255,45,120},{255,255,26,26},{255,255,194,0},{255,160,32,240}},   // sunset
+        {{255,255,224,0},{255,255,140,0},{255,255,173,0},{255,255,215,0},{255,255,69,0}},      // warm
+        {{255,224,224,224},{255,255,255,255},{255,191,191,191},{255,160,160,160},{255,207,207,207}}, // mono
+    };
+
+    int schemeIdx = -1;
+    if      (scheme->Equals(L"neon"))   schemeIdx = 0;
+    else if (scheme->Equals(L"ocean"))  schemeIdx = 1;
+    else if (scheme->Equals(L"sunset")) schemeIdx = 2;
+    else if (scheme->Equals(L"warm"))   schemeIdx = 3;
+    else if (scheme->Equals(L"mono"))   schemeIdx = 4;
+
+    if (schemeIdx >= 0) {
+        for (int i = 0; i < kStreakColors; ++i) m_palette[i] = schemes[schemeIdx][i];
+        return;
+    }
+
+    // custom — read per-slot hex strings
+    static const wchar_t* kCustomKeys[] = {
+        L"streaks.custom.0", L"streaks.custom.1", L"streaks.custom.2",
+        L"streaks.custom.3", L"streaks.custom.4"
+    };
+    for (int i = 0; i < kStreakColors; ++i) {
+        Color c = kStreakPalette[i];
+        auto key = ref new Platform::String(kCustomKeys[i]);
+        if (ls->HasKey(key)) {
+            ParseHex6(safe_cast<Platform::String^>(ls->Lookup(key)), c);
+        }
+        m_palette[i] = c;
+    }
+}
+
 void StreaksBackground::InitStreaks()
 {
+    LoadPalette();
     m_streaks.clear();
     m_streaks.reserve(kStreakCount);
     StreakCanvas->Children->Clear();
@@ -129,7 +189,7 @@ void StreaksBackground::InitStreaks()
     // All glows first so they're below all cores in z-order
     for (int i = 0; i < kStreakCount; ++i) {
         const auto& s = m_streaks[i];
-        Color col    = kStreakPalette[s.colorIndex];
+        Color col    = m_palette[s.colorIndex];
         float glowRectW = 2.0f * (s.halfLen + kGlowExtend) * kSqrt2;
         float opacity = 0.55f + static_cast<float>(m_rng() % 45) / 100.0f;
 
@@ -203,6 +263,18 @@ void StreaksBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
     Storyboard::SetTargetProperty(anim, "Opacity");
     sb->Children->Append(anim);
     sb->Begin();
+}
+
+void StreaksBackground::ReloadColors()
+{
+    if (!m_initialized) return;
+    LoadPalette();
+    for (int i = 0; i < kStreakCount; ++i) {
+        Color col = m_palette[m_streaks[i].colorIndex];
+        auto brush = ref new SolidColorBrush(ColorHelper::FromArgb(255, col.R, col.G, col.B));
+        safe_cast<Rectangle^>(StreakCanvas->Children->GetAt(kGlowBase + i))->Fill = brush;
+        safe_cast<Rectangle^>(StreakCanvas->Children->GetAt(kCoreBase + i))->Fill = brush;
+    }
 }
 
 void StreaksBackground::StartAnimations()

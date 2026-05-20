@@ -115,5 +115,68 @@ namespace moonlight_xbox_dx
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		int getDefaultBitrate(int width, int height, int fps);
+
+		bool m_streaksInitialized = false;
+		bool m_particleInitialized = false;
+		bool m_spheresInitialized = false;
+		bool m_orbsInitialized = false;
+		bool m_blobsInitialized = false;
+
+		// Particle color personalization
+		void ParticleSchemeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void ParticleColor0_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void ParticleColor1_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void ParticleResetButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void InitParticleSchemeSelector();
+		void InitParticleCustomPickers();
+		void UpdateParticleColorSectionVisibility();
+		void UpdateParticleCustomPanelVisibility();
+
+		// Streak color personalization
+		void StreaksSchemeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void StreaksColor0_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void StreaksColor1_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void StreaksColor2_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void StreaksColor3_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void StreaksColor4_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void StreaksResetButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void InitStreaksSchemeSelector();
+		void InitStreaksCustomPickers();
+		void UpdateStreakColorSectionVisibility();
+		void UpdateStreaksCustomPanelVisibility();
+
+		// Orbs (Dancing Orbs) color personalization
+		void OrbsSchemeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void OrbsColor0_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void OrbsColor1_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void OrbsResetButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void InitOrbsSchemeSelector();
+		void InitOrbsCustomPickers();
+		void UpdateOrbsColorSectionVisibility();
+		void UpdateOrbsCustomPanelVisibility();
+
+		// Blobs (Morphing Blobs) color personalization
+		void BlobsSchemeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void BlobsColor0_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void BlobsColor1_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void BlobsColor2_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void BlobsColor3_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void BlobsResetButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void InitBlobsSchemeSelector();
+		void InitBlobsCustomPickers();
+		void UpdateBlobsColorSectionVisibility();
+		void UpdateBlobsCustomPanelVisibility();
+
+		// Spheres (Bouncing Bubbles) color + shape personalization
+		void SpheresSchemeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void SpheresShapeSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+		void SpheresColor0_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void SpheresColor1_ColorChanged(Platform::Object^ sender, Windows::UI::Color color, bool useSystemAccent);
+		void SpheresResetButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void InitSpheresSchemeSelector();
+		void InitSpheresShapeSelector();
+		void InitSpheresCustomPickers();
+		void UpdateSpheresColorSectionVisibility();
+		void UpdateSpheresCustomPanelVisibility();
 	};
 }

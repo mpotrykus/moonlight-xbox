@@ -38,6 +38,12 @@ Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_shadowCenterXPropert
         ref new PropertyMetadata(80.0,
             ref new PropertyChangedCallback(&LunarPhaseControl::OnShadowCenterXChanged)));
 
+Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_isDashedProperty =
+    DependencyProperty::Register(
+        "IsDashed", bool::typeid, LunarPhaseControl::typeid,
+        ref new PropertyMetadata(false,
+            ref new PropertyChangedCallback(&LunarPhaseControl::OnIsDashedChanged)));
+
 LunarPhaseControl::LunarPhaseControl()
 {
     InitializeComponent();
@@ -69,8 +75,30 @@ LunarPhaseControl::LunarPhaseControl()
 
     CrescentPath->Data = pathGeo;
 
+    // Dashed path gets its own geometry — UWP forbids sharing a Geometry across two Path::Data.
+    m_dashedOuterArc = ref new ArcSegment();
+    m_dashedOuterArc->Size = Size(76.0f, 76.0f);
+    m_dashedOuterArc->IsLargeArc = true;
+    m_dashedOuterArc->SweepDirection = SweepDirection::Clockwise;
+
+    m_dashedInnerArc = ref new ArcSegment();
+    m_dashedInnerArc->Size = Size(76.0f, 76.0f);
+    m_dashedInnerArc->IsLargeArc = false;
+    m_dashedInnerArc->SweepDirection = SweepDirection::Counterclockwise;
+
+    m_dashedCrescentFigure = ref new PathFigure();
+    m_dashedCrescentFigure->IsClosed = true;
+    m_dashedCrescentFigure->IsFilled = true;
+    m_dashedCrescentFigure->Segments->Append(m_dashedOuterArc);
+    m_dashedCrescentFigure->Segments->Append(m_dashedInnerArc);
+
+    auto dashedPathGeo = ref new PathGeometry();
+    dashedPathGeo->Figures->Append(m_dashedCrescentFigure);
+    DashedCrescentPath->Data = dashedPathGeo;
+
     // Start hidden (shadow coincident = new moon)
     CrescentPath->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    DashedCrescentPath->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 }
 
 bool LunarPhaseControl::ShowOrbit::get()
@@ -188,6 +216,23 @@ void LunarPhaseControl::OnShadowCenterXChanged(
     ctrl->SetCrescentPath((double)e->NewValue);
 }
 
+bool LunarPhaseControl::IsDashed::get()
+{
+    return (bool)GetValue(m_isDashedProperty);
+}
+void LunarPhaseControl::IsDashed::set(bool v)
+{
+    SetValue(m_isDashedProperty, v);
+}
+
+void LunarPhaseControl::OnIsDashedChanged(
+    DependencyObject^ d, DependencyPropertyChangedEventArgs^ e)
+{
+    auto ctrl = dynamic_cast<LunarPhaseControl^>(d);
+    if (ctrl == nullptr) return;
+    VisualStateManager::GoToState(ctrl, (bool)e->NewValue ? "Dashed" : "Solid", true);
+}
+
 void LunarPhaseControl::SetCrescentPath(double sx)
 {
     const double cx = 80.0, cy = 80.0, r = 76.0;
@@ -195,10 +240,12 @@ void LunarPhaseControl::SetCrescentPath(double sx)
 
     if (d < 0.5) {
         CrescentPath->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+        DashedCrescentPath->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
         return;
     }
 
     CrescentPath->Visibility = Windows::UI::Xaml::Visibility::Visible;
+    DashedCrescentPath->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
     // Clamp so circles always overlap (d < 2r) to avoid degenerate case
     if (d > 2.0 * r - 0.5) d = 2.0 * r - 0.5;
@@ -212,22 +259,26 @@ void LunarPhaseControl::SetCrescentPath(double sx)
 
     bool crescentOnRight = (sx < cx);
 
-    m_crescentFigure->StartPoint = Point((float)ix, (float)iy1);
+    Point topPt((float)ix, (float)iy1);
+    Point botPt((float)ix, (float)iy2);
+    SweepDirection outerSweep = crescentOnRight ? SweepDirection::Clockwise : SweepDirection::Counterclockwise;
+    SweepDirection innerSweep = crescentOnRight ? SweepDirection::Counterclockwise : SweepDirection::Clockwise;
 
-    // Outer arc: from top intersection to bottom, going around the LIT side.
-    // Always a large arc (> 180 degrees) going CW for right-crescent, CCW for left-crescent.
-    m_outerArc->Point = Point((float)ix, (float)iy2);
+    m_crescentFigure->StartPoint = topPt;
+    m_outerArc->Point = botPt;
     m_outerArc->IsLargeArc = true;
-    m_outerArc->SweepDirection = crescentOnRight
-        ? SweepDirection::Clockwise
-        : SweepDirection::Counterclockwise;
-
-    // Inner arc: from bottom back to top, going around the shadow side (short arc).
-    m_innerArc->Point = Point((float)ix, (float)iy1);
+    m_outerArc->SweepDirection = outerSweep;
+    m_innerArc->Point = topPt;
     m_innerArc->IsLargeArc = false;
-    m_innerArc->SweepDirection = crescentOnRight
-        ? SweepDirection::Counterclockwise
-        : SweepDirection::Clockwise;
+    m_innerArc->SweepDirection = innerSweep;
+
+    m_dashedCrescentFigure->StartPoint = topPt;
+    m_dashedOuterArc->Point = botPt;
+    m_dashedOuterArc->IsLargeArc = true;
+    m_dashedOuterArc->SweepDirection = outerSweep;
+    m_dashedInnerArc->Point = topPt;
+    m_dashedInnerArc->IsLargeArc = false;
+    m_dashedInnerArc->SweepDirection = innerSweep;
 }
 
 void LunarPhaseControl::SetSelected(bool selected, bool animated)

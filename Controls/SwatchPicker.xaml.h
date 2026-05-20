@@ -91,6 +91,7 @@ public:
 
     // Replace the color palette (system swatch is always prepended automatically).
     void SetSwatches(Windows::Foundation::Collections::IVector<Windows::UI::Color>^ colors);
+    void SetSwatches(Windows::UI::Color* colors, int count);
 
     // Programmatically restore a saved selection without firing ColorChanged.
     void SelectColor(Windows::UI::Color color, bool useSystem);

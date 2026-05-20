@@ -5,9 +5,9 @@
 #include "Backgrounds\SpheresBackground.xaml.h"
 #include "Backgrounds\StreaksBackground.xaml.h"
 #include "Backgrounds\BlobsBackground.xaml.h"
-#include "Backgrounds\PaperCutBackground.xaml.h"
 #include "Backgrounds\SwipeRevealBackground.xaml.h"
 #include "Backgrounds\GlobeGridBackground.xaml.h"
+#include "Backgrounds\OrbsBackground.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -23,9 +23,9 @@ static void TryStartAnimations(UIElement^ el)
     if (auto s = dynamic_cast<SpheresBackground^>(el))     { s->StartAnimations(); return; }
     if (auto k = dynamic_cast<StreaksBackground^>(el))     { k->StartAnimations(); return; }
     if (auto l = dynamic_cast<BlobsBackground^>(el))       { l->StartAnimations(); return; }
-    if (auto pc = dynamic_cast<PaperCutBackground^>(el))   { pc->StartAnimations(); return; }
     if (auto sr = dynamic_cast<SwipeRevealBackground^>(el)) { sr->StartAnimations(); return; }
     if (auto gg = dynamic_cast<GlobeGridBackground^>(el))   { gg->StartAnimations(); return; }
+    if (auto ob = dynamic_cast<OrbsBackground^>(el))        { ob->StartAnimations(); return; }
 }
 
 static void TryStopAnimations(UIElement^ el)
@@ -34,9 +34,9 @@ static void TryStopAnimations(UIElement^ el)
     if (auto s = dynamic_cast<SpheresBackground^>(el))     { s->StopAnimations(); return; }
     if (auto k = dynamic_cast<StreaksBackground^>(el))     { k->StopAnimations(); return; }
     if (auto l = dynamic_cast<BlobsBackground^>(el))       { l->StopAnimations(); return; }
-    if (auto pc = dynamic_cast<PaperCutBackground^>(el))   { pc->StopAnimations(); return; }
     if (auto sr = dynamic_cast<SwipeRevealBackground^>(el)) { sr->StopAnimations(); return; }
     if (auto gg = dynamic_cast<GlobeGridBackground^>(el))   { gg->StopAnimations(); return; }
+    if (auto ob = dynamic_cast<OrbsBackground^>(el))        { ob->StopAnimations(); return; }
 }
 
 static UIElement^ CreateBackground(String^ key)
@@ -46,9 +46,9 @@ static UIElement^ CreateBackground(String^ key)
         if (key->Equals(ref new String(L"spheres")))     return ref new SpheresBackground();
         if (key->Equals(ref new String(L"streaks")))     return ref new StreaksBackground();
         if (key->Equals(ref new String(L"blobs")))       return ref new BlobsBackground();
-        if (key->Equals(ref new String(L"papercut")))    return ref new PaperCutBackground();
         if (key->Equals(ref new String(L"swipereveal"))) return ref new SwipeRevealBackground();
         if (key->Equals(ref new String(L"globegrid")))   return ref new GlobeGridBackground();
+        if (key->Equals(ref new String(L"orbs")))         return ref new OrbsBackground();
     }
     return ref new StreaksBackground();
 }
@@ -176,6 +176,18 @@ void DynamicBackgroundHost::StopAnimations()
     try {
         auto el = dynamic_cast<UIElement^>(FadePresenter->Content);
         if (el != nullptr) TryStopAnimations(el);
+    } catch (...) {}
+}
+
+void DynamicBackgroundHost::ReloadBackgroundColors()
+{
+    try {
+        auto el = dynamic_cast<UIElement^>(BackgroundPresenter->Content);
+        if (auto p  = dynamic_cast<ParticleBackground^>(el)) { p->ReloadColors();  return; }
+        if (auto k  = dynamic_cast<StreaksBackground^>(el))  { k->ReloadColors();  return; }
+        if (auto s  = dynamic_cast<SpheresBackground^>(el))  { s->ReloadColors();  return; }
+        if (auto ob = dynamic_cast<OrbsBackground^>(el))     { ob->ReloadColors(); return; }
+        if (auto l  = dynamic_cast<BlobsBackground^>(el))    { l->ReloadColors();  return; }
     } catch (...) {}
 }
 

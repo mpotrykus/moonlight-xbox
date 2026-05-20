@@ -36,14 +36,15 @@
             <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="Moonlight Settings" Style="{StaticResource PageTitleStyle}" />
             </StackPanel>
-            <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,0,16">Open Welcome Wizard</Button>
+            <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center">Open Welcome Wizard</Button>
         </Grid>
 
-        <Border Grid.Row="1" Margin="50,35" CornerRadius="16" MaxWidth="1000" MaxHeight="600">
+        <Border Grid.Row="1" Margin="{StaticResource SettingsPanelMargin}" CornerRadius="16" MaxWidth="{StaticResource SettingsPanelMaxWidth}" MaxHeight="{StaticResource SettingsPanelMaxHeight}"
+                BorderBrush="#1EFFFFFF" BorderThickness="1">
             <Border.Background>
-                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0" TintLuminosityOpacity="0.1"/>
+                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0.04" TintLuminosityOpacity="0.13"/>
                 </Border.Background>
-            <local:TabsLayout x:Name="tabsLayout" Margin="24">
+            <local:TabsLayout x:Name="tabsLayout" Margin="{StaticResource SettingsPanelInnerMargin}">
 
                 <local:TabsLayout.TabsContent>
                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
@@ -91,35 +92,13 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="GENERAL" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Autostart Host" VerticalAlignment="Center" />
                                         <ComboBox Grid.Column="1" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="0,18">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Theme" VerticalAlignment="Center" />
-                                        <ToggleSwitch Grid.Column="1" x:Name="ThemeToggle" Toggled="ThemeToggle_Toggled" OffContent="Light" OnContent="Dark" VerticalAlignment="Center" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="0,18">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="BackgroundSelector"
-                                                  SelectionChanged="BackgroundSelector_SelectionChanged"
-                                                  VerticalAlignment="Center"
-                                                  HorizontalAlignment="Left"
-                                                  MinWidth="180" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -127,18 +106,18 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="DISPLAY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Screen Margin Height" VerticalAlignment="Center" />
                                         <Slider Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Screen Margin Width" VerticalAlignment="Center" />
@@ -158,9 +137,9 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Mouse Sensitivity" VerticalAlignment="Center" />
@@ -172,9 +151,9 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Experimental Keyboard" VerticalAlignment="Center" />
@@ -185,9 +164,9 @@
                                         </StackPanel>
                                     </Grid>
                                     <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="0,18">
+                                    <Grid Padding="{StaticResource SettingsRowPadding}">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="250" />
+                                            <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="Alternate Menu Combination" VerticalAlignment="Center" />

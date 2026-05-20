@@ -380,22 +380,26 @@
                                 <VisualState x:Name="Checked">
                                     <VisualState.Setters>
                                         <Setter Target="Root.Background" Value="{ThemeResource SystemControlHighlightAccentBrush}"/>
+                                        <Setter Target="ContentPresenter.Foreground" Value="#FFF"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="CheckedPointerOver">
                                     <VisualState.Setters>
                                         <Setter Target="Root.Background" Value="{ThemeResource SystemControlHighlightAccentBrush}"/>
+                                        <Setter Target="ContentPresenter.Foreground" Value="#FFF"/>
                                     </VisualState.Setters>
                                 </VisualState>
                                 <VisualState x:Name="CheckedPressed">
                                     <VisualState.Setters>
                                         <Setter Target="Root.Background" Value="{ThemeResource SystemControlHighlightAccentBrush}"/>
                                         <Setter Target="Root.Opacity" Value="0.6"/>
+                                        <Setter Target="ContentPresenter.Foreground" Value="#FFF"/>
                                     </VisualState.Setters>
                                 </VisualState>
                             </VisualStateGroup>
                         </VisualStateManager.VisualStateGroups>
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        <ContentPresenter x:Name="ContentPresenter"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
                     </Border>
                 </ControlTemplate>

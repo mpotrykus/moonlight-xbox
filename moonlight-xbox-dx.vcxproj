@@ -456,6 +456,9 @@
     <ClInclude Include="Backgrounds\GlobeGridBackground.xaml.h">
       <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="Backgrounds\OrbsBackground.xaml.h">
+      <DependentUpon>Backgrounds\OrbsBackground.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Backgrounds\BlobsBackground.xaml.h">
       <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
     </ClInclude>
@@ -602,6 +605,9 @@
     </ClCompile>
     <ClCompile Include="Backgrounds\GlobeGridBackground.xaml.cpp">
       <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="Backgrounds\OrbsBackground.xaml.cpp">
+      <DependentUpon>Backgrounds\OrbsBackground.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Backgrounds\BlobsBackground.xaml.cpp">
       <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
@@ -812,6 +818,7 @@
     <Page Include="Backgrounds\StreaksBackground.xaml" />
     <Page Include="Backgrounds\SwipeRevealBackground.xaml" />
     <Page Include="Backgrounds\GlobeGridBackground.xaml" />
+    <Page Include="Backgrounds\OrbsBackground.xaml" />
     <Page Include="Backgrounds\BlobsBackground.xaml" />
     <Page Include="Backgrounds\PaperCutBackground.xaml" />
     <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />

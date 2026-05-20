@@ -151,6 +151,11 @@ namespace moonlight_xbox_dx {
             bool get() { return !this->displayedConnected && !StatusIsPolling; }
         }
 
+        property bool StatusIsUnavailable
+        {
+            bool get() { return !(this->displayedConnected && this->displayedPaired); }
+        }
+
         property bool Loading
         {
             bool get() { return this->loading; }

@@ -18,6 +18,14 @@ namespace moonlight_xbox_dx {
             void set(bool v);
         }
 
+        static property Windows::UI::Xaml::DependencyProperty^ IsDashedProperty {
+            Windows::UI::Xaml::DependencyProperty^ get() { return m_isDashedProperty; }
+        }
+        property bool IsDashed {
+            bool get();
+            void set(bool v);
+        }
+
         static property Windows::UI::Xaml::DependencyProperty^ ShowLockProperty {
             Windows::UI::Xaml::DependencyProperty^ get() { return m_showLockProperty; }
         }
@@ -51,6 +59,7 @@ namespace moonlight_xbox_dx {
         static Windows::UI::Xaml::DependencyProperty^ m_showLockProperty;
         static Windows::UI::Xaml::DependencyProperty^ m_showDisconnectedProperty;
         static Windows::UI::Xaml::DependencyProperty^ m_shadowCenterXProperty;
+        static Windows::UI::Xaml::DependencyProperty^ m_isDashedProperty;
 
         static void OnShowOrbitChanged(
             Windows::UI::Xaml::DependencyObject^ d,
@@ -64,12 +73,18 @@ namespace moonlight_xbox_dx {
         static void OnShadowCenterXChanged(
             Windows::UI::Xaml::DependencyObject^ d,
             Windows::UI::Xaml::DependencyPropertyChangedEventArgs^ e);
+        static void OnIsDashedChanged(
+            Windows::UI::Xaml::DependencyObject^ d,
+            Windows::UI::Xaml::DependencyPropertyChangedEventArgs^ e);
 
         void SetCrescentPath(double shadowCenterX);
 
         Windows::UI::Xaml::Media::PathFigure^ m_crescentFigure;
         Windows::UI::Xaml::Media::ArcSegment^ m_outerArc;
         Windows::UI::Xaml::Media::ArcSegment^ m_innerArc;
+        Windows::UI::Xaml::Media::PathFigure^ m_dashedCrescentFigure;
+        Windows::UI::Xaml::Media::ArcSegment^ m_dashedOuterArc;
+        Windows::UI::Xaml::Media::ArcSegment^ m_dashedInnerArc;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_phaseStoryboard;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_selectionStoryboard;
         Windows::UI::Xaml::DispatcherTimer^ m_orbitHideTimer;

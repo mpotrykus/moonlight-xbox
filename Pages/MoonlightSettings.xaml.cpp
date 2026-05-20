@@ -6,7 +6,6 @@
 #include "pch.h"
 #include "MoonlightSettings.xaml.h"
 #include "Backgrounds\DynamicBackgroundHost.xaml.h"
-#include "Backgrounds\BackgroundRegistry.h"
 #include "MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
 #include "Keyboard/KeyboardCommon.h"
@@ -32,18 +31,6 @@ MoonlightSettings::MoonlightSettings()
 	InitializeComponent();
 	state = GetApplicationState();
 
-	// Restore theme preference from local settings (if present)
-	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-	if (localSettings->HasKey("theme")) {
-		auto v = safe_cast<Platform::String^>(localSettings->Lookup("theme"));
-		ApplyTheme(v);
-		// set toggle initial state
-		if (v->Equals("Dark")) {
-			ThemeToggle->IsOn = true;
-		} else {
-			ThemeToggle->IsOn = false;
-		}
-	}
 	auto item = ref new ComboBoxItem();
 	item->Content = "Don't autoconnect";
 	item->DataContext = "";
@@ -73,23 +60,6 @@ MoonlightSettings::MoonlightSettings()
 		}
 		k++;
 	}
-	// Populate background selector
-	auto bgSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-	Platform::String^ savedBg = ref new Platform::String(L"none");
-	if (bgSettings->HasKey("background")) {
-		savedBg = safe_cast<Platform::String^>(bgSettings->Lookup("background"));
-	}
-	for (int i = 0; i < kBackgroundCount; ++i) {
-		auto bgItem = ref new ComboBoxItem();
-		bgItem->Content = ref new Platform::String(kBackgrounds[i].displayName);
-		bgItem->DataContext = ref new Platform::String(kBackgrounds[i].key);
-		BackgroundSelector->Items->Append(bgItem);
-		if (savedBg->Equals(ref new Platform::String(kBackgrounds[i].key))) {
-			BackgroundSelector->SelectedIndex = i;
-		}
-	}
-	if (BackgroundSelector->SelectedIndex < 0) BackgroundSelector->SelectedIndex = 0;
-
 	this->Loaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnLoaded);
 	this->Unloaded += ref new Windows::UI::Xaml::RoutedEventHandler(this, &MoonlightSettings::OnUnloaded);
 }
@@ -148,33 +118,6 @@ void MoonlightSettings::LayoutSelector_SelectionChanged(Platform::Object^ sender
 	state->KeyboardLayout = s;
 }
 
-void MoonlightSettings::ThemeToggle_Toggled(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
-{
-	auto toggle = safe_cast<ToggleSwitch^>(sender);
-	auto theme = toggle->IsOn ? L"Dark" : L"Light";
-
-	// persist
-	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-	localSettings->Insert("theme", ref new Platform::String(theme));
-
-	ApplyTheme(ref new Platform::String(theme));
-}
-
-void MoonlightSettings::ApplyTheme(Platform::String^ theme)
-{
-	// Apply theme to the root visual element so ThemeResources re-evaluate.
-	// Setting Application::RequestedTheme can fail at runtime; use the root FrameworkElement's RequestedTheme (ElementTheme).
-	auto content = Windows::UI::Xaml::Window::Current->Content;
-	auto root = dynamic_cast<FrameworkElement^>(content);
-	if (root != nullptr) {
-		if (theme != nullptr && theme->Equals("Dark")) {
-			root->RequestedTheme = Windows::UI::Xaml::ElementTheme::Dark;
-		} else {
-			root->RequestedTheme = Windows::UI::Xaml::ElementTheme::Light;
-		}
-	}
-}
-
 void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
@@ -188,17 +131,3 @@ void MoonlightSettings::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::
 	navigation->BackRequested -= m_back_cookie;
 }
 
-void MoonlightSettings::BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
-{
-	auto item = dynamic_cast<ComboBoxItem^>(BackgroundSelector->SelectedItem);
-	if (item == nullptr) return;
-	auto key = item->DataContext->ToString();
-	auto localSettings = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-	localSettings->Insert("background", key);
-	try {
-		if (BackgroundHost != nullptr) {
-			BackgroundHost->Refresh();
-			BackgroundHost->StartAnimations();
-		}
-	} catch (...) {}
-}
