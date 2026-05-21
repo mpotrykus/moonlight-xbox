@@ -64,7 +64,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="ms-appx:///Assets/logo2.gif" Margin="0,0,2,5" Width="24" Height="24"></Image>
+                    <Image Source="ms-appx:///Assets/logo1.gif" Margin="0,0,2,5" Width="24" Height="24"></Image>
                     <TextBlock VerticalAlignment="Center" Padding="12,0" FontFamily="Bahnschrift" CharacterSpacing="500" FontSize="14">MOONLIGHT</TextBlock>
                 </StackPanel>
             </Grid>

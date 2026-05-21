@@ -16,7 +16,7 @@
               FocusVisualSecondaryThickness="0">
         <!-- Page 1-->
         <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Image Source="/Assets/logo2.gif" Width="64" Height="64"></Image>
+            <Image Source="/Assets/logo1.gif" Width="64" Height="64"></Image>
             <TextBlock Margin="0,32,0,12" TextAlignment="Center" FontFamily="Bahnschrift" FontSize="32">Welcome to Moonlight</TextBlock>
             <TextBlock >Moonlight allows your Xbox to control and stream your Computer!</TextBlock>
             <Button Click="GoForward" HorizontalAlignment="Center" Margin="8">
