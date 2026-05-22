@@ -1,8 +1,8 @@
 ﻿#include "moonlight_xbox_dxMain.h"
 #include "pch.h"
-#include <Pages/AppPage.xaml.h>
-#include <Pages/HostSelectorPage.xaml.h>
-#include <Pages/StreamPage.xaml.h>
+#include <UI/Pages/AppPage.xaml.h>
+#include <UI/Pages/HostSelectorPage.xaml.h>
+#include <UI/Pages/StreamPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>
 #include "../Plot/ImGuiPlots.h"
 #include "Common\DirectXHelper.h"
@@ -21,7 +21,7 @@ using namespace Windows::System::Threading;
 using namespace Windows::UI::ViewManagement::Core;
 
 extern "C" {
-#include <Common/ModalDialog.xaml.h>
+#include <UI/Modals/ModalDialog.xaml.h>
 #include <Limelight.h>
 }
 

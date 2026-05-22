@@ -279,6 +279,7 @@
     <Image Include="Assets\LargeTile.scale-400.png" />
     <Image Include="Assets\loading2.gif" />
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
+    <Image Include="Assets\logo1.gif" />
     <Image Include="Assets\logo2.gif" />
     <Image Include="Assets\logo_a.gif" />
     <Image Include="Assets\orbit_load.gif" />
@@ -342,20 +343,20 @@
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
     <ClInclude Include="Common\XamlHelper.h" />
-    <ClInclude Include="Controls\AspectRatioBox.xaml.h">
-      <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
+    <ClInclude Include="UI\Controls\AspectRatioBox.xaml.h">
+      <DependentUpon>UI\Controls\AspectRatioBox.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Controls\SwatchPicker.xaml.h">
-      <DependentUpon>Controls\SwatchPicker.xaml</DependentUpon>
+    <ClInclude Include="UI\Controls\SwatchPicker.xaml.h">
+      <DependentUpon>UI\Controls\SwatchPicker.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Controls\LunarPhaseControl.xaml.h">
-      <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
+    <ClInclude Include="UI\Controls\LunarPhaseControl.xaml.h">
+      <DependentUpon>UI\Controls\LunarPhaseControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Controls\TabsLayout.xaml.h">
-      <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
+    <ClInclude Include="UI\Controls\TabsLayout.xaml.h">
+      <DependentUpon>UI\Controls\TabsLayout.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Controls\SlidingMenu.xaml.h">
-      <DependentUpon>Controls\SlidingMenu.xaml</DependentUpon>
+    <ClInclude Include="UI\Controls\SlidingMenu.xaml.h">
+      <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Common\MenuItem.h" />
     <ClInclude Include="Converters\BooleanToVisibilityConverter.h" />
@@ -367,27 +368,27 @@
     <ClInclude Include="Converters\UppercaseConverter.h" />
     <ClInclude Include="Converters\WindowHeightConverter.h" />
     <ClInclude Include="Converters\WindowWidthConverter.h" />
-    <ClInclude Include="MoonlightWelcome.xaml.h">
-      <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\MoonlightWelcome.xaml.h">
+      <DependentUpon>UI\Pages\MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="KeyboardControl.xaml.h">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Common\ModalDialog.xaml.h">
-      <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\ModalDialog.xaml.h">
+      <DependentUpon>UI\Modals\ModalDialog.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
-    <ClInclude Include="Pages\AddHostDialog.xaml.h">
-      <DependentUpon>Pages\AddHostDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\AddHostDialog.xaml.h">
+      <DependentUpon>UI\Modals\AddHostDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\HostActionsDialog.xaml.h">
-      <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\HostActionsDialog.xaml.h">
+      <DependentUpon>UI\Modals\HostActionsDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\TestConnectionResultDialog.xaml.h">
-      <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\TestConnectionResultDialog.xaml.h">
+      <DependentUpon>UI\Modals\TestConnectionResultDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\AlertDialog.xaml.h">
-      <DependentUpon>Pages\AlertDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\AlertDialog.xaml.h">
+      <DependentUpon>UI\Modals\AlertDialog.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
@@ -410,26 +411,26 @@
     <ClInclude Include="Streaming\LogRenderer.h" />
     <ClInclude Include="Streaming\ShaderStructures.h" />
     <ClInclude Include="State\MDNSHandler.h" />
-    <ClInclude Include="Pages\HostSettingsPage.xaml.h">
-      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\HostSettingsPage.xaml.h">
+      <DependentUpon>UI\Pages\HostSettingsPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\MoonlightSettings.xaml.h">
-      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\MoonlightSettings.xaml.h">
+      <DependentUpon>UI\Pages\MoonlightSettings.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="State\ScreenResolution.h" />
     <ClInclude Include="State\MoonlightApp.h" />
-    <ClInclude Include="Pages\AppPage.xaml.h">
-      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\AppPage.xaml.h">
+      <DependentUpon>UI\Pages\AppPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\AppActionsDialog.xaml.h">
-      <DependentUpon>Pages\AppActionsDialog.xaml</DependentUpon>
+    <ClInclude Include="UI\Modals\AppActionsDialog.xaml.h">
+      <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\AppPage.Helpers.h" />
-    <ClInclude Include="Pages\HostSelectorPage.xaml.h">
-      <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\AppPage.Helpers.h" />
+    <ClInclude Include="UI\Pages\HostSelectorPage.xaml.h">
+      <DependentUpon>UI\Pages\HostSelectorPage.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Pages\StreamPage.xaml.h">
-      <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\StreamPage.xaml.h">
+      <DependentUpon>UI\Pages\StreamPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Streaming\StatsRenderer.h" />
@@ -440,36 +441,33 @@
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
-    <ClInclude Include="Backgrounds\BackgroundRegistry.h" />
-    <ClInclude Include="Backgrounds\ParticleBackground.xaml.h">
-      <DependentUpon>Backgrounds\ParticleBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\BackgroundRegistry.h" />
+    <ClInclude Include="UI\Backgrounds\ParticleBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\ParticleBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\SpheresBackground.xaml.h">
-      <DependentUpon>Backgrounds\SpheresBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\SpheresBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\SpheresBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\StreaksBackground.xaml.h">
-      <DependentUpon>Backgrounds\StreaksBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\StreaksBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\StreaksBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\SwipeRevealBackground.xaml.h">
-      <DependentUpon>Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\SwipeRevealBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\GlobeGridBackground.xaml.h">
-      <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\GlobeGridBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\GlobeGridBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\OrbsBackground.xaml.h">
-      <DependentUpon>Backgrounds\OrbsBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\OrbsBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\OrbsBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\BlobsBackground.xaml.h">
-      <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\BlobsBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\BlobsBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Backgrounds\PaperCutBackground.xaml.h">
-      <DependentUpon>Backgrounds\PaperCutBackground.xaml</DependentUpon>
-    </ClInclude>
-    <ClInclude Include="Backgrounds\DynamicBackgroundHost.xaml.h">
-      <DependentUpon>Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\DynamicBackgroundHost.xaml.h">
+      <DependentUpon>UI\Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Utils\FloatBuffer.h" />
-    <ClInclude Include="ViewModels\AppPageViewModel.h" />
+    <ClInclude Include="UI\ViewModels\AppPageViewModel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
@@ -477,17 +475,17 @@
     </ClCompile>
     <ClCompile Include="Common\TextConsole.cpp" />
     <ClCompile Include="Common\XamlHelper.cpp" />
-    <ClCompile Include="Controls\AspectRatioBox.xaml.cpp">
-      <DependentUpon>Controls\AspectRatioBox.xaml</DependentUpon>
+    <ClCompile Include="UI\Controls\AspectRatioBox.xaml.cpp">
+      <DependentUpon>UI\Controls\AspectRatioBox.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Controls\SwatchPicker.xaml.cpp">
-      <DependentUpon>Controls\SwatchPicker.xaml</DependentUpon>
+    <ClCompile Include="UI\Controls\SwatchPicker.xaml.cpp">
+      <DependentUpon>UI\Controls\SwatchPicker.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Controls\LunarPhaseControl.xaml.cpp">
-      <DependentUpon>Controls\LunarPhaseControl.xaml</DependentUpon>
+    <ClCompile Include="UI\Controls\LunarPhaseControl.xaml.cpp">
+      <DependentUpon>UI\Controls\LunarPhaseControl.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Controls\TabsLayout.xaml.cpp">
-      <DependentUpon>Controls\TabsLayout.xaml</DependentUpon>
+    <ClCompile Include="UI\Controls\TabsLayout.xaml.cpp">
+      <DependentUpon>UI\Controls\TabsLayout.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Converters\BooleanToVisibilityConverter.cpp" />
     <ClCompile Include="Converters\BoolToTextConverter.cpp" />
@@ -585,50 +583,47 @@
     <ClCompile Include="KeyboardControl.xaml.cpp">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="MoonlightWelcome.xaml.cpp">
-      <DependentUpon>MoonlightWelcome.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\MoonlightWelcome.xaml.cpp">
+      <DependentUpon>UI\Pages\MoonlightWelcome.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Common\ModalDialog.xaml.cpp">
-      <DependentUpon>Common\ModalDialog.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\ModalDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\ModalDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\ParticleBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\ParticleBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\ParticleBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\ParticleBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\SpheresBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\SpheresBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\SpheresBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\SpheresBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\StreaksBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\StreaksBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\StreaksBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\StreaksBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\SwipeRevealBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\SwipeRevealBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\GlobeGridBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\GlobeGridBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\GlobeGridBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\OrbsBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\OrbsBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\OrbsBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\OrbsBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\BlobsBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\BlobsBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\BlobsBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\BlobsBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\PaperCutBackground.xaml.cpp">
-      <DependentUpon>Backgrounds\PaperCutBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\DynamicBackgroundHost.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Backgrounds\DynamicBackgroundHost.xaml.cpp">
-      <DependentUpon>Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\AddHostDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\AddHostDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\AddHostDialog.xaml.cpp">
-      <DependentUpon>Pages\AddHostDialog.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\HostActionsDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\HostActionsDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\HostActionsDialog.xaml.cpp">
-      <DependentUpon>Pages\HostActionsDialog.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\TestConnectionResultDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\TestConnectionResultDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\TestConnectionResultDialog.xaml.cpp">
-      <DependentUpon>Pages\TestConnectionResultDialog.xaml</DependentUpon>
-    </ClCompile>
-    <ClCompile Include="Pages\AlertDialog.xaml.cpp">
-      <DependentUpon>Pages\AlertDialog.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\AlertDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\AlertDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
@@ -644,33 +639,33 @@
     <ClCompile Include="Streaming\VideoRenderer.cpp" />
     <ClCompile Include="Streaming\FrameQueue.cpp" />
     <ClCompile Include="State\MDNSHandler.cpp" />
-    <ClCompile Include="Pages\HostSettingsPage.xaml.cpp">
-      <DependentUpon>Pages\HostSettingsPage.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\HostSettingsPage.xaml.cpp">
+      <DependentUpon>UI\Pages\HostSettingsPage.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\MoonlightSettings.xaml.cpp">
-      <DependentUpon>Pages\MoonlightSettings.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\MoonlightSettings.xaml.cpp">
+      <DependentUpon>UI\Pages\MoonlightSettings.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="State\ScreenResolution.cpp" />
     <ClCompile Include="State\MoonlightApp.cpp" />
-    <ClCompile Include="Pages\AppPage.xaml.cpp">
-      <DependentUpon>Pages\AppPage.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\AppPage.xaml.cpp">
+      <DependentUpon>UI\Pages\AppPage.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\AppActionsDialog.xaml.cpp">
-      <DependentUpon>Pages\AppActionsDialog.xaml</DependentUpon>
+    <ClCompile Include="UI\Modals\AppActionsDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\AppPage.Helpers.cpp" />
-    <ClCompile Include="Pages\AppPage.Blur.cpp" />
-    <ClCompile Include="Pages\AppPage.Selection.cpp" />
-    <ClCompile Include="Pages\AppPage.Actions.cpp" />
-    <ClCompile Include="Controls\SlidingMenu.xaml.cpp">
-      <DependentUpon>Controls\SlidingMenu.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\AppPage.Helpers.cpp" />
+    <ClCompile Include="UI\Pages\AppPage.Blur.cpp" />
+    <ClCompile Include="UI\Pages\AppPage.Selection.cpp" />
+    <ClCompile Include="UI\Pages\AppPage.Actions.cpp" />
+    <ClCompile Include="UI\Controls\SlidingMenu.xaml.cpp">
+      <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Common\MenuItem.cpp" />
-    <ClCompile Include="Pages\HostSelectorPage.xaml.cpp">
-      <DependentUpon>Pages\HostSelectorPage.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\HostSelectorPage.xaml.cpp">
+      <DependentUpon>UI\Pages\HostSelectorPage.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Pages\StreamPage.xaml.cpp">
-      <DependentUpon>Pages\StreamPage.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\StreamPage.xaml.cpp">
+      <DependentUpon>UI\Pages\StreamPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -718,7 +713,7 @@
     </ClCompile>
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Utils\FloatBuffer.cpp" />
-    <ClCompile Include="ViewModels\AppPageViewModel.cpp" />
+    <ClCompile Include="UI\ViewModels\AppPageViewModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -813,59 +808,58 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Backgrounds\ParticleBackground.xaml" />
-    <Page Include="Backgrounds\SpheresBackground.xaml" />
-    <Page Include="Backgrounds\StreaksBackground.xaml" />
-    <Page Include="Backgrounds\SwipeRevealBackground.xaml" />
-    <Page Include="Backgrounds\GlobeGridBackground.xaml" />
-    <Page Include="Backgrounds\OrbsBackground.xaml" />
-    <Page Include="Backgrounds\BlobsBackground.xaml" />
-    <Page Include="Backgrounds\PaperCutBackground.xaml" />
-    <Page Include="Backgrounds\DynamicBackgroundHost.xaml" />
-    <Page Include="Controls\AspectRatioBox.xaml" />
-    <Page Include="Controls\SwatchPicker.xaml" />
-    <Page Include="Controls\LunarPhaseControl.xaml" />
-    <Page Include="Controls\TabsLayout.xaml" />
-    <Page Include="MoonlightWelcome.xaml">
+    <Page Include="UI\Backgrounds\ParticleBackground.xaml" />
+    <Page Include="UI\Backgrounds\SpheresBackground.xaml" />
+    <Page Include="UI\Backgrounds\StreaksBackground.xaml" />
+    <Page Include="UI\Backgrounds\SwipeRevealBackground.xaml" />
+    <Page Include="UI\Backgrounds\GlobeGridBackground.xaml" />
+    <Page Include="UI\Backgrounds\OrbsBackground.xaml" />
+    <Page Include="UI\Backgrounds\BlobsBackground.xaml" />
+    <Page Include="UI\Backgrounds\DynamicBackgroundHost.xaml" />
+    <Page Include="UI\Controls\AspectRatioBox.xaml" />
+    <Page Include="UI\Controls\SwatchPicker.xaml" />
+    <Page Include="UI\Controls\LunarPhaseControl.xaml" />
+    <Page Include="UI\Controls\TabsLayout.xaml" />
+    <Page Include="UI\Pages\MoonlightWelcome.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="KeyboardControl.xaml" />
-    <Page Include="Pages\AppActionsDialog.xaml" />
-    <Page Include="Pages\AppPage.Resources.xaml" />
-    <Page Include="Pages\AppPage.xaml">
+    <Page Include="UI\Modals\AppActionsDialog.xaml" />
+    <Page Include="UI\Pages\AppPage.Resources.xaml" />
+    <Page Include="UI\Pages\AppPage.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\HelpDialog.xaml">
+    <Page Include="UI\Modals\HelpDialog.xaml">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </Page>
-    <Page Include="Pages\AddHostDialog.xaml" />
-    <Page Include="Pages\HostActionsDialog.xaml" />
-    <Page Include="Pages\TestConnectionResultDialog.xaml" />
-    <Page Include="Pages\AlertDialog.xaml" />
-    <Page Include="Pages\HostSelectorPage.xaml">
+    <Page Include="UI\Modals\AddHostDialog.xaml" />
+    <Page Include="UI\Modals\HostActionsDialog.xaml" />
+    <Page Include="UI\Modals\TestConnectionResultDialog.xaml" />
+    <Page Include="UI\Modals\AlertDialog.xaml" />
+    <Page Include="UI\Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\HostSettingsPage.xaml">
+    <Page Include="UI\Pages\HostSettingsPage.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\MoonlightSettings.xaml">
+    <Page Include="UI\Pages\MoonlightSettings.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Pages\StreamPage.xaml" />
-    <Page Include="Common\ModalDialog.xaml">
+    <Page Include="UI\Pages\StreamPage.xaml" />
+    <Page Include="UI\Modals\ModalDialog.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Controls\SlidingMenu.xaml" />
-    <Page Include="Styles\Colors.xaml">
+    <Page Include="UI\Controls\SlidingMenu.xaml" />
+    <Page Include="UI\Styles\Colors.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Styles\Controls.xaml">
+    <Page Include="UI\Styles\Controls.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Styles\Globals.xaml" />
+    <Page Include="UI\Styles\Globals.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Pages\HelpDialog.xaml">
+    <Content Include="UI\Modals\HelpDialog.xaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

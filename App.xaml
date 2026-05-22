@@ -11,9 +11,9 @@
 
                 <controls:XamlControlsResources />
                 
-                <ResourceDictionary Source="ms-appx:///Styles/Globals.xaml"/>
-                <ResourceDictionary Source="ms-appx:///Styles/Colors.xaml"/>
-                <ResourceDictionary Source="ms-appx:///Styles/Controls.xaml"/>
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Globals.xaml"/>
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Colors.xaml"/>
+                <ResourceDictionary Source="ms-appx:///UI/Styles/Controls.xaml"/>
 
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

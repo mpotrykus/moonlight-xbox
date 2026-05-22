@@ -12,7 +12,7 @@ using namespace Windows::ApplicationModel;
 namespace moonlight_xbox_dx {
     namespace XamlHelper {
         concurrency::task<Platform::String^> LoadXamlFileAsStringAsync(Platform::String^ relativePath) {
-            // Expect input like L"/Pages/HelpDialog.xaml" or L"ms-appx:///Pages/HelpDialog.xaml"
+            // Expect input like L"/UI/Pages/HelpDialog.xaml" or L"ms-appx:///UI/Pages/HelpDialog.xaml"
             std::wstring orig = (relativePath == nullptr) ? std::wstring() : std::wstring(relativePath->Data());
             std::wstring uriW;
             if (orig.rfind(L"ms-appx:///", 0) == 0) {

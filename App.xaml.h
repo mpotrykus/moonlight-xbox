@@ -7,7 +7,7 @@
 
 #include "App.g.h"
 #include "Common\\MenuItem.h"
-#include <Pages\HostSelectorPage.xaml.h>
+#include <UI\Pages\HostSelectorPage.xaml.h>
 
 namespace moonlight_xbox_dx
 {

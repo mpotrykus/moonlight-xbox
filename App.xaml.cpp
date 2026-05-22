@@ -5,8 +5,8 @@
 
 #include "pch.h"
 #include <Utils.hpp>
-#include "MoonlightWelcome.xaml.h"
-#include "Pages\\MoonlightSettings.xaml.h"
+#include "UI\Pages\MoonlightWelcome.xaml.h"
+#include "UI\Pages\MoonlightSettings.xaml.h"
 
 using namespace moonlight_xbox_dx;
 

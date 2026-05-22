@@ -5,7 +5,7 @@
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
-#include "Pages\StreamPage.xaml.h"
+#include "UI\Pages\StreamPage.xaml.h"
 
 // Xbox supports 8 controllers, this ought to be enough for anyone.
 #define MAX_GAMEPADS 8
