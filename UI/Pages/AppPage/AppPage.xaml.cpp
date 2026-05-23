@@ -2,7 +2,7 @@
 #include "AppPage.Xaml.h"
 #include "AppPage.Helpers.h"
 #include "UI\Controls\SlidingMenu.xaml.h"
-#include "UI\Modals\ModalDialog.xaml.h"
+#include "UI\Modals\AlertDialog.xaml.h"
 #include "UI\Pages\HostSelectorPage.xaml.h"
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "UI\Pages\StreamPage.xaml.h"
@@ -283,11 +283,10 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
                                     auto inner = weakThis.Resolve<AppPage>();
                                     if (inner == nullptr) return;
                                     try {
-                                        auto dialog = ref new ContentDialog();
-                                        dialog->Title = Utils::StringFromStdString("Disconnected");
-                                        dialog->Content = Utils::StringFromStdString("Connection to host was lost.");
-                                        dialog->PrimaryButtonText = Utils::StringFromStdString("OK");
-                                        create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then([weakThis](ContentDialogResult result) {
+                                        auto dialog = ref new ::moonlight_xbox_dx::AlertDialog();
+                                        dialog->Configure(L"Disconnected", L"Connection to host was lost.");
+                                        try { dialog->XamlRoot = inner->XamlRoot; } catch (...) {}
+                                        create_task(dialog->ShowAsync()).then([weakThis](ContentDialogResult result) {
                                             auto that2 = weakThis.Resolve<AppPage>();
                                             if (that2 == nullptr) return;
                                             that2->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([that2]() {

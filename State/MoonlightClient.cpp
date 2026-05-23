@@ -433,11 +433,6 @@ int MoonlightClient::Connect(const char *hostname) {
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
 
 	int status = gs_init(&serverData, this->hostname, port, folder, 3, true);
-	if (status == 0 && serverData.paired) {
-		if (gs_pair_check(&serverData) != GS_OK) {
-			serverData.paired = false;
-		}
-	}
 	return status;
 }
 

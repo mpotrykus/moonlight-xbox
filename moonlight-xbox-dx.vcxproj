@@ -365,9 +365,6 @@
     <ClInclude Include="KeyboardControl.xaml.h">
       <DependentUpon>KeyboardControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Modals\ModalDialog.xaml.h">
-      <DependentUpon>UI\Modals\ModalDialog.xaml</DependentUpon>
-    </ClInclude>
     <ClInclude Include="Keyboard\KeyboardCommon.h" />
     <ClInclude Include="UI\Modals\AddHostDialog.xaml.h">
       <DependentUpon>UI\Modals\AddHostDialog.xaml</DependentUpon>
@@ -574,9 +571,6 @@
     </ClCompile>
     <ClCompile Include="UI\Pages\MoonlightWelcome.xaml.cpp">
       <DependentUpon>UI\Pages\MoonlightWelcome.xaml</DependentUpon>
-    </ClCompile>
-    <ClCompile Include="UI\Modals\ModalDialog.xaml.cpp">
-      <DependentUpon>UI\Modals\ModalDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="UI\Backgrounds\ParticleBackground.xaml.cpp">
       <DependentUpon>UI\Backgrounds\ParticleBackground.xaml</DependentUpon>
@@ -828,9 +822,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="UI\Pages\StreamPage.xaml" />
-    <Page Include="UI\Modals\ModalDialog.xaml">
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="UI\Controls\SlidingMenu.xaml" />
     <Page Include="UI\Styles\Colors.xaml">
       <SubType>Designer</SubType>

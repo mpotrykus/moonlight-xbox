@@ -1523,7 +1523,6 @@
     <Page Include="UI\Pages\StreamPage.xaml" />
     <Page Include="KeyboardControl.xaml" />
     <Page Include="UI\Pages\MoonlightWelcome.xaml" />
-    <Page Include="UI\Modals\ModalDialog.xaml" />
     <Page Include="UI\Controls\AspectRatioBox.xaml" />
     <Page Include="UI\Controls\SwatchPicker.xaml" />
     <Page Include="UI\Controls\LunarPhaseControl.xaml" />
