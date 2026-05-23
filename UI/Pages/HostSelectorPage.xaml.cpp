@@ -11,6 +11,7 @@
 #include <State\MoonlightClient.h>
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "Utils.hpp"
+#include "UI\Utilities\XamlHelpers.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "State\MDNSHandler.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
@@ -251,7 +252,7 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 			? selectedHost->Personalization->AccentColor
 			: (ref new Windows::UI::ViewManagement::UISettings())
 				->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
-		Utils::ApplyAccentColor(accentColor);
+		ApplyAccentColor(accentColor);
 	} catch (...) {}
 }
 

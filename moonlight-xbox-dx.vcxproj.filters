@@ -382,6 +382,9 @@
     <ClCompile Include="UI\Utilities\ImageHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Utilities\XamlHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Streaming\FrameQueue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -389,9 +392,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Streaming\FrameCadence.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Pages\AppPage\AppPage.Blur.cpp">
@@ -525,13 +525,13 @@
     <ClInclude Include="UI\Utilities\ImageHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="UI\Utilities\XamlHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Streaming\FrameCadence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Streaming\FrameQueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\Pages\AppPage\AppPage.Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Models\ViewModels\AppPageViewModel.h">

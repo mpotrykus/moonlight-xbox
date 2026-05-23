@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "AppPage.xaml.h"
-#include "AppPage.Helpers.h"
 #include "UI\Utilities\ImageHelpers.h"
 #include "Utils.hpp"
 #include <algorithm>
@@ -51,7 +50,7 @@ static double GetSharedAnimationDurationMs(AppPage^ page) {
         } catch (...) {}
     }
 
-    return ParseDurationStringToMs(durationValue);
+    return Utils::DurationStringToMs(durationValue);
 }
 
 } // namespace

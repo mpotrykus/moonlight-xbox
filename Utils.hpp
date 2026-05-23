@@ -21,6 +21,6 @@ namespace moonlight_xbox_dx {
 		std::string WideToNarrowString(const std::wstring_view& str);
 		std::wstring NarrowToWideString(const std::string_view& str);
 
-		void ApplyAccentColor(Windows::UI::Color color);
+		double DurationStringToMs(Platform::String^ durationValue);
 	}
 }

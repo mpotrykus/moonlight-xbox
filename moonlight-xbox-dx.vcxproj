@@ -339,6 +339,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="UI\Utilities\ImageHelpers.h" />
+    <ClInclude Include="UI\Utilities\XamlHelpers.h" />
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
     <ClInclude Include="UI\Controls\AspectRatioBox.xaml.h">
@@ -419,7 +420,6 @@
     <ClInclude Include="UI\Modals\AppActionsDialog.xaml.h">
       <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Pages\AppPage\AppPage.Helpers.h" />
     <ClInclude Include="UI\Pages\HostSelectorPage.xaml.h">
       <DependentUpon>UI\Pages\HostSelectorPage.xaml</DependentUpon>
     </ClInclude>
@@ -622,6 +622,7 @@
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="UI\Utilities\EffectsLibrary.cpp" />
     <ClCompile Include="UI\Utilities\ImageHelpers.cpp" />
+    <ClCompile Include="UI\Utilities\XamlHelpers.cpp" />
     <ClCompile Include="Streaming\LogRenderer.cpp" />
     <ClCompile Include="Streaming\Pacer.cpp" />
     <ClCompile Include="Streaming\FrameCadence.cpp" />
@@ -642,7 +643,6 @@
     <ClCompile Include="UI\Modals\AppActionsDialog.xaml.cpp">
       <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Helpers.cpp" />
     <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp" />
     <ClCompile Include="UI\Controls\SlidingMenu.xaml.cpp">
       <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>

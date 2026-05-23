@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "AppPage.Xaml.h"
-#include "AppPage.Helpers.h"
 #include "UI\Controls\SlidingMenu.xaml.h"
 #include "UI\Modals\AlertDialog.xaml.h"
 #include "UI\Modals\AppActionsDialog.xaml.h"
@@ -58,10 +57,27 @@ static double ResolveSharedAnimationDurationMsFromPageResources(Page^ page) {
     try {
         auto value = page->Resources->Lookup(ref new Platform::String(L"SharedAnimationDuration"));
         auto durationValue = dynamic_cast<Platform::String^>(value);
-        return ParseDurationStringToMs(durationValue);
+        return Utils::DurationStringToMs(durationValue);
     } catch(...) {}
 
     return 250.0;
+}
+
+static void FindElementChildren(DependencyObject^ container,
+    UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName,
+    UIElement^& outBlur, UIElement^& outPlay)
+{
+    outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
+    if (container == nullptr) return;
+    try {
+        outDesaturator = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Desaturator")));
+        outImage       = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageRect")));
+        outName        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppName")));
+        outBlur        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")));
+        outPlay        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Play")));
+    } catch(...) {
+        outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
+    }
 }
 
 } // namespace
@@ -296,7 +312,7 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
             ? (ref new Windows::UI::ViewManagement::UISettings())
                 ->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent)
             : host->Personalization->AccentColor;
-        Utils::ApplyAccentColor(accentColor);
+        ApplyAccentColor(accentColor);
         auto cur = this->ActualTheme;
         this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
         this->RequestedTheme = ElementTheme::Default;

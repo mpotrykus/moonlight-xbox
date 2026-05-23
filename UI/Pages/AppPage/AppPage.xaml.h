@@ -5,12 +5,29 @@
 #include "UI\Pages\AppPage\AppPage.g.h"
 #include "State\MoonlightApp.h"
 #include "UI\Models\ViewModels\AppPageViewModel.h"
+#include "UI\Utilities\XamlHelpers.h"
 #include <atomic>
 #include <chrono>
 #include <ppltasks.h>
 
 namespace moonlight_xbox_dx
 {
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+static constexpr float  kDesaturatorOpacityUnselected =  0.8f;
+static constexpr float  kBackgroundOpacity            = 0.05f;
+static constexpr float  kBackgroundSaturation         = 1.25f;
+static constexpr float  kSelectedScale                =  1.3f;
+static constexpr float  kUnselectedScale              =  1.0f;
+static constexpr double kSelectedHPadding             =  75.0;
+static constexpr double kAppsGridHeightFactor         =  0.50;
+static constexpr int    kAnimationDurationMs          =   500;
+static constexpr int    kBgPanDurationSec             =    10;
+static constexpr float  kBlurAmountBackground         =  2.0f;
+static constexpr float  kBlurGlowPaddingDip           = 60.0f;
+static constexpr float  kBlurGlowOpacity              = 0.50f;
+
     namespace Controls { ref class SlidingMenu; }
     [Windows::Foundation::Metadata::WebHostHidden]
     public ref class AppPage sealed

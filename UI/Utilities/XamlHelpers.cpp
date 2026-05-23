@@ -1,24 +1,12 @@
 #include "pch.h"
-#include "AppPage.Helpers.h"
-#include "Utils.hpp"
-#include <chrono>
+#include "XamlHelpers.h"
 #include <cmath>
-#include <sstream>
-#include <vector>
 
-using namespace Platform;
-using namespace Windows::Foundation;
-using namespace Windows::UI::Core;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
-using namespace Windows::UI::Xaml::Hosting;
-using namespace Windows::UI::Composition;
 using namespace Windows::UI::Xaml::Media;
-using namespace concurrency;
 
 namespace moonlight_xbox_dx {
-
-// ── Visual-tree helpers ───────────────────────────────────────────────────────
 
 FrameworkElement^ FindChildByName(DependencyObject^ parent, Platform::String^ name) {
     if (parent == nullptr) return nullptr;
@@ -45,62 +33,6 @@ ScrollViewer^ FindScrollViewer(DependencyObject^ parent) {
     }
     return nullptr;
 }
-
-void FindElementChildren(DependencyObject^ container,
-    UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName,
-    UIElement^& outBlur, UIElement^& outPlay)
-{
-    outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
-    if (container == nullptr) return;
-    try {
-        outDesaturator = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Desaturator")));
-        outImage       = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageRect")));
-        outName        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppName")));
-        outBlur        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")));
-        outPlay        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Play")));
-    } catch(...) {
-        outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
-    }
-}
-
-// ── Utility helpers ───────────────────────────────────────────────────────────
-
-double ParseDurationStringToMs(Platform::String^ durationValue) {
-    if (durationValue == nullptr || durationValue->IsEmpty()) return 250.0;
-
-    std::wstring text(durationValue->Data());
-    std::wstringstream ss(text);
-    std::wstring segment;
-    std::vector<double> parts;
-
-    while (std::getline(ss, segment, L':')) {
-        if (segment.empty()) return 250.0;
-        try {
-            size_t idx = 0;
-            double value = std::stod(segment, &idx);
-            if (idx != segment.size()) return 250.0;
-            parts.push_back(value);
-        } catch (...) {
-            return 250.0;
-        }
-    }
-
-    double totalSeconds = 0.0;
-    if (parts.size() == 3) {
-        totalSeconds = (parts[0] * 3600.0) + (parts[1] * 60.0) + parts[2];
-    } else if (parts.size() == 2) {
-        totalSeconds = (parts[0] * 60.0) + parts[1];
-    } else if (parts.size() == 1) {
-        totalSeconds = parts[0];
-    } else {
-        return 250.0;
-    }
-
-    if (!std::isfinite(totalSeconds) || totalSeconds <= 0.0) return 250.0;
-    return totalSeconds * 1000.0;
-}
-
-// ── Color helpers ─────────────────────────────────────────────────────────────
 
 static void RGBtoHSL(uint8_t r, uint8_t g, uint8_t b, double& h, double& s, double& l) {
     double rd = r / 255.0, gd = g / 255.0, bd = b / 255.0;
@@ -152,6 +84,41 @@ Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, 
     HSLtoRGB(h, s, l, r, g, b);
     Windows::UI::Color out; out.A = in.A; out.R = r; out.G = g; out.B = b;
     return out;
+}
+
+void ApplyAccentColor(Windows::UI::Color color) {
+    // Use XamlBindingHelper::ConvertValue to produce a properly XAML-boxed Color.
+    // Direct C++/CX boxing of WinRT structs (IReference<Color>) is rejected by
+    // ResourceDictionary at runtime with E_UNEXPECTED.
+    wchar_t buf[16];
+    swprintf_s(buf, L"#%02X%02X%02X%02X", color.A, color.R, color.G, color.B);
+    Windows::UI::Xaml::Interop::TypeName colorType;
+    colorType.Name = "Windows.UI.Color";
+    colorType.Kind = Windows::UI::Xaml::Interop::TypeKind::Metadata;
+    auto boxed = Windows::UI::Xaml::Markup::XamlBindingHelper::ConvertValue(
+        colorType, ref new Platform::String(buf));
+
+    static const wchar_t* themeKeys[] = { L"Default", L"Dark", L"Light" };
+    auto appThemes = Windows::UI::Xaml::Application::Current->Resources->ThemeDictionaries;
+    for (auto themeKey : themeKeys) {
+        auto key = ref new Platform::String(themeKey);
+        Windows::UI::Xaml::ResourceDictionary^ dict;
+        if (appThemes->HasKey(key)) {
+            dict = dynamic_cast<Windows::UI::Xaml::ResourceDictionary^>(appThemes->Lookup(key));
+        } else {
+            dict = ref new Windows::UI::Xaml::ResourceDictionary();
+            appThemes->Insert(key, dict);
+        }
+        if (dict != nullptr) {
+            dict->Insert("SystemAccentColor", boxed);
+            // Override accent-derived brush resources so controls that don't use
+            // SystemAccentColor directly (ToggleButton checked background, TextBox
+            // focus border) also pick up the custom color.
+            auto brush = ref new Windows::UI::Xaml::Media::SolidColorBrush(color);
+            dict->Insert("SystemControlHighlightAccentBrush", brush);
+            dict->Insert("SystemControlBackgroundAccentBrush", brush);
+        }
+    }
 }
 
 } // namespace moonlight_xbox_dx

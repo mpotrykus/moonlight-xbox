@@ -11,6 +11,7 @@
 #include "UI\Controls\SwatchPicker.xaml.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "Utils.hpp"
+#include "UI\Utilities\XamlHelpers.h"
 #include <gamingdeviceinformation.h>
 #include <cmath> // sqrtf, lround
 using namespace Windows::UI::Core;
@@ -148,7 +149,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		Windows::UI::Color accentColor = host->Personalization->UseSystemAccent
 			? (ref new UISettings())->GetColorValue(UIColorType::Accent)
 			: host->Personalization->AccentColor;
-		Utils::ApplyAccentColor(accentColor);
+		ApplyAccentColor(accentColor);
 		auto cur = this->ActualTheme;
 		this->RequestedTheme = (cur != ElementTheme::Dark) ? ElementTheme::Dark : ElementTheme::Light;
 		this->RequestedTheme = ElementTheme::Default;
@@ -279,7 +280,7 @@ void HostSettingsPage::AccentColorPicker_ColorChanged(Platform::Object^ sender, 
 	Windows::UI::Color effective = useSystemAccent
 		? (ref new UISettings())->GetColorValue(UIColorType::Accent)
 		: color;
-	Utils::ApplyAccentColor(effective);
+	ApplyAccentColor(effective);
 
 	// Force {ThemeResource} bindings to re-evaluate with the new color.
 	auto cur = this->ActualTheme;
