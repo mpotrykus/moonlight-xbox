@@ -1,4 +1,4 @@
-﻿<ResourceDictionary
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:moonlight_xbox_dx">
@@ -7,12 +7,12 @@
 
     <!--Global-->
     <x:String x:Key="SharedAnimationDuration">0:0:0.125</x:String>
-    
+
     <!--Background-->
     <x:Double x:Key="BackgroundImageZoom">1.5</x:Double>
     <x:Double x:Key="BackgroundOverlayOpacity">0.2</x:Double>
     <Thickness x:Key="PageBackgroundOverscan">-150</Thickness>
-  
+
     <!--Apps-->
     <x:Double x:Key="AppAspectRatio">0.66</x:Double>
     <x:Double x:Key="BlurAmount">16</x:Double>
@@ -24,10 +24,10 @@
     <x:Double x:Key="SelectedBlurScaleY">1.15</x:Double>
     <x:Double x:Key="UnselectedScale">0.75</x:Double>
     <x:Double x:Key="GridScale">1.0</x:Double>
-  
+
     <x:Double x:Key="SelectedBlurGlowOpacity">0.4</x:Double>
     <x:Double x:Key="UnselectedBlurGlowOpacity">0.0</x:Double>
-  
+
     <x:Double x:Key="SelectedDesaturatorOpacity">0.0</x:Double>
     <x:Double x:Key="UnselectedDesaturatorOpacity">0.6</x:Double>
 
@@ -40,304 +40,6 @@
                        Margin="0,75"
                        HorizontalAlignment="Center" VerticalAlignment="Top" />
     </ItemsPanelTemplate>
-
-    <Style x:Key="AppListViewItemContainerStyle" TargetType="ListViewItem" BasedOn="{StaticResource BaseListViewItem}">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListViewItem">
-                    <Grid Background="Transparent"
-                          DataContext="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}">
-
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="1*" MinHeight="50" MaxHeight="75"/>
-                            <RowDefinition Height="4*"/>
-                            <RowDefinition Height="1*" MinHeight="70" MaxHeight="100"/>
-                        </Grid.RowDefinitions>
-
-                        <Grid x:Name="AppVisualRoot" Grid.Row="1" RenderTransformOrigin="0.5,0.5"
-                              HorizontalAlignment="Center" VerticalAlignment="Center"
-                              Margin="{StaticResource ListItemUnselectedMargin}">
-
-                            <Grid.RenderTransform>
-                                <ScaleTransform ScaleX="{StaticResource UnselectedScale}" ScaleY="{StaticResource UnselectedScale}"/>
-                            </Grid.RenderTransform>
-
-                            <Rectangle x:Name="AppImageBlurRect" Opacity="0" IsHitTestVisible="False"
-                                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                        RenderTransformOrigin="0.5,0.5"
-                                        RadiusX="12" RadiusY="12">
-                                <Rectangle.RenderTransform>
-                                    <ScaleTransform ScaleX="{StaticResource UnselectedScale}" ScaleY="{StaticResource UnselectedScale}"/>
-                                </Rectangle.RenderTransform>
-                                <Rectangle.Fill>
-                                    <ImageBrush Stretch="Fill" ImageSource="{Binding GlowImage}" />
-                                </Rectangle.Fill>
-                            </Rectangle>
-
-                            <local:AspectRatioBox x:Name="AppAspectRatioBox" Ratio="{StaticResource AppAspectRatio}"
-                                                  HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Grid>
-                                    <Rectangle x:Name="AppImageRect" RadiusX="12" RadiusY="12" Opacity="1" IsHitTestVisible="False">
-                                        <Rectangle.Fill>
-                                            <ImageBrush Stretch="UniformToFill" ImageSource="{Binding Image}" />
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-
-                                    <Rectangle x:Name="Desaturator" Fill="#FF000000" Opacity="{StaticResource UnselectedDesaturatorOpacity}"
-                                               RadiusX="12" RadiusY="12" IsHitTestVisible="False"
-                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-
-
-                                    <Rectangle x:Name="Play" RadiusX="12" RadiusY="12" IsHitTestVisible="False" Margin="60"
-                                               Visibility="{Binding CurrentlyRunning, Converter={StaticResource BoolToVis}}">
-                                        <Rectangle.Fill>
-                                            <ImageBrush Stretch="Uniform" ImageSource="ms-appx:///Assets/Play1.png" />
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-                                </Grid>
-                            </local:AspectRatioBox>
-                        </Grid>
-
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualState x:Name="Normal">
-                                    <VisualState.Setters>
-                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemUnselectedMargin}"/>
-                                    </VisualState.Setters>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource UnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource UnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource UnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource UnselectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource UnselectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource UnselectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="PointerOver"/>
-                                <VisualState x:Name="Pressed">
-                                    <VisualState.Setters>
-                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
-                                    </VisualState.Setters>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedBlurScaleX}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedBlurScaleY}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Selected">
-                                    <VisualState.Setters>
-                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
-                                    </VisualState.Setters>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedBlurScaleX}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedBlurScaleY}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="PointerOverSelected"/>
-                                <VisualState x:Name="PressedSelected">
-                                    <VisualState.Setters>
-                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
-                                    </VisualState.Setters>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource SelectedBlurScaleX}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource SelectedBlurScaleY}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style x:Key="AppGridViewItemContainerStyle" TargetType="ListViewItem" BasedOn="{StaticResource BaseListViewItem}">
-        <Setter Property="Margin" Value="12"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListViewItem">
-                    <Grid Background="Transparent"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                          DataContext="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" >
-                        <Grid x:Name="AppVisualRoot" RenderTransformOrigin="0.5,0.5">
-                            <Grid.RenderTransform>
-                                <ScaleTransform ScaleX="{StaticResource GridScale}" ScaleY="{StaticResource GridScale}"/>
-                            </Grid.RenderTransform>
-
-                            <!-- Glow rect: negative margin so it bleeds outside the image bounds -->
-                            <Rectangle x:Name="AppImageBlurRect" Opacity="0" IsHitTestVisible="False"
-                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                                       Visibility="Collapsed"
-                                       RadiusX="12" RadiusY="12">
-                                <Rectangle.Fill>
-                                    <ImageBrush Stretch="UniformToFill" ImageSource="{Binding GlowImage}" />
-                                </Rectangle.Fill>
-                            </Rectangle>
-
-                            <!-- Image box: no extra margin, sits flush inside AppVisualRoot -->
-                            <local:AspectRatioBox x:Name="AppAspectRatioBox" Ratio="{StaticResource AppAspectRatio}"
-                                                  Height="250"
-                                                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                <Grid>
-                                    <Rectangle x:Name="AppImageRect" RadiusX="12" RadiusY="12" Opacity="1" IsHitTestVisible="False">
-                                        <Rectangle.Fill>
-                                            <ImageBrush Stretch="UniformToFill" ImageSource="{Binding Image}" />
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-
-                                    <Rectangle x:Name="Desaturator" Fill="#FF000000" Opacity="{StaticResource UnselectedDesaturatorOpacity}"
-                                               RadiusX="12" RadiusY="12" IsHitTestVisible="False"
-                                               HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-
-
-                                    <Rectangle x:Name="Play" RadiusX="12" RadiusY="12" IsHitTestVisible="False" Margin="60"
-                                               Visibility="{Binding CurrentlyRunning, Converter={StaticResource BoolToVis}}">
-                                        <Rectangle.Fill>
-                                            <ImageBrush Stretch="Uniform" ImageSource="ms-appx:///Assets/Play1.png" />
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-                                </Grid>
-                            </local:AspectRatioBox>
-                        </Grid>
-
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="CommonStates">
-                                <VisualState x:Name="Normal">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource UnselectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="{StaticResource UnselectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="PointerOver"/>
-                                <VisualState x:Name="Pressed">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="1.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="0.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Selected">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="1.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="0.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="PointerOverSelected"/>
-                                <VisualState x:Name="PressedSelected">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
-                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
-                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="1.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
-                                                         Storyboard.TargetProperty="Opacity"
-                                                         To="0.0" Duration="{StaticResource SharedAnimationDuration}"/>
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
 
     <Style x:Key="AccentToggleButtonStyle" TargetType="ToggleButton">
         <Setter Property="Background" Value="Transparent"/>

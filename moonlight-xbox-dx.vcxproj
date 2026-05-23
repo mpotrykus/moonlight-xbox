@@ -801,6 +801,8 @@
     <Page Include="KeyboardControl.xaml" />
     <Page Include="UI\Modals\AppActionsDialog.xaml" />
     <Page Include="UI\Pages\AppPage\AppPage.Resources.xaml" />
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.List.xaml" />
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.Grid.xaml" />
     <Page Include="UI\Pages\AppPage\AppPage.xaml">
       <SubType>Designer</SubType>
     </Page>

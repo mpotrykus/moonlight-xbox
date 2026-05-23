@@ -16,8 +16,6 @@ namespace moonlight_xbox_dx {
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
         // Backing image for the per-item glow (heavily blurred, list mode only)
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ glowImage;
-        // Average color sampled from the image (stored as ARGB uint32)
-        unsigned int averageColorArgb = 0xFF000000; // default opaque black
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
         virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;
@@ -123,35 +121,5 @@ namespace moonlight_xbox_dx {
             }
         }
 
-        // Expose average color as a simple uint property (ARGB)
-        property unsigned int AverageColorArgb
-        {
-            unsigned int get() { return this->averageColorArgb; }
-            void set(unsigned int v) {
-                if (this->averageColorArgb == v) return;
-                this->averageColorArgb = v;
-                try { OnPropertyChanged("AverageColorArgb"); } catch(...) {}
-            }
-        }
-
-        // Expose a SolidColorBrush instance that can be bound to XAML elements.
-        // Update the brush's Color instead of replacing the brush instance so bindings stay valid.
-        property Windows::UI::Xaml::Media::SolidColorBrush^ AverageBrush
-        {
-            Windows::UI::Xaml::Media::SolidColorBrush^ get() {
-                if (this->averageBrush == nullptr) {
-                    this->averageBrush = ref new Windows::UI::Xaml::Media::SolidColorBrush(Windows::UI::Colors::Black);
-                }
-                return this->averageBrush;
-            }
-            void set(Windows::UI::Xaml::Media::SolidColorBrush^ v) {
-                if (this->averageBrush == v) return;
-                this->averageBrush = v;
-                try { OnPropertyChanged("AverageBrush"); } catch(...) {}
-            }
-        }
-
-    private:
-        Windows::UI::Xaml::Media::SolidColorBrush^ averageBrush = nullptr;
     };
 }

@@ -55,15 +55,6 @@ static double GetSharedAnimationDurationMs(AppPage^ page) {
 
 } // namespace
 
-// ── AppPage::ApplyVisualsToContainer ─────────────────────────────────────────
-
-void AppPage::ApplyVisualsToContainer(ListViewItem^ container, bool selected) {
-    if (container == nullptr) return;
-    try {
-        (void)selected; (void)m_isGridLayout; // padding animation removed
-    } catch(...) {}
-}
-
 // ── AppPage::CenterSelectedItem ───────────────────────────────────────────────
 
 void AppPage::CenterSelectedItem(int attempts, bool immediate) {
@@ -340,7 +331,6 @@ void AppPage::AppsGrid_ContainerContentChanging(
             isSelected = (idx >= 0 && idx == (int)lv->SelectedIndex);
         }
         if (isSelected) {
-            try { ApplyVisualsToContainer(container, true); } catch(...) {}
             auto item = dynamic_cast<MoonlightApp^>(args->Item);
             if (item != nullptr) {
                 if (item->BlurredImage == nullptr)
@@ -392,12 +382,6 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
             if (selApp->BlurredImage == nullptr) BlurAppImage(selApp);
             else FadeInBlurIfSelected(selApp, selApp->BlurredImage);
         }
-    } catch(...) {}
-
-    // Animate containers
-    try {
-        if (container     != nullptr) this->ApplyVisualsToContainer(container, true);
-        if (prevContainer != nullptr) this->ApplyVisualsToContainer(prevContainer, false);
     } catch(...) {}
 
     // Update SelectedApp text overlay
@@ -574,26 +558,6 @@ concurrency::task<IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app, fl
                 unsigned int cornerRadiusPx = 0;
                 try { cornerRadiusPx = (unsigned int)std::round(8.0 * ui_dpi / 96.0); } catch(...) { cornerRadiusPx = 16; }
 
-                // Compute and store average color for overlay
-                try {
-                    unsigned int avg = 0;
-                    try {
-                        if (capturedImage != nullptr)
-                            avg = ImageHelpers::CreateAverageColorArgb(capturedImage);
-                        else if (softwareBitmap != nullptr)
-                            avg = ImageHelpers::CreateAverageColorArgb(softwareBitmap);
-                    } catch(...) { avg = 0xFF000000; }
-
-                    if (app != nullptr) app->AverageColorArgb = avg;
-                    auto weakThis = WeakReference(this);
-                    this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                        ref new DispatchedHandler([weakThis, app]() {
-                            auto that = weakThis.Resolve<AppPage>();
-                            if (that == nullptr) return;
-                            try { that->UpdateAverageColorOverlay(app); } catch(...) {}
-                        }));
-                } catch(...) {}
-
                 // Expand target dimensions by padDip on each side so the blurred image
                 // fills the blur rect (which is larger than the main image by BlurAmount)
                 unsigned int glowTargetW = targetW, glowTargetH = targetH;
@@ -721,24 +685,6 @@ void AppPage::FadeInBlurIfSelected(MoonlightApp^ app, BitmapImage^ img) {
                 vm->TransitionToBlurredImage(img);
             }
         } catch(...) {}
-    } catch(...) {}
-}
-
-// ── AppPage::UpdateAverageColorOverlay ────────────────────────────────────────
-
-void AppPage::UpdateAverageColorOverlay(MoonlightApp^ app) {
-    try {
-        unsigned int argb = 0xFF000000;
-        if (app != nullptr) { try { argb = app->AverageColorArgb; } catch(...) {} }
-        uint8_t a = (uint8_t)((argb >> 24) & 0xFF);
-        uint8_t r = (uint8_t)((argb >> 16) & 0xFF);
-        uint8_t g = (uint8_t)((argb >>  8) & 0xFF);
-        uint8_t b = (uint8_t)( argb        & 0xFF);
-        Windows::UI::Color centerColor; centerColor.A = a; centerColor.R = r; centerColor.G = g; centerColor.B = b;
-        Windows::UI::Color adjusted = AdjustColorHSLLightSat(centerColor, 3.0, 0.25);
-        if (app != nullptr && app->AverageBrush != nullptr) {
-            try { app->AverageBrush->Color = adjusted; } catch(...) {}
-        }
     } catch(...) {}
 }
 

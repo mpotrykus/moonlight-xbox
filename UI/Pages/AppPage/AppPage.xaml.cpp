@@ -409,20 +409,9 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                     if (that == nullptr || that->AppsGrid == nullptr) return;
                     if (that->AppsGrid->Items == nullptr || that->AppsGrid->Items->Size == 0) return;
 
-                    // Clear visuals on all realized containers
-                    for (unsigned int i = 0; i < that->AppsGrid->Items->Size; ++i) {
-                        auto c = dynamic_cast<ListViewItem^>(that->AppsGrid->ContainerFromIndex(i));
-                        if (c) that->ApplyVisualsToContainer(c, false);
-                    }
-
                     auto firstItem = that->AppsGrid->Items->GetAt(0);
                     if (firstItem == nullptr) return;
                     that->AppsGrid->ScrollIntoView(firstItem);
-                    auto container = dynamic_cast<ListViewItem^>(that->AppsGrid->ContainerFromItem(firstItem));
-
-                    if (container != nullptr) {
-                        that->ApplyVisualsToContainer(container, true);
-                    }
 
                     // Update SelectedApp text
                     try {

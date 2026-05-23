@@ -1277,49 +1277,6 @@ SoftwareBitmap^ ImageHelpers::CreateRoundedRectMask(unsigned int width, unsigned
     }
 }
 
-unsigned int ImageHelpers::CreateAverageColorArgb(SoftwareBitmap^ src) {
-    if (src == nullptr) return 0;
-    try {
-        auto s = EnsureBgra8Premultiplied(src);
-        auto buf = s->LockBuffer(BitmapBufferAccessMode::Read);
-        auto desc = buf->GetPlaneDescription(0);
-        std::vector<uint8_t> data((size_t)s->PixelHeight * desc.Stride);
-        try {
-            auto ib = ref new Windows::Storage::Streams::Buffer((unsigned int)data.size());
-            s->CopyToBuffer(ib);
-            auto reader = Windows::Storage::Streams::DataReader::FromBuffer(ib);
-            reader->ReadBytes(Platform::ArrayReference<uint8_t>(data.data(), (unsigned int)data.size()));
-        } catch(...) { return 0; }
-
-        uint64_t totalR = 0, totalG = 0, totalB = 0, totalA = 0;
-        uint64_t count = 0;
-        unsigned int w = s->PixelWidth; unsigned int h = s->PixelHeight;
-        for (unsigned int y = 0; y < h; ++y) {
-            uint8_t* row = data.data() + (size_t)y * desc.Stride;
-            for (unsigned int x = 0; x < w; ++x) {
-                uint8_t b = row[x*4 + 0];
-                uint8_t g = row[x*4 + 1];
-                uint8_t r = row[x*4 + 2];
-                uint8_t a = row[x*4 + 3];
-                // ignore fully transparent pixels from averaging
-                if (a == 0) continue;
-                // Un-premultiply to approximate original color
-                uint32_t ur = (uint32_t)r * 255 / std::max<unsigned int>(1, a);
-                uint32_t ug = (uint32_t)g * 255 / std::max<unsigned int>(1, a);
-                uint32_t ub = (uint32_t)b * 255 / std::max<unsigned int>(1, a);
-                totalR += ur; totalG += ug; totalB += ub; totalA += a; ++count;
-            }
-        }
-        if (count == 0) return 0xFF000000; // default black
-        uint8_t avgR = (uint8_t)std::min<uint64_t>(255, totalR / count);
-        uint8_t avgG = (uint8_t)std::min<uint64_t>(255, totalG / count);
-        uint8_t avgB = (uint8_t)std::min<uint64_t>(255, totalB / count);
-        // Use averaged alpha approximate (clamp to 255)
-        uint8_t avgA = (uint8_t)std::min<uint64_t>(255, totalA / count);
-        unsigned int argb = ((unsigned int)avgA << 24) | ((unsigned int)avgR << 16) | ((unsigned int)avgG << 8) | (unsigned int)avgB;
-        return argb;
-    } catch(...) { return 0; }
-}
 
 // Helper: convert RGB [0,255] to HSL (h in [0,360), s,l in [0,1])
 static void RgbToHsl(uint8_t r, uint8_t g, uint8_t b, float &h, float &s, float &l) {

@@ -108,7 +108,6 @@ static constexpr float  kBlurGlowOpacity              = 0.50f;
         bool m_compositionReady;
         bool m_suppressSelectionFocus = false;
 
-        void ApplyVisualsToContainer(Windows::UI::Xaml::Controls::ListViewItem^ container, bool selected);
         Windows::Foundation::EventRegistrationToken m_layoutUpdated_token;
         Windows::Foundation::EventRegistrationToken m_rendering_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_selection_token;
@@ -124,7 +123,6 @@ static constexpr float  kBlurGlowOpacity              = 0.50f;
         concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ApplyBlur(MoonlightApp^ app, float blurDip, float padDip = 0.0f);
 
         void FadeInBlurIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img);
-        void UpdateAverageColorOverlay(MoonlightApp^ app);
         void FadeInPollingIndicator();
         void FadeOutPollingIndicator();
     };
