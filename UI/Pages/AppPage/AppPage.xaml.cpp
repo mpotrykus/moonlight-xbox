@@ -156,7 +156,6 @@ AppPage::AppPage() {
         }
     } catch(...) {}
 
-    m_compositionReady = false;
     m_filteredApps = ref new Platform::Collections::Vector<MoonlightApp^>();
 }
 
@@ -787,11 +786,6 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                 ref new DispatchedHandler([wt2, isGrid]() {
                                     auto that2 = wt2.Resolve<AppPage>();
                                     if (that2 == nullptr) return;
-                                    // Suppress focus before UpdateLayout(): UpdateLayout() is
-                                    // synchronous and fires LayoutUpdated during the call, which
-                                    // calls CenterSelectedItem — if focus is not suppressed there,
-                                    // XAML bring-into-view shifts the scroll before we can correct it.
-                                    if (!isGrid) that2->m_suppressSelectionFocus = true;
                                     // Force a synchronous layout pass so container->ActualWidth
                                     // reflects the new panel's measurements, not the stale
                                     // grid/list width from the previous layout mode. Without this,
@@ -832,7 +826,6 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                     } else {
                                         if (!that2->m_isGridLayout) {
                                             try { that2->CenterSelectedItem(3, true); } catch(...) {}
-                                            that2->m_suppressSelectionFocus = false;
                                         }
                                     }
                                 }));
@@ -849,15 +842,6 @@ void AppPage::AppsGrid_Loaded(Platform::Object^, RoutedEventArgs^) {
     try {
         Utils::Log("AppsGrid_Loaded\n");
         if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(this->AppsGrid);
-
-        try {
-            auto weakThis = WeakReference(this);
-            Windows::UI::Xaml::Media::CompositionTarget::Rendering +=
-                ref new EventHandler<Object^>([weakThis](Object^, Object^) {
-                    auto that = weakThis.Resolve<AppPage>();
-                    if (that) that->m_compositionReady = true;
-                });
-        } catch(...) {}
     } catch(...) {}
 }
 
@@ -865,18 +849,6 @@ void AppPage::AppsGrid_Loaded(Platform::Object^, RoutedEventArgs^) {
 
 void AppPage::backButton_Click(Platform::Object^, RoutedEventArgs^) {
     this->Frame->GoBack();
-}
-
-void AppPage::settingsButton_Click(Platform::Object^, RoutedEventArgs^) {
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr) {
-            try { lm->Title = ref new Platform::String(L"Settings"); } catch(...) {}
-            lm->Open();
-            return;
-        }
-    } catch(...) {}
-    this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
 }
 
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
@@ -994,12 +966,6 @@ void AppPage::AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::
     }
 }
 
-// ── AppPage::resumeAppButton_Click ────────────────────────────────────────────
-
-void AppPage::resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    this->Connect(this->currentApp->Id);
-}
-
 // ── AppPage::closeAndStartButton_Click ────────────────────────────────────────
 
 void AppPage::closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
@@ -1103,22 +1069,6 @@ void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::
             } catch(...) {}
         }));
     }));
-}
-
-// ── AppPage::moonlightSettingsButton_Click ────────────────────────────────────
-
-void AppPage::moonlightSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    try {
-        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
-    } catch(...) {}
-}
-
-// ── AppPage::hostSettingsFlyoutButton_Click ───────────────────────────────────
-
-void AppPage::hostSettingsFlyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
-    try {
-        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), this->Host);
-    } catch(...) {}
 }
 
 } // namespace moonlight_xbox_dx

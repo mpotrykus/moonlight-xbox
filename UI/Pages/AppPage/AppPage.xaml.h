@@ -15,18 +15,11 @@ namespace moonlight_xbox_dx
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-static constexpr float  kDesaturatorOpacityUnselected =  0.8f;
-static constexpr float  kBackgroundOpacity            = 0.05f;
 static constexpr float  kBackgroundSaturation         = 1.25f;
-static constexpr float  kSelectedScale                =  1.3f;
-static constexpr float  kUnselectedScale              =  1.0f;
-static constexpr double kSelectedHPadding             =  75.0;
-static constexpr double kAppsGridHeightFactor         =  0.50;
 static constexpr int    kAnimationDurationMs          =   500;
 static constexpr int    kBgPanDurationSec             =    10;
 static constexpr float  kBlurAmountBackground         =  2.0f;
 static constexpr float  kBlurGlowPaddingDip           = 60.0f;
-static constexpr float  kBlurGlowOpacity              = 0.50f;
 
     namespace Controls { ref class SlidingMenu; }
     [Windows::Foundation::Metadata::WebHostHidden]
@@ -79,14 +72,10 @@ static constexpr float  kBlurGlowOpacity              = 0.50f;
         void AppsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
         void AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
         void AppsGrid_ContainerContentChanging(Windows::UI::Xaml::Controls::ListViewBase^ sender, Windows::UI::Xaml::Controls::ContainerContentChangingEventArgs^ args);
-        void resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void moonlightSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void hostSettingsFlyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void ExecuteCloseAndStart();
         void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void settingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnFirstRender(Platform::Object^ sender, Platform::Object^ e);
         void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -102,11 +91,8 @@ static constexpr float  kBlurGlowOpacity              = 0.50f;
         void LayoutToggleButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
         void CenterSelectedItem(int attempts, bool immediate = false);
-        inline void CenterSelectedItem() { CenterSelectedItem(3); }
 
         Windows::Foundation::EventRegistrationToken m_keydown_cookie;
-        bool m_compositionReady;
-        bool m_suppressSelectionFocus = false;
 
         Windows::Foundation::EventRegistrationToken m_layoutUpdated_token;
         Windows::Foundation::EventRegistrationToken m_rendering_token;
