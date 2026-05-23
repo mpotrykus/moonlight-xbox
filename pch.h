@@ -17,6 +17,7 @@
 #include <DirectXColors.h>
 #include <DirectXMath.h>
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -27,6 +28,8 @@
 #include <collection.h>
 #include <gamingdeviceinformation.h>
 #include "App.xaml.h"
+#include "UI\Converters\BoolToVisibilityConverter.h"
+#include "UI\Converters\BoolToTextConverter.h"
 
 #define IMGUI_USER_CONFIG "Common\imconfig.moonlight.h"
 #include <imgui.h>

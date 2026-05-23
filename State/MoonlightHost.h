@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
+#include "UI\Models\UIPersonalization.h"
 namespace moonlight_xbox_dx {
 
     [Windows::UI::Xaml::Data::Bindable]
@@ -17,6 +18,13 @@ namespace moonlight_xbox_dx {
         bool connected;
         bool loading = true;
         bool wolPolling = false;
+        bool displayedConnected = false;
+        bool displayedPaired = false;
+        bool displayedLoading = true;
+        bool displayedWolPolling = false;
+        std::atomic<int> m_debounceVersion{ 0 };
+        void ScheduleStatusDebounce();
+        void CommitDisplayedStatus();
         bool playAudioOnPC = false;
         MoonlightClient* client;
         int currentlyRunningAppId;
@@ -31,6 +39,7 @@ namespace moonlight_xbox_dx {
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
+        UIPersonalization^ personalization;
         Windows::Foundation::Collections::IVector<MoonlightApp^>^ apps;
     public:
         //Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
@@ -96,6 +105,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -107,6 +117,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("Connected");
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -120,6 +131,31 @@ namespace moonlight_xbox_dx {
             bool get() { return this->connected && !this->paired; }
         }
 
+        property bool StatusIsPolling
+        {
+            bool get() { return this->displayedWolPolling || this->displayedLoading; }
+        }
+
+        property bool StatusIsConnectedAndPaired
+        {
+            bool get() { return this->displayedConnected && this->displayedPaired && !StatusIsPolling; }
+        }
+
+        property bool StatusIsNotPaired
+        {
+            bool get() { return this->displayedConnected && !this->displayedPaired && !StatusIsPolling; }
+        }
+
+        property bool StatusIsDisconnected
+        {
+            bool get() { return !this->displayedConnected && !StatusIsPolling; }
+        }
+
+        property bool StatusIsUnavailable
+        {
+            bool get() { return !(this->displayedConnected && this->displayedPaired); }
+        }
+
         property bool Loading
         {
             bool get() { return this->loading; }
@@ -131,6 +167,7 @@ namespace moonlight_xbox_dx {
                 OnPropertyChanged("NotConnected");
                 OnPropertyChanged("NotPaired");
                 OnPropertyChanged("Paired");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -146,6 +183,7 @@ namespace moonlight_xbox_dx {
                 this->wolPolling = value;
                 OnPropertyChanged("WolPolling");
                 OnPropertyChanged("WolPollingVisibility");
+                ScheduleStatusDebounce();
             }
         }
 
@@ -282,6 +320,15 @@ namespace moonlight_xbox_dx {
             void set(bool value) {
                 this->enableGraphs = value;
                 OnPropertyChanged("EnableGraphs");
+            }
+        }
+
+        property UIPersonalization^ Personalization
+        {
+            UIPersonalization^ get() {
+                if (this->personalization == nullptr)
+                    this->personalization = ref new UIPersonalization();
+                return this->personalization;
             }
         }
     };

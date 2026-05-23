@@ -1,11 +1,12 @@
-﻿//
+//
 // App.xaml.cpp
 // Implementation of the App class.
 //
 
 #include "pch.h"
 #include <Utils.hpp>
-#include "MoonlightWelcome.xaml.h"
+#include "UI\Pages\MoonlightWelcome.xaml.h"
+#include "UI\Pages\MoonlightSettings.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -34,6 +35,32 @@ App::App()
 	Suspending += ref new SuspendingEventHandler(this, &App::OnSuspending);
 	Resuming += ref new EventHandler<Object^>(this, &App::OnResuming);
 	displayRequest = ref new Windows::System::Display::DisplayRequest();
+
+	this->UnhandledException += ref new Windows::UI::Xaml::UnhandledExceptionEventHandler(
+		[](Platform::Object^, Windows::UI::Xaml::UnhandledExceptionEventArgs^ e) {
+			try {
+				if (e != nullptr && e->Message != nullptr) {
+					std::wstring msg = e->Message->Data();
+					Utils::Logf("Unhandled XAML exception: %S", msg.c_str());
+				}
+			} catch (...) {}
+			try { if (e != nullptr) e->Handled = true; } catch (...) {}
+		});
+
+	// Initialize global menu items
+	GlobalMenuItems = ref new Platform::Collections::Vector<moonlight_xbox_dx::MenuItem^>();
+	GlobalMenuItems->Append(ref new moonlight_xbox_dx::MenuItem(
+		ref new Platform::String(L"App Settings"),
+		ref new Platform::String(L"\uE713"),
+		ref new Windows::Foundation::EventHandler<Platform::Object^>([](Platform::Object^ s, Platform::Object^ e) {
+			try {
+				auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
+				if (rootFrame != nullptr) {
+					rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+				}
+			} catch(...) {}
+		})
+	));
 }
 
 /// <summary>
@@ -127,6 +154,5 @@ void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Naviga
 	dialog->Content = e->Exception.ToString();
 	dialog->CloseButtonText = L"OK";
 	dialog->ShowAsync();
-	//throw ref new FailureException("Failed to load Page " + e->SourcePageType.Name);
 }
 

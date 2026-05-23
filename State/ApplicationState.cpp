@@ -40,7 +40,6 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("fps"))h->FPS = a["fps"];
 					if (a.contains("audioConfig"))h->AudioConfig = Utils::StringFromStdString(a["audioConfig"].get<std::string>());
 					if (a.contains("videoCodec"))h->VideoCodec = Utils::StringFromStdString(a["videoCodec"].get<std::string>());
-					if (a.contains("framePacing"))h->FramePacing = Utils::StringFromStdString(a["framePacing"].get<std::string>());
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
@@ -48,6 +47,20 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
 					if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
+					if (a.contains("personalization")) {
+						auto& p = a["personalization"];
+						if (p.contains("background")) h->Personalization->Background = Utils::StringFromStdString(p["background"].get<std::string>());
+						if (p.contains("app_view")) h->Personalization->AppView = (AppHostView)p["app_view"].get<int>();
+						if (p.contains("use_system_accent")) h->Personalization->UseSystemAccent = p["use_system_accent"].get<bool>();
+						if (p.contains("accent_r") && p.contains("accent_g") && p.contains("accent_b")) {
+							Windows::UI::Color c;
+							c.A = 255;
+							c.R = (uint8_t)p["accent_r"].get<int>();
+							c.G = (uint8_t)p["accent_g"].get<int>();
+							c.B = (uint8_t)p["accent_b"].get<int>();
+							h->Personalization->AccentColor = c;
+						}
+					}
 					if (a.contains("serverAddress")) h->ServerAddress = Utils::StringFromStdString(a["serverAddress"].get<std::string>());
 					if (a.contains("macaddress")) h->MacAddress = Utils::StringFromStdString(a["macaddress"].get<std::string>());
 					else h->ComputerName = h->LastHostname;
@@ -101,13 +114,22 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["fps"] = host->FPS;
 			hostJson["audioConfig"] = Utils::PlatformStringToStdString(host->AudioConfig);
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
-			hostJson["framePacing"] = Utils::PlatformStringToStdString(host->FramePacing);
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
 			hostJson["enable_hdr"] = host->EnableHDR;
 			hostJson["enable_sops"] = host->EnableSOPS;
 			hostJson["enable_stats"] = host->EnableStats;
 			hostJson["enable_graphs"] = host->EnableGraphs;
+			{
+				nlohmann::json pJson;
+				pJson["background"] = Utils::PlatformStringToStdString(host->Personalization->Background);
+				pJson["app_view"] = (int)host->Personalization->AppView;
+				pJson["use_system_accent"] = host->Personalization->UseSystemAccent;
+				pJson["accent_r"] = (int)host->Personalization->AccentColor.R;
+				pJson["accent_g"] = (int)host->Personalization->AccentColor.G;
+				pJson["accent_b"] = (int)host->Personalization->AccentColor.B;
+				hostJson["personalization"] = pJson;
+			}
 			hostJson["serverAddress"] = Utils::PlatformStringToStdString(host->ServerAddress);
 
 			std::string macAddr = Utils::PlatformStringToStdString(host->MacAddress);
@@ -124,17 +146,22 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 }
 
 void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
-	if (host == nullptr)return;
+	if (host == nullptr) return;
 	unsigned int index;
 	bool found = SavedHosts->IndexOf(host, &index);
+	if (!found) return;
 	SavedHosts->RemoveAt(index);
-	if (!host->Connected) {
-		host->Connect();
-	}
-	if (host->Connected) {
-		host->Unpair();
-	}
 	UpdateFile();
+	Concurrency::create_task([host]() {
+		try {
+			if (!host->Connected) {
+				host->Connect();
+			}
+			if (host->Connected) {
+				host->Unpair();
+			}
+		} catch (...) {}
+	});
 }
 
 void moonlight_xbox_dx::ApplicationState::OnPropertyChanged(Platform::String^ propertyName)

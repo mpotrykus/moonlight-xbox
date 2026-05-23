@@ -34,7 +34,6 @@ namespace moonlight_xbox_dx {
 		std::pair<std::string, int> Split_IP_Address(const std::string& address, char deliminator);
 		void Throw_Error(std::string message);
 
-		 
 	public:
 		//Thanks to https://phsucharee.wordpress.com/2013/06/19/data-binding-and-ccx-inotifypropertychanged/
 		virtual event Windows::UI::Xaml::Data::PropertyChangedEventHandler^ PropertyChanged;

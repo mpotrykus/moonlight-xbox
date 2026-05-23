@@ -1,11 +1,12 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
+#include "UI\Utilities\EffectsLibrary.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
-#include <Pages/StreamPage.xaml.h>
-#include <Streaming/FFmpegDecoder.h>
-#include <Plot/ImGuiPlots.h>
+#include "UI\Pages\StreamPage.xaml.h"
+#include "Streaming\FFmpegDecoder.h"
+#include "Plot\ImGuiPlots.h"
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -190,6 +191,12 @@ void DX::DeviceResources::CreateDeviceResources()
 	DX::ThrowIfFailed(
 		context.As(&m_d3dContext)
 		);
+
+    try {
+        ::EffectsLibrary::Initialize(m_d3dDevice.Get(), m_d3dContext.Get());
+    } catch(...) {
+		Utils::Log("EffectsLibrary::Failed to initialize\n");
+    }
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -373,9 +380,6 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	m_currentOrientation = currentDisplayInformation->CurrentOrientation;
 	m_compositionScaleX = panel->CompositionScaleX;
 	m_compositionScaleY = panel->CompositionScaleY;
-
-	Utils::Logf("SwapChain logical size: %.0fx%.0f @ composition scale %.1fx%.1f\n",
-		m_logicalSize.Width, m_logicalSize.Height, m_compositionScaleX, m_compositionScaleY);
 
 	CreateWindowSizeDependentResources();
 

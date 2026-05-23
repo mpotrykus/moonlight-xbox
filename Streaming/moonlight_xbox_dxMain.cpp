@@ -1,8 +1,8 @@
 ﻿#include "moonlight_xbox_dxMain.h"
 #include "pch.h"
-#include <Pages/AppPage.xaml.h>
-#include <Pages/HostSelectorPage.xaml.h>
-#include <Pages/StreamPage.xaml.h>
+#include <UI/Pages/AppPage/AppPage.xaml.h>
+#include <UI/Pages/HostSelectorPage.xaml.h>
+#include <UI/Pages/StreamPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>
 #include "../Plot/ImGuiPlots.h"
 #include "Common\DirectXHelper.h"
@@ -20,8 +20,9 @@ using namespace Windows::Gaming::Input;
 using namespace Windows::System::Threading;
 using namespace Windows::UI::ViewManagement::Core;
 
+#include <UI/Modals/StreamErrorDialog.xaml.h>
+
 extern "C" {
-#include <Common/ModalDialog.xaml.h>
 #include <Limelight.h>
 }
 
@@ -46,57 +47,52 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 			auto showLogsDialog = std::make_shared<std::function<void()>>();
 
 			*showErrorDialog = [self, msgCopy, showLogsDialog, appName]() {
-				auto dialog1 = ref new Windows::UI::Xaml::Controls::ContentDialog();
-				dialog1->Title = L"Failed to start " + appName;
-				dialog1->Content = Utils::StringFromStdString(msgCopy);
-				dialog1->PrimaryButtonText = L"OK";
-				dialog1->SecondaryButtonText = L"Show Logs";
-
-				concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog1)).then([self, showLogsDialog](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
-					auto result = t.get();
-					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
+				auto dialog = ref new ::moonlight_xbox_dx::StreamErrorDialog();
+				dialog->Configure(
+					L"Failed to start " + appName,
+					Utils::StringFromStdString(msgCopy),
+					L"\xE783",
+					L"OK", L"\xE8FB",
+					L"Show Logs", L"\xF0B5",
+					ref new Windows::UI::Xaml::RoutedEventHandler([self](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
 						self->StopRenderLoop();
 						self->ExitStreamPage();
-					} else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+					}),
+					ref new Windows::UI::Xaml::RoutedEventHandler([showLogsDialog](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
 						(*showLogsDialog)();
-					}
-				});
+					})
+				);
+				concurrency::create_task(dialog->ShowAsync());
 			};
 
 			*showLogsDialog = [self, showErrorDialog]() {
-				auto dialog2 = ref new Windows::UI::Xaml::Controls::ContentDialog();
-
-				std::wstring m_text = L"";
+				std::wstring logText = L"";
 				std::vector<std::wstring> lines = Utils::GetLogLines();
-
 				for (int i = 0; i < (int)lines.size(); i++) {
-					// Get only the last 8 lines
-					// More than that cannot be fully viewed on the screen at the current scaling
 					if ((int)lines.size() - i <= 8) {
-						m_text += lines[i];
+						logText += lines[i];
 					}
 				}
-
 				Utils::showLogs = true;
 
-				dialog2->MaxWidth = 600;
-				dialog2->Title = "Logs";
-				dialog2->Content = ref new Platform::String(m_text.c_str());
-				dialog2->PrimaryButtonText = L"OK";
-				dialog2->SecondaryButtonText = L"Show Error";
-
-				concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog2)).then([self, showErrorDialog](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
-					auto result = t.get();
-					if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Primary) {
+				auto dialog = ref new ::moonlight_xbox_dx::StreamErrorDialog();
+				dialog->Configure(
+					L"Logs",
+					ref new Platform::String(logText.c_str()),
+					L"\xF0B5",
+					L"OK", L"\xE8FB",
+					L"Show Error", L"\xE783",
+					ref new Windows::UI::Xaml::RoutedEventHandler([self](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
 						self->StopRenderLoop();
 						self->ExitStreamPage();
-					} else if (result == Windows::UI::Xaml::Controls::ContentDialogResult::Secondary) {
+					}),
+					ref new Windows::UI::Xaml::RoutedEventHandler([showErrorDialog](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
 						(*showErrorDialog)();
-					}
-				});
+					})
+				);
+				concurrency::create_task(dialog->ShowAsync());
 			};
 
-			// Start by showing the error dialog
 			(*showErrorDialog)();
 		}));
 	});
@@ -126,8 +122,24 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 			if (this->m_sceneRenderer && this->m_sceneRenderer->IsLoadingSuccessful()) {
 				DISPATCH_UI(([streamPage]() {
 					Sleep(500);
-					streamPage->m_progressRing->IsActive = false;
-					streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+					using namespace Windows::UI::Xaml::Media::Animation;
+					auto anim = ref new DoubleAnimation();
+					anim->From = ref new Platform::Box<double>(1.0);
+					anim->To   = ref new Platform::Box<double>(0.0);
+					anim->Duration = Windows::UI::Xaml::Duration(Windows::Foundation::TimeSpan{ 10000000LL });
+					auto sb = ref new Storyboard();
+					sb->Children->Append(anim);
+					Storyboard::SetTarget(anim, streamPage->m_progressView);
+					Storyboard::SetTargetProperty(anim, "(UIElement.Opacity)");
+					Platform::WeakReference weakPage(streamPage);
+					sb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+						[weakPage](Platform::Object^, Platform::Object^) {
+							auto page = weakPage.Resolve<StreamPage>();
+							if (page == nullptr) return;
+							page->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+							page->m_progressView->Opacity = 1.0;
+						});
+					sb->Begin();
 				}));
 			}
 		});
@@ -218,7 +230,7 @@ void moonlight_xbox_dxMain::CreateWindowSizeDependentResources() {
 
 void moonlight_xbox_dxMain::StartRenderLoop() {
 	// If the animation render loop is already running then do not start another thread.
-	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == AsyncStatus::Started) {
+	if (m_renderLoopWorker != nullptr && m_renderLoopWorker->Status == Windows::Foundation::AsyncStatus::Started) {
 		return;
 	}
 
@@ -237,7 +249,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		double ewmaRenderMs = 3.0;     // Initial guess for render cost
 
 		// Calculate the updated frame and render once per vertical blanking interval.
-		while (action->Status == AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
+		while (action->Status == Windows::Foundation::AsyncStatus::Started && !moonlightClient->IsConnectionTerminated()) {
 			// Get overall deadline we must hit by the Present for this frame
 			int64_t deadline = Pacer::instance().getNextVBlankQpc(&t0);
 
@@ -326,12 +338,12 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		StopRenderLoop(); // also stops input
 		Disconnect();
 
-		DISPATCH_UI([this]() {
-			ExitStreamPage();
-		});
+			DISPATCH_UI([this]() {
+				ExitStreamPage();
+			});
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
-	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == AsyncStatus::Started) {
+	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == Windows::Foundation::AsyncStatus::Started) {
 		return;
 	}
 	auto inputItemHandler = ref new WorkItemHandler([this](IAsyncAction ^ action) {
@@ -339,7 +351,7 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		const int64_t pollIntervalQpc = MsToQpc(1000.0 / pollingHz);
 		int64_t lastProcessInput = 0;
 
-		while (action->Status == AsyncStatus::Started) {
+		while (action->Status == Windows::Foundation::AsyncStatus::Started) {
 			int64_t now = QpcNow();
 			if (now - lastProcessInput >= pollIntervalQpc) {
 				lastProcessInput = now;
@@ -408,22 +420,39 @@ void moonlight_xbox_dxMain::ProcessInput() {
 		auto result = state.GetComboResult(50); // hold buttons for a short time for View + Menu combo
 
 		if (result.comboTriggered) {
-			DISPATCH_UI(([this]() {
-				Windows::UI::Xaml::Controls::Flyout::ShowAttachedFlyout(m_streamPage->m_flyoutButton);
+			bool newVisible = !insideMenu;
+			DISPATCH_UI(([this, newVisible]() {
+				m_streamPage->SetStreamMenuVisible(newVisible);
 			}));
 
 			// send an empty controller packet, otherwise Sunshine may see View being kept held down,
 			// triggering the "Home/Guide Button Emulation Timeout" to send a Guide button press after a few seconds.
 			SendGamepadReadingForState(state, EmptyReading());
 
-			// disable future input until the flyout is closed
-			insideFlyout = true;
+			insideMenu = newVisible;
 			continue;
 		}
 
-		if (insideFlyout) {
+		if (insideMenu) {
+			if (PressedEdge(result.maskedReading, state.previousReading, GamepadButtons::B)) {
+				DISPATCH_UI(([this]() {
+					m_streamPage->SetStreamMenuVisible(false);
+				}));
+				insideMenu = false;
+				SendGamepadReadingForState(state, EmptyReading());
+			}
 			state.reading = EmptyReading();
 			state.previousReading = EmptyReading();
+			continue;
+		}
+
+		if (result.menuLongPressTriggered) {
+			DISPATCH_UI(([this]() {
+				bool newMode = !m_streamPage->MouseMode;
+				m_streamPage->SetMouseMode(newMode);
+				m_streamPage->ShowToast(newMode ? L"Mouse Mode: On" : L"Mouse Mode: Off");
+			}));
+			SendGamepadReadingForState(state, EmptyReading());
 			continue;
 		}
 
@@ -734,8 +763,8 @@ void moonlight_xbox_dxMain::OnDeviceRestored() {
 	CreateWindowSizeDependentResources();
 }
 
-void moonlight_xbox_dxMain::SetFlyoutOpened(bool value) {
-	insideFlyout = value;
+void moonlight_xbox_dxMain::SetMenuVisible(bool value) {
+	insideMenu = value;
 }
 
 void moonlight_xbox_dxMain::Disconnect() {

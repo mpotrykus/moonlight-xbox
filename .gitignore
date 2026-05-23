@@ -348,3 +348,5 @@ vcpkg_installed
 .stfolder/
 .stignore
 
+/.claude
+/enc_temp_folder
