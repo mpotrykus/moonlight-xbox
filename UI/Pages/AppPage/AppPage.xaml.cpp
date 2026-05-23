@@ -7,8 +7,8 @@
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "UI\Pages\StreamPage.xaml.h"
 #include "Utils.hpp"
-#include "Common\XamlHelper.h"
-#include "UI\ViewModels\AppPageViewModel.h"
+#include "UI\Utilities\XamlHelper.h"
+#include "UI\Models\ViewModels\AppPageViewModel.h"
 #include <algorithm>
 #include <cwctype>
 #include <sstream>

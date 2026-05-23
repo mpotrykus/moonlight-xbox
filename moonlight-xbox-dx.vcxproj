@@ -339,10 +339,10 @@
     <ClInclude Include="App.xaml.h">
       <DependentUpon>App.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Common\ImageHelpers.h" />
+    <ClInclude Include="UI\Utilities\ImageHelpers.h" />
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
-    <ClInclude Include="Common\XamlHelper.h" />
+    <ClInclude Include="UI\Utilities\XamlHelper.h" />
     <ClInclude Include="UI\Controls\AspectRatioBox.xaml.h">
       <DependentUpon>UI\Controls\AspectRatioBox.xaml</DependentUpon>
     </ClInclude>
@@ -358,16 +358,9 @@
     <ClInclude Include="UI\Controls\SlidingMenu.xaml.h">
       <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="Common\MenuItem.h" />
-    <ClInclude Include="Converters\BooleanToVisibilityConverter.h" />
-    <ClInclude Include="Converters\BoolToTextConverter.h" />
-    <ClInclude Include="Converters\BoolToVisibilityConverter.h" />
-    <ClInclude Include="Converters\MultiplyConverter.h" />
-    <ClInclude Include="Converters\UniformThicknessConverter.h" />
-    <ClInclude Include="Converters\BlurPaddingConverter.h" />
-    <ClInclude Include="Converters\UppercaseConverter.h" />
-    <ClInclude Include="Converters\WindowHeightConverter.h" />
-    <ClInclude Include="Converters\WindowWidthConverter.h" />
+    <ClInclude Include="UI\Models\MenuItem.h" />
+    <ClInclude Include="UI\Converters\BoolToTextConverter.h" />
+    <ClInclude Include="UI\Converters\BoolToVisibilityConverter.h" />
     <ClInclude Include="UI\Pages\MoonlightWelcome.xaml.h">
       <DependentUpon>UI\Pages\MoonlightWelcome.xaml</DependentUpon>
     </ClInclude>
@@ -400,7 +393,7 @@
     <ClInclude Include="State\StreamConfiguration.h" />
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="Common\DirectXHelper.h" />
-    <ClInclude Include="Common\EffectsLibrary.h" />
+    <ClInclude Include="UI\Utilities\EffectsLibrary.h" />
     <ClInclude Include="Common\StepTimer.h" />
     <ClInclude Include="Streaming\FrameCadence.h" />
     <ClInclude Include="Streaming\FrameQueue.h" />
@@ -419,13 +412,13 @@
     </ClInclude>
     <ClInclude Include="State\ScreenResolution.h" />
     <ClInclude Include="State\MoonlightApp.h" />
-    <ClInclude Include="UI\Pages\AppPage.xaml.h">
-      <DependentUpon>UI\Pages\AppPage.xaml</DependentUpon>
+    <ClInclude Include="UI\Pages\AppPage\AppPage.xaml.h">
+      <DependentUpon>UI\Pages\AppPage\AppPage.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="UI\Modals\AppActionsDialog.xaml.h">
       <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Pages\AppPage.Helpers.h" />
+    <ClInclude Include="UI\Pages\AppPage\AppPage.Helpers.h" />
     <ClInclude Include="UI\Pages\HostSelectorPage.xaml.h">
       <DependentUpon>UI\Pages\HostSelectorPage.xaml</DependentUpon>
     </ClInclude>
@@ -436,7 +429,7 @@
     <ClInclude Include="Streaming\StatsRenderer.h" />
     <ClInclude Include="State\ApplicationState.h" />
     <ClInclude Include="State\MoonlightHost.h" />
-    <ClInclude Include="State\UIPersonalization.h" />
+    <ClInclude Include="UI\Models\UIPersonalization.h" />
     <ClInclude Include="Streaming\AudioPlayer.h" />
     <ClInclude Include="Streaming\FFmpegDecoder.h" />
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
@@ -467,14 +460,14 @@
       <DependentUpon>UI\Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="Utils\FloatBuffer.h" />
-    <ClInclude Include="UI\ViewModels\AppPageViewModel.h" />
+    <ClInclude Include="UI\Models\ViewModels\AppPageViewModel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="App.xaml.cpp">
       <DependentUpon>App.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="Common\TextConsole.cpp" />
-    <ClCompile Include="Common\XamlHelper.cpp" />
+    <ClCompile Include="UI\Utilities\XamlHelper.cpp" />
     <ClCompile Include="UI\Controls\AspectRatioBox.xaml.cpp">
       <DependentUpon>UI\Controls\AspectRatioBox.xaml</DependentUpon>
     </ClCompile>
@@ -487,15 +480,8 @@
     <ClCompile Include="UI\Controls\TabsLayout.xaml.cpp">
       <DependentUpon>UI\Controls\TabsLayout.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Converters\BooleanToVisibilityConverter.cpp" />
-    <ClCompile Include="Converters\BoolToTextConverter.cpp" />
-    <ClCompile Include="Converters\BoolToVisibilityConverter.cpp" />
-    <ClCompile Include="Converters\MultiplyConverter.cpp" />
-    <ClCompile Include="Converters\UniformThicknessConverter.cpp" />
-    <ClCompile Include="Converters\BlurPaddingConverter.cpp" />
-    <ClCompile Include="Converters\UppercaseConverter.cpp" />
-    <ClCompile Include="Converters\WindowHeightConverter.cpp" />
-    <ClCompile Include="Converters\WindowWidthConverter.cpp" />
+    <ClCompile Include="UI\Converters\BoolToTextConverter.cpp" />
+    <ClCompile Include="UI\Converters\BoolToVisibilityConverter.cpp" />
     <ClCompile Include="Keyboard\kbda1.cpp" />
     <ClCompile Include="Keyboard\kbda2.cpp" />
     <ClCompile Include="Keyboard\kbda3.cpp" />
@@ -631,8 +617,8 @@
     <ClCompile Include="State\Stats.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
-    <ClCompile Include="Common\EffectsLibrary.cpp" />
-    <ClCompile Include="Common\ImageHelpers.cpp" />
+    <ClCompile Include="UI\Utilities\EffectsLibrary.cpp" />
+    <ClCompile Include="UI\Utilities\ImageHelpers.cpp" />
     <ClCompile Include="Streaming\LogRenderer.cpp" />
     <ClCompile Include="Streaming\Pacer.cpp" />
     <ClCompile Include="Streaming\FrameCadence.cpp" />
@@ -647,20 +633,20 @@
     </ClCompile>
     <ClCompile Include="State\ScreenResolution.cpp" />
     <ClCompile Include="State\MoonlightApp.cpp" />
-    <ClCompile Include="UI\Pages\AppPage.xaml.cpp">
-      <DependentUpon>UI\Pages\AppPage.xaml</DependentUpon>
+    <ClCompile Include="UI\Pages\AppPage\AppPage.xaml.cpp">
+      <DependentUpon>UI\Pages\AppPage\AppPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="UI\Modals\AppActionsDialog.xaml.cpp">
       <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Pages\AppPage.Helpers.cpp" />
-    <ClCompile Include="UI\Pages\AppPage.Blur.cpp" />
-    <ClCompile Include="UI\Pages\AppPage.Selection.cpp" />
-    <ClCompile Include="UI\Pages\AppPage.Actions.cpp" />
+    <ClCompile Include="UI\Pages\AppPage\AppPage.Helpers.cpp" />
+    <ClCompile Include="UI\Pages\AppPage\AppPage.Blur.cpp" />
+    <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp" />
+    <ClCompile Include="UI\Pages\AppPage\AppPage.Actions.cpp" />
     <ClCompile Include="UI\Controls\SlidingMenu.xaml.cpp">
       <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="Common\MenuItem.cpp" />
+    <ClCompile Include="UI\Models\MenuItem.cpp" />
     <ClCompile Include="UI\Pages\HostSelectorPage.xaml.cpp">
       <DependentUpon>UI\Pages\HostSelectorPage.xaml</DependentUpon>
     </ClCompile>
@@ -713,7 +699,7 @@
     </ClCompile>
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Utils\FloatBuffer.cpp" />
-    <ClCompile Include="UI\ViewModels\AppPageViewModel.cpp" />
+    <ClCompile Include="UI\Models\ViewModels\AppPageViewModel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -825,8 +811,8 @@
     </Page>
     <Page Include="KeyboardControl.xaml" />
     <Page Include="UI\Modals\AppActionsDialog.xaml" />
-    <Page Include="UI\Pages\AppPage.Resources.xaml" />
-    <Page Include="UI\Pages\AppPage.xaml">
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.xaml" />
+    <Page Include="UI\Pages\AppPage\AppPage.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Include="UI\Modals\HelpDialog.xaml">

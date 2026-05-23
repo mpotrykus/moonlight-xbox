@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ImageHelpers.h"
 #include "../Utils.hpp"
-#include "EffectsLibrary.h"
+#include "UI\Utilities\EffectsLibrary.h"
 
 // Helper interface for efficient access to SoftwareBitmap underlying bytes
 struct DECLSPEC_UUID("5B0D3235-4DBA-4D44-865E-8F1D0ED9F3E4") IMemoryBufferByteAccess : IUnknown {

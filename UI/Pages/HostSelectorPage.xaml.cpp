@@ -7,7 +7,7 @@
 #include "HostSelectorPage.xaml.h"
 #include "UI\Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "UI\Controls\LunarPhaseControl.xaml.h"
-#include "UI\Pages\AppPage.xaml.h"
+#include "UI\Pages\AppPage\AppPage.xaml.h"
 #include <State\MoonlightClient.h>
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "Utils.hpp"

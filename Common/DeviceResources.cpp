@@ -1,12 +1,12 @@
 ﻿#include "pch.h"
 #include "DeviceResources.h"
 #include "DirectXHelper.h"
-#include "EffectsLibrary.h"
+#include "UI\Utilities\EffectsLibrary.h"
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <winrt/Windows.UI.Core.h>
-#include <UI/Pages/StreamPage.xaml.h>
-#include <Streaming/FFmpegDecoder.h>
-#include <Plot/ImGuiPlots.h>
+#include "UI\Pages\StreamPage.xaml.h"
+#include "Streaming\FFmpegDecoder.h"
+#include "Plot\ImGuiPlots.h"
 
 using namespace moonlight_xbox_dx;
 using namespace D2D1;
@@ -192,11 +192,10 @@ void DX::DeviceResources::CreateDeviceResources()
 		context.As(&m_d3dContext)
 		);
 
-    // Initialize EffectsLibrary with the created device/context so GPU effects can run.
     try {
         ::EffectsLibrary::Initialize(m_d3dDevice.Get(), m_d3dContext.Get());
     } catch(...) {
-        // Avoid throwing from device setup; EffectsLibrary failures will fall back at runtime.
+		Utils::Log("EffectsLibrary::Initialize threw an exception\n");
     }
 }
 

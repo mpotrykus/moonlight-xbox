@@ -1,6 +1,6 @@
 #pragma once
 #include "UI\Controls\SlidingMenu.g.h"
-#include "Common\MenuItem.h"
+#include "UI\Models\MenuItem.h"
 
 namespace moonlight_xbox_dx::Controls
 {

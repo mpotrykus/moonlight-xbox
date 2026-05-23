@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "EffectsLibrary.h"
+#include "UI\Utilities\EffectsLibrary.h"
 #include <DirectXColors.h>
 #include <wrl.h>
 #include <robuffer.h>
 #include "../Utils.hpp"
-#include "DirectXHelper.h"
+#include "Common\DirectXHelper.h"
 #include <chrono>
 #include <vector>
 #include <mutex>
 #include <ppltasks.h>
-#include "ImageHelpers.h"
+#include "UI\Utilities\ImageHelpers.h"
 using namespace Windows::Graphics::Imaging;
 
 // Helper to access buffer bytes for SoftwareBitmap

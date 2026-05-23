@@ -24,10 +24,8 @@ namespace moonlight_xbox_dx {
             Windows::UI::Xaml::Media::Imaging::BitmapImage^ get() { return this->currentBackgroundImage; }
         }
 
-        // Called when a blurred image is ready for display
         void TransitionToBlurredImage(Windows::UI::Xaml::Media::Imaging::BitmapImage^ newImage);
         
-        // Set the page background border for animation reference
         void SetPageBackgroundBorder(Windows::UI::Xaml::Controls::Border^ border);
         void SetBackgroundTransitionSettings(double durationMs, double overlayOpacity);
     };

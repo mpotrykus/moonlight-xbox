@@ -27,7 +27,7 @@ static const Windows::UI::Color kDefaultSwatches[] = {
     { 255,  16, 137,  62 }, // Emerald
     { 255, 105, 121, 126 }, // Slate
 };
-static const int kDefaultSwatchCount = ARRAYSIZE(kDefaultSwatches);
+static const int kDefaultSwatchCount = sizeof(kDefaultSwatches) / sizeof(kDefaultSwatches[0]);
 
 SwatchPicker::SwatchPicker()
 {
@@ -56,7 +56,6 @@ void SwatchPicker::BuildDefaultSwatches()
     for (int i = 0; i < kDefaultSwatchCount; ++i)
         m_entries->Append(ref new SwatchEntry(kDefaultSwatches[i], false, false));
 
-    // Custom-color swatch — starts as a neutral gray until the user picks
     m_customEntry = ref new SwatchEntry(Windows::UI::Color{ 255, 108, 108, 108 }, false, true);
     m_entries->Append(m_customEntry);
 

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Converters\BoolToVisibilityConverter.h"
+#include "UI\Converters\BoolToVisibilityConverter.h"
 
 using namespace moonlight_xbox_dx;
 using namespace Platform;

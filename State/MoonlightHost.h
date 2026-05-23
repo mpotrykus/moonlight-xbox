@@ -2,7 +2,7 @@
 #include "pch.h"
 #include "State\MoonlightClient.h"
 #include "State\ScreenResolution.h"
-#include "State\UIPersonalization.h"
+#include "UI\Models\UIPersonalization.h"
 namespace moonlight_xbox_dx {
 
     [Windows::UI::Xaml::Data::Bindable]

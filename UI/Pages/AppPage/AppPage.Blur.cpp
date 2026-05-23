@@ -2,7 +2,7 @@
 #include "AppPage.xaml.h"
 #include "AppPage.Helpers.h"
 #include "Utils.hpp"
-#include "Common/ImageHelpers.h"
+#include "UI\Utilities\ImageHelpers.h"
 
 using namespace Platform;
 using namespace Windows::Foundation;

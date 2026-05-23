@@ -10,7 +10,7 @@
 #include "Common\DeviceResources.h"
 #include "Streaming\moonlight_xbox_dxMain.h"
 #include "KeyboardControl.xaml.h"
-#include "Converters\BoolToTextConverter.h"
+#include "UI\Converters\BoolToTextConverter.h"
 
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls;

@@ -1,6 +1,6 @@
 ﻿#include "moonlight_xbox_dxMain.h"
 #include "pch.h"
-#include <UI/Pages/AppPage.xaml.h>
+#include <UI/Pages/AppPage/AppPage.xaml.h>
 #include <UI/Pages/HostSelectorPage.xaml.h>
 #include <UI/Pages/StreamPage.xaml.h>
 #include <Streaming\FFMpegDecoder.h>

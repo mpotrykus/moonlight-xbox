@@ -2,9 +2,9 @@
 
 #pragma once
 
-#include "UI\Pages\AppPage.g.h"
+#include "UI\Pages\AppPage\AppPage.g.h"
 #include "State\MoonlightApp.h"
-#include "UI\ViewModels\AppPageViewModel.h"
+#include "UI\Models\ViewModels\AppPageViewModel.h"
 #include <atomic>
 #include <chrono>
 #include <ppltasks.h>
