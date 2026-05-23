@@ -14,8 +14,6 @@ namespace moonlight_xbox_dx {
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ image;
         // Backing image for the blurred version used as background behind the original image
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
-        // Backing image for the reflection
-        Windows::UI::Xaml::Media::Imaging::BitmapImage^ reflectionImage;
         // Backing image for the per-item glow (heavily blurred, list mode only)
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ glowImage;
         // Average color sampled from the image (stored as ARGB uint32)
@@ -111,17 +109,6 @@ namespace moonlight_xbox_dx {
                 if (this->blurredImage == value) return;
                 this->blurredImage = value;
                 try { OnPropertyChanged("BlurredImage"); } catch(...) {}
-            }
-        }
-
-        // New property exposing the reflection image (can be null)
-        property Windows::UI::Xaml::Media::Imaging::BitmapImage^ ReflectionImage
-        {
-            Windows::UI::Xaml::Media::Imaging::BitmapImage^ get() { return this->reflectionImage; }
-            void set(Windows::UI::Xaml::Media::Imaging::BitmapImage^ value) {
-                if (this->reflectionImage == value) return;
-                this->reflectionImage = value;
-                try { OnPropertyChanged("ReflectionImage"); } catch(...) {}
             }
         }
 

@@ -1,4 +1,4 @@
-﻿// AppPage.Xaml.h - single clean header
+// AppPage.Xaml.h - single clean header
 
 #pragma once
 
@@ -46,9 +46,9 @@ namespace moonlight_xbox_dx
             MoonlightHost^ get() { return this->host; }
         }
         property AppPageViewModel^ ViewModel {
-            AppPageViewModel^ get() { 
+            AppPageViewModel^ get() {
                 if (m_viewModel == nullptr) m_viewModel = ref new AppPageViewModel();
-                return m_viewModel; 
+                return m_viewModel;
             }
         }
         void OnBackRequested(Platform::Object^ e, Windows::UI::Core::BackRequestedEventArgs^ args);
@@ -57,16 +57,11 @@ namespace moonlight_xbox_dx
         void AppsGrid_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
 	    void BlurAppImage(MoonlightApp ^ selApp);
         void AppsGrid_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void AppsGrid_Unloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void AppsGrid_LayoutUpdated(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
         void AppsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
-        void OnScrollViewerViewChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::ScrollViewerViewChangedEventArgs^ e);
-        void EnsureRealizedContainersInitialized(Windows::UI::Xaml::Controls::ListView^ lv);
-        void AppsGrid_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
         void AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
         void AppsGrid_ContainerContentChanging(Windows::UI::Xaml::Controls::ListViewBase^ sender, Windows::UI::Xaml::Controls::ContainerContentChangingEventArgs^ args);
-        void Page_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
         void resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -78,14 +73,9 @@ namespace moonlight_xbox_dx
         void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnFirstRender(Platform::Object^ sender, Platform::Object^ e);
         void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void PageRoot_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
         void UpdateItemHeights();
 
-        // SlidingMenu integration
-        void OnSampleActionClicked();
-
         Windows::UI::Xaml::Controls::ScrollViewer^ m_scrollViewer;
-        Windows::Foundation::EventRegistrationToken m_scrollviewer_viewchanged_token;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_bgPanStoryboard = nullptr;
         void StartBgPanAnimation();
         void StartBannerSlideInAnimation();
@@ -107,20 +97,16 @@ namespace moonlight_xbox_dx
         Windows::Foundation::EventRegistrationToken m_appsgird_selection_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_itemclick_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_righttapped_token;
-        Windows::Foundation::EventRegistrationToken m_appsgird_sizechanged_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_loaded_token;
-        Windows::Foundation::EventRegistrationToken m_appsgird_unloaded_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_ccc_token;
 
-        bool m_initialCenteringScheduled = false;
-        bool m_gridCenterPending = false;
         bool m_pendingToggleCentering = false;
         std::chrono::steady_clock::time_point m_lastThumbstickNav = {};
         void DoGridCentering();
 
         concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ApplyBlur(MoonlightApp^ app, float blurDip, float padDip = 0.0f);
 
-        void FadeInRealizedBlurAndReflectionIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img);
+        void FadeInBlurIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img);
         void UpdateAverageColorOverlay(MoonlightApp^ app);
         void FadeInPollingIndicator();
         void FadeOutPollingIndicator();

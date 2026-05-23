@@ -643,9 +643,7 @@
       <DependentUpon>UI\Modals\AppActionsDialog.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="UI\Pages\AppPage\AppPage.Helpers.cpp" />
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Blur.cpp" />
     <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp" />
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Actions.cpp" />
     <ClCompile Include="UI\Controls\SlidingMenu.xaml.cpp">
       <DependentUpon>UI\Controls\SlidingMenu.xaml</DependentUpon>
     </ClCompile>

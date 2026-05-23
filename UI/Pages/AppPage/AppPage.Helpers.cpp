@@ -3,6 +3,8 @@
 #include "Utils.hpp"
 #include <chrono>
 #include <cmath>
+#include <sstream>
+#include <vector>
 
 using namespace Platform;
 using namespace Windows::Foundation;
@@ -46,21 +48,56 @@ ScrollViewer^ FindScrollViewer(DependencyObject^ parent) {
 
 void FindElementChildren(DependencyObject^ container,
     UIElement^& outDesaturator, UIElement^& outImage, UIElement^& outName,
-    UIElement^& outBlur, UIElement^& outReflection, UIElement^& outPlay, UIElement^& outEmboss)
+    UIElement^& outBlur, UIElement^& outPlay)
 {
-    outDesaturator = outImage = outName = outBlur = outReflection = outPlay = outEmboss = nullptr;
+    outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
     if (container == nullptr) return;
     try {
         outDesaturator = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Desaturator")));
         outImage       = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageRect")));
         outName        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppName")));
         outBlur        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageBlurRect")));
-        outReflection  = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"AppImageReflectionRect")));
         outPlay        = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Play")));
-        outEmboss      = dynamic_cast<UIElement^>(FindChildByName(container, ref new Platform::String(L"Emboss")));
     } catch(...) {
-        outDesaturator = outImage = outName = outBlur = outEmboss = nullptr;
+        outDesaturator = outImage = outName = outBlur = outPlay = nullptr;
     }
+}
+
+// ── Utility helpers ───────────────────────────────────────────────────────────
+
+double ParseDurationStringToMs(Platform::String^ durationValue) {
+    if (durationValue == nullptr || durationValue->IsEmpty()) return 250.0;
+
+    std::wstring text(durationValue->Data());
+    std::wstringstream ss(text);
+    std::wstring segment;
+    std::vector<double> parts;
+
+    while (std::getline(ss, segment, L':')) {
+        if (segment.empty()) return 250.0;
+        try {
+            size_t idx = 0;
+            double value = std::stod(segment, &idx);
+            if (idx != segment.size()) return 250.0;
+            parts.push_back(value);
+        } catch (...) {
+            return 250.0;
+        }
+    }
+
+    double totalSeconds = 0.0;
+    if (parts.size() == 3) {
+        totalSeconds = (parts[0] * 3600.0) + (parts[1] * 60.0) + parts[2];
+    } else if (parts.size() == 2) {
+        totalSeconds = (parts[0] * 60.0) + parts[1];
+    } else if (parts.size() == 1) {
+        totalSeconds = parts[0];
+    } else {
+        return 250.0;
+    }
+
+    if (!std::isfinite(totalSeconds) || totalSeconds <= 0.0) return 250.0;
+    return totalSeconds * 1000.0;
 }
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
@@ -115,15 +152,6 @@ Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, 
     HSLtoRGB(h, s, l, r, g, b);
     Windows::UI::Color out; out.A = in.A; out.R = r; out.G = g; out.B = b;
     return out;
-}
-
-// ── Selection visuals ─────────────────────────────────────────────────────────
-
-void ApplySelectionVisuals(UIElement^ des, UIElement^ img, UIElement^ nameTxt,
-    UIElement^ blur, UIElement^ reflection, UIElement^ play, UIElement^ emboss,
-    bool selected, bool isGridLayout)
-{
-    (void)des; (void)img; (void)nameTxt; (void)blur; (void)reflection; (void)play; (void)emboss; (void)selected; (void)isGridLayout;
 }
 
 } // namespace moonlight_xbox_dx

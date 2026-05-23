@@ -9,7 +9,6 @@ namespace moonlight_xbox_dx {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 static constexpr float  kDesaturatorOpacityUnselected =  0.8f;
-static constexpr float  kEmbossOpacitySelected        =  0.0f; //0.2f;
 static constexpr float  kBackgroundOpacity            = 0.05f;
 static constexpr float  kBackgroundSaturation         = 1.25f;
 static constexpr float  kSelectedScale                =  1.3f;
@@ -36,25 +35,14 @@ void FindElementChildren(
     Windows::UI::Xaml::UIElement^& outImage,
     Windows::UI::Xaml::UIElement^& outName,
     Windows::UI::Xaml::UIElement^& outBlur,
-    Windows::UI::Xaml::UIElement^& outReflection,
-    Windows::UI::Xaml::UIElement^& outPlay,
-    Windows::UI::Xaml::UIElement^& outEmboss);
+    Windows::UI::Xaml::UIElement^& outPlay);
+
+// ── Utility helpers ───────────────────────────────────────────────────────────
+
+double ParseDurationStringToMs(Platform::String^ durationValue);
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
 Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, double lightMul);
-
-// ── Selection visuals ─────────────────────────────────────────────────────────
-
-void ApplySelectionVisuals(
-    Windows::UI::Xaml::UIElement^ des,
-    Windows::UI::Xaml::UIElement^ img,
-    Windows::UI::Xaml::UIElement^ nameTxt,
-    Windows::UI::Xaml::UIElement^ blur,
-    Windows::UI::Xaml::UIElement^ reflection,
-    Windows::UI::Xaml::UIElement^ play,
-    Windows::UI::Xaml::UIElement^ emboss,
-    bool selected,
-    bool isGridLayout);
 
 } // namespace moonlight_xbox_dx

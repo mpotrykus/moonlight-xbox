@@ -1,11 +1,15 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "AppPage.Xaml.h"
 #include "AppPage.Helpers.h"
 #include "UI\Controls\SlidingMenu.xaml.h"
 #include "UI\Modals\AlertDialog.xaml.h"
+#include "UI\Modals\AppActionsDialog.xaml.h"
+#include "UI\Modals\ConfirmDialog.xaml.h"
 #include "UI\Pages\HostSelectorPage.xaml.h"
 #include "UI\Pages\HostSettingsPage.xaml.h"
+#include "UI\Pages\MoonlightSettings.xaml.h"
 #include "UI\Pages\StreamPage.xaml.h"
+#include "State\MoonlightClient.h"
 #include "Utils.hpp"
 #include "UI\Models\ViewModels\AppPageViewModel.h"
 #include <algorithm>
@@ -30,41 +34,6 @@ using namespace concurrency;
 namespace moonlight_xbox_dx {
 
 namespace {
-
-static double ParseDurationStringToMs(Platform::String^ durationValue) {
-    if (durationValue == nullptr || durationValue->IsEmpty()) return 250.0;
-
-    std::wstring text(durationValue->Data());
-    std::wstringstream ss(text);
-    std::wstring segment;
-    std::vector<double> parts;
-
-    while (std::getline(ss, segment, L':')) {
-        if (segment.empty()) return 250.0;
-        try {
-            size_t idx = 0;
-            double value = std::stod(segment, &idx);
-            if (idx != segment.size()) return 250.0;
-            parts.push_back(value);
-        } catch (...) {
-            return 250.0;
-        }
-    }
-
-    double totalSeconds = 0.0;
-    if (parts.size() == 3) {
-        totalSeconds = (parts[0] * 3600.0) + (parts[1] * 60.0) + parts[2];
-    } else if (parts.size() == 2) {
-        totalSeconds = (parts[0] * 60.0) + parts[1];
-    } else if (parts.size() == 1) {
-        totalSeconds = parts[0];
-    } else {
-        return 250.0;
-    }
-
-    if (!std::isfinite(totalSeconds) || totalSeconds <= 0.0) return 250.0;
-    return totalSeconds * 1000.0;
-}
 
 static double ResolveBackgroundOverlayOpacityFromPageResources(Page^ page) {
     double overlayOpacity = 0.05;
@@ -116,10 +85,10 @@ AppPage::AppPage() {
     // Zero all event tokens
     try {
         m_apps_changed_token.Value = m_back_cookie.Value = m_keydown_cookie.Value = 0;
-        m_rendering_token.Value = m_scrollviewer_viewchanged_token.Value = m_layoutUpdated_token.Value = 0;
+        m_rendering_token.Value = m_layoutUpdated_token.Value = 0;
         m_appsgird_selection_token.Value = m_appsgird_itemclick_token.Value = 0;
-        m_appsgird_righttapped_token.Value = m_appsgird_sizechanged_token.Value = 0;
-        m_appsgird_loaded_token.Value = m_appsgird_unloaded_token.Value = m_appsgird_ccc_token.Value = 0;
+        m_appsgird_righttapped_token.Value = 0;
+        m_appsgird_loaded_token.Value = m_appsgird_ccc_token.Value = 0;
     } catch(...) {}
 
     // Page lifecycle
@@ -139,14 +108,6 @@ AppPage::AppPage() {
             try { Utils::Log("AppPage: Unloaded\n"); that->OnUnloaded(s, e); } catch(...) {}
         });
     }
-    {
-        auto weakThis = WeakReference(this);
-        this->SizeChanged += ref new SizeChangedEventHandler([weakThis](Platform::Object^ s, SizeChangedEventArgs^ e) {
-            auto that = weakThis.Resolve<AppPage>();
-            if (that) try { that->PageRoot_SizeChanged(s, e); } catch(...) {}
-        });
-    }
-
     // AppsGrid event wiring
     try {
         if (this->AppsGrid != nullptr) {
@@ -163,17 +124,9 @@ AppPage::AppPage() {
                 ref new RightTappedEventHandler([weakThis](Platform::Object^ s, RightTappedRoutedEventArgs^ e) {
                     auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_RightTapped(s, e); } catch(...) {}
                 });
-            m_appsgird_sizechanged_token = this->AppsGrid->SizeChanged +=
-                ref new SizeChangedEventHandler([weakThis](Platform::Object^ s, SizeChangedEventArgs^ e) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_SizeChanged(s, e); } catch(...) {}
-                });
             m_appsgird_loaded_token = this->AppsGrid->Loaded +=
                 ref new RoutedEventHandler([weakThis](Platform::Object^ s, RoutedEventArgs^ e) {
                     auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_Loaded(s, e); } catch(...) {}
-                });
-            m_appsgird_unloaded_token = this->AppsGrid->Unloaded +=
-                ref new RoutedEventHandler([weakThis](Platform::Object^ s, RoutedEventArgs^ e) {
-                    auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_Unloaded(s, e); } catch(...) {}
                 });
             m_appsgird_ccc_token = this->AppsGrid->ContainerContentChanging +=
                 ref new TypedEventHandler<ListViewBase^, ContainerContentChangingEventArgs^>(
@@ -184,21 +137,6 @@ AppPage::AppPage() {
                 ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^ s, Platform::Object^ e) {
                     auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_LayoutUpdated(s, nullptr); } catch(...) {}
                 });
-        }
-    } catch(...) {}
-
-    // Sliding menu
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr) {
-            auto weakThis = WeakReference(this);
-            lm->AddPageItem(ref new MenuItem(
-                ref new Platform::String(L"Sample Action"),
-                ref new Platform::String(L""),
-                ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-                    auto that = weakThis.Resolve<AppPage>();
-                    if (that) try { that->OnSampleActionClicked(); } catch(...) {}
-                })));
         }
     } catch(...) {}
 
@@ -436,10 +374,6 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
                     auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
                         that->Resources->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard")));
                     if (sb != nullptr) sb->Begin();
-                    else {
-                        //SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
-                        //SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
-                    }
                 }
             } catch(...) {}
         }));
@@ -483,8 +417,6 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
 							that->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
 							that->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
                             that->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
-                            //SetElementOpacityImmediate(that->SelectedAppBox,  0.0f);
-                            //SetElementOpacityImmediate(that->SelectedAppText, 0.0f);
                             auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
                                 that->Resources->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
                             if (sb != nullptr) sb->Begin();
@@ -650,17 +582,11 @@ void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
     try { if (m_bgPanStoryboard != nullptr) { m_bgPanStoryboard->Stop(); m_bgPanStoryboard = nullptr; } } catch(...) {}
 
     try {
-        if (m_scrollViewer != nullptr) try { m_scrollViewer->ViewChanged -= m_scrollviewer_viewchanged_token; } catch(...) {}
-    } catch(...) {}
-
-    try {
         if (this->AppsGrid != nullptr) {
             try { this->AppsGrid->SelectionChanged -= m_appsgird_selection_token; } catch(...) {}
             try { this->AppsGrid->ItemClick        -= m_appsgird_itemclick_token;  } catch(...) {}
             try { this->AppsGrid->RightTapped      -= m_appsgird_righttapped_token; } catch(...) {}
-            try { this->AppsGrid->SizeChanged      -= m_appsgird_sizechanged_token; } catch(...) {}
             try { this->AppsGrid->Loaded                   -= m_appsgird_loaded_token;   } catch(...) {}
-            try { this->AppsGrid->Unloaded                 -= m_appsgird_unloaded_token; } catch(...) {}
             try { this->AppsGrid->ContainerContentChanging -= m_appsgird_ccc_token;      } catch(...) {}
             try { this->AppsGrid->LayoutUpdated            -= m_layoutUpdated_token;     } catch(...) {}
         }
@@ -816,7 +742,6 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
             for (int i = 0; i < (int)this->Host->Apps->Size; ++i) {
                 auto app = this->Host->Apps->GetAt(i);
                 app->BlurredImage = nullptr;
-                app->ReflectionImage = nullptr;
                 app->GlowImage = nullptr;
                 this->Host->Apps->SetAt(i, app);
             }
@@ -878,8 +803,8 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                             auto c2 = dynamic_cast<ListViewItem^>(lv2->ContainerFromItem(lv2->SelectedItem));
                                             if (c2 != nullptr) {
                                                 UIElement^ des2 = nullptr, ^img2 = nullptr, ^nm2 = nullptr;
-                                                UIElement^ bl2  = nullptr, ^rf2  = nullptr, ^pl2 = nullptr, ^em2 = nullptr;
-                                                FindElementChildren(c2, des2, img2, nm2, bl2, rf2, pl2, em2);
+                                                UIElement^ bl2  = nullptr, ^pl2 = nullptr;
+                                                FindElementChildren(c2, des2, img2, nm2, bl2, pl2);
                                                 auto resetCP = [](UIElement^ el) {
                                                     if (el == nullptr) return;
                                                     auto fe = dynamic_cast<FrameworkElement^>(el);
@@ -892,7 +817,7 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                                     cp.z = 0.0f;
                                                     vis->CenterPoint = cp;
                                                 };
-                                                resetCP(img2); resetCP(des2); resetCP(pl2); resetCP(em2);
+                                                resetCP(img2); resetCP(des2); resetCP(pl2);
                                             }
                                         }
                                     } catch(...) {}
@@ -919,15 +844,6 @@ void AppPage::AppsGrid_Loaded(Platform::Object^, RoutedEventArgs^) {
     try {
         Utils::Log("AppsGrid_Loaded\n");
         if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(this->AppsGrid);
-
-        if (m_scrollViewer != nullptr) {
-            Platform::WeakReference weakThis(this);
-            m_scrollviewer_viewchanged_token = m_scrollViewer->ViewChanged +=
-                ref new EventHandler<ScrollViewerViewChangedEventArgs^>([weakThis](Platform::Object^ s, ScrollViewerViewChangedEventArgs^ args) {
-                    auto that = weakThis.Resolve<AppPage>();
-                    if (that) try { that->OnScrollViewerViewChanged(s, args); } catch(...) {}
-                });
-        }
 
         try {
             auto weakThis = WeakReference(this);
@@ -958,31 +874,246 @@ void AppPage::settingsButton_Click(Platform::Object^, RoutedEventArgs^) {
     this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), Host);
 }
 
-void AppPage::Page_RightTapped(Platform::Object^, RightTappedRoutedEventArgs^ e) {
-    if (e != nullptr) {
-        e->Handled = false;
-    }
-}
-
-void AppPage::OnSampleActionClicked() {
-    try {
-        if (this->SelectedAppText != nullptr) {
-            this->SelectedAppText->Text = ref new Platform::String(L"SAMPLE ACTION TRIGGERED");
-            auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
-                this->Resources->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
-            if (sb != nullptr) sb->Begin();
-        }
-    } catch(...) {}
-}
-
-// ── Empty event-handler stubs (registered, no current logic needed) ───────────
-
-void AppPage::AppsGrid_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
-void AppPage::AppsGrid_Unloaded(Platform::Object^, RoutedEventArgs^) {}
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
     if (m_pendingToggleCentering) m_pendingToggleCentering = false;
 }
-void AppPage::PageRoot_SizeChanged(Platform::Object^, SizeChangedEventArgs^) {}
-void AppPage::OnScrollViewerViewChanged(Platform::Object^, ScrollViewerViewChangedEventArgs^) {}
+
+// ── AppPage::AppsGrid_ItemClick ───────────────────────────────────────────────
+
+void AppPage::AppsGrid_ItemClick(Platform::Object^ sender, ItemClickEventArgs^ e) {
+    MoonlightApp^ app = (MoonlightApp^)e->ClickedItem;
+    this->currentApp = app;
+
+    if (this->host != nullptr) {
+        for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
+            auto candidate = this->host->Apps->GetAt(i);
+            if (candidate != nullptr && candidate->CurrentlyRunning && candidate->Id != app->Id) {
+                this->closeAndStartButton_Click(nullptr, nullptr);
+                return;
+            }
+        }
+    }
+    this->Connect(app->Id);
+}
+
+// ── AppPage::Connect ──────────────────────────────────────────────────────────
+
+void AppPage::Connect(int appId) {
+    StreamConfiguration^ config = ref new StreamConfiguration();
+    config->hostname      = host->LastHostname;
+    config->appID         = appId;
+    config->width         = host->Resolution->Width;
+    config->height        = host->Resolution->Height;
+    config->bitrate       = host->Bitrate;
+    config->FPS           = host->FPS;
+    config->audioConfig   = host->AudioConfig;
+    config->videoCodec    = host->VideoCodec;
+    config->playAudioOnPC = host->PlayAudioOnPC;
+    config->enableHDR     = host->EnableHDR;
+    config->enableSOPS    = host->EnableSOPS;
+    config->enableStats   = host->EnableStats;
+    config->enableGraphs  = host->EnableGraphs;
+    if (config->enableHDR) host->VideoCodec = "HEVC (H.265)";
+    config->backgroundImage = (this->currentApp != nullptr) ? this->currentApp->BlurredImage : nullptr;
+    config->appName         = (this->currentApp != nullptr) ? this->currentApp->Name : nullptr;
+    this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
+}
+
+// ── AppPage::AppsGrid_RightTapped ────────────────────────────────────────────
+
+void AppPage::AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e) {
+    Utils::Log("AppPage::AppsGrid_RightTapped\n");
+
+    // Determine currentApp from tapped element
+    FrameworkElement^ senderElement = dynamic_cast<FrameworkElement^>(e != nullptr ? e->OriginalSource : nullptr);
+    if (senderElement != nullptr) {
+        if (senderElement->GetType()->FullName->Equals(ListViewItem::typeid->FullName)) {
+            currentApp = (MoonlightApp^)((ListViewItem^)senderElement)->Content;
+        } else {
+            currentApp = dynamic_cast<MoonlightApp^>(senderElement->DataContext);
+            if (currentApp == nullptr && this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0)
+                currentApp = (MoonlightApp^)this->AppsGrid->SelectedItem;
+        }
+    }
+
+    bool anyRunning = false;
+    if (this->host != nullptr) {
+        for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
+            auto c = this->host->Apps->GetAt(i);
+            if (c != nullptr && c->CurrentlyRunning) { anyRunning = true; break; }
+        }
+    }
+
+    if (this->currentApp == nullptr) {
+        if (e != nullptr) e->Handled = false;
+        return;
+    }
+
+    try {
+        Platform::WeakReference weakThis(this);
+        auto dialog = ref new AppActionsDialog();
+        dialog->Configure(
+            (this->currentApp->Name != nullptr) ? this->currentApp->Name : ref new Platform::String(L""),
+            this->currentApp->CurrentlyRunning,
+            !this->currentApp->CurrentlyRunning && anyRunning,
+            !this->currentApp->CurrentlyRunning && !anyRunning,
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Connect(that->currentApp->Id); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis, dialog](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->closeAppButton_Click(dialog, nullptr); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis, dialog](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->closeAndStartButton_Click(dialog, nullptr); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr && that->currentApp != nullptr) try { that->Connect(that->currentApp->Id); } catch (...) {}
+            }),
+            ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+                auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid)); } catch (...) {}
+            }),
+		    ref new RoutedEventHandler([weakThis](Platform::Object ^, RoutedEventArgs ^) {
+			    auto that = weakThis.Resolve<AppPage>();
+                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->Host); } catch (...) {}
+            }));
+
+        create_task(dialog->ShowAsync());
+        if (e != nullptr) e->Handled = true;
+    } catch (...) {
+        if (e != nullptr) e->Handled = false;
+    }
+}
+
+// ── AppPage::resumeAppButton_Click ────────────────────────────────────────────
+
+void AppPage::resumeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    this->Connect(this->currentApp->Id);
+}
+
+// ── AppPage::closeAndStartButton_Click ────────────────────────────────────────
+
+void AppPage::closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    if (this->currentApp == nullptr) return;
+    if (sender != nullptr) { this->ExecuteCloseAndStart(); return; }
+
+    Platform::String^ runningName = nullptr;
+    if (this->host != nullptr) {
+        for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
+            auto candidate = this->host->Apps->GetAt(i);
+            if (candidate != nullptr && candidate->CurrentlyRunning && candidate->Id != this->currentApp->Id) {
+                runningName = candidate->Name;
+                break;
+            }
+        }
+    }
+
+    auto startName = (this->currentApp->Name != nullptr && this->currentApp->Name->Length() > 0)
+        ? std::wstring(this->currentApp->Name->Data()) : std::wstring(L"this app");
+    auto closePart = (runningName != nullptr && runningName->Length() > 0)
+        ? std::wstring(L"Close '") + runningName->Data() + L"'"
+        : std::wstring(L"Close the currently running app");
+    Platform::String^ message = ref new Platform::String((closePart + L" and start '" + startName + L"'?").c_str());
+
+    Platform::WeakReference weakThis(this);
+    auto dialog = ref new ConfirmDialog();
+    dialog->Configure(
+        ref new Platform::String(L"Close & Start"),
+        message,
+        ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that) that->ExecuteCloseAndStart();
+        })
+    );
+    create_task(dialog->ShowAsync());
+}
+
+// ── AppPage::ExecuteCloseAndStart ─────────────────────────────────────────────
+
+void AppPage::ExecuteCloseAndStart() {
+    Platform::WeakReference weakThis(this);
+    auto name = (this->currentApp != nullptr && this->currentApp->Name != nullptr) ? this->currentApp->Name : nullptr;
+    this->ClosingOverlayText->Text = (name != nullptr && name->Length() > 0)
+        ? ref new Platform::String((std::wstring(L"Closing ") + name->Data() + L"...").c_str())
+        : ref new Platform::String(L"Closing...");
+    this->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
+
+    create_task(create_async([weakThis]() {
+        try {
+            auto thatLocal = weakThis.Resolve<AppPage>();
+            if (thatLocal == nullptr) return;
+            MoonlightClient client;
+            auto ipAddr = Utils::PlatformStringToStdString(thatLocal->host->LastHostname);
+            if (client.Connect(ipAddr.c_str()) == 0) { client.StopApp(); Sleep(1000); }
+        } catch(...) {}
+        auto thatLocal2 = weakThis.Resolve<AppPage>();
+        if (thatLocal2 == nullptr) return;
+        thatLocal2->Dispatcher->RunAsync(CoreDispatcherPriority::High,
+            ref new DispatchedHandler([weakThis]() {
+            auto thatUI = weakThis.Resolve<AppPage>();
+            try {
+                if (thatUI != nullptr) {
+                    thatUI->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+                    if (thatUI->currentApp != nullptr)
+                        thatUI->Connect(thatUI->currentApp->Id);
+                }
+            } catch(...) {}
+        }));
+    })).then([](concurrency::task<void> t) { try { t.get(); } catch(...) {} });
+}
+
+// ── AppPage::closeAppButton_Click ─────────────────────────────────────────────
+
+void AppPage::closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    Platform::WeakReference weakThis(this);
+    auto name = (this->currentApp != nullptr && this->currentApp->Name != nullptr) ? this->currentApp->Name : nullptr;
+    this->ClosingOverlayText->Text = (name != nullptr && name->Length() > 0)
+        ? ref new Platform::String((std::wstring(L"Closing ") + name->Data() + L"...").c_str())
+        : ref new Platform::String(L"Closing...");
+    this->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Visible;
+
+    create_task(create_async([weakThis]() {
+        try {
+            auto thatLocal = weakThis.Resolve<AppPage>();
+            if (thatLocal == nullptr) return;
+            MoonlightClient client;
+            auto ipAddr = Utils::PlatformStringToStdString(thatLocal->host->LastHostname);
+            if (client.Connect(ipAddr.c_str()) == 0) { client.StopApp(); Sleep(1000); }
+        } catch(...) {}
+        auto thatLocal2 = weakThis.Resolve<AppPage>();
+        if (thatLocal2 == nullptr) return;
+        thatLocal2->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+            ref new DispatchedHandler([weakThis]() {
+            auto thatUI = weakThis.Resolve<AppPage>();
+            try {
+                if (thatUI != nullptr) {
+                    thatUI->host->UpdateHostInfo(true);
+                    thatUI->host->UpdateAppRunningStates();
+                    thatUI->ClosingOverlay->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+                }
+            } catch(...) {}
+        }));
+    }));
+}
+
+// ── AppPage::moonlightSettingsButton_Click ────────────────────────────────────
+
+void AppPage::moonlightSettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    try {
+        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+    } catch(...) {}
+}
+
+// ── AppPage::hostSettingsFlyoutButton_Click ───────────────────────────────────
+
+void AppPage::hostSettingsFlyoutButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+    try {
+        this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), this->Host);
+    } catch(...) {}
+}
 
 } // namespace moonlight_xbox_dx
