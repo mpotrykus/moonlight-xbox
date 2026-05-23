@@ -383,6 +383,9 @@
     <ClInclude Include="UI\Modals\AlertDialog.xaml.h">
       <DependentUpon>UI\Modals\AlertDialog.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="UI\Modals\ConfirmDialog.xaml.h">
+      <DependentUpon>UI\Modals\ConfirmDialog.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="Plot\ImGuiPlots.h" />
     <ClInclude Include="Plot\PlotDesc.h" />
     <ClInclude Include="State\BandwidthTracker.h" />
@@ -611,6 +614,9 @@
     <ClCompile Include="UI\Modals\AlertDialog.xaml.cpp">
       <DependentUpon>UI\Modals\AlertDialog.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="UI\Modals\ConfirmDialog.xaml.cpp">
+      <DependentUpon>UI\Modals\ConfirmDialog.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="Plot\ImGuiPlots.cpp" />
     <ClCompile Include="State\BandwidthTracker.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
@@ -782,6 +788,10 @@
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
     </None>
+    <None Include="Assets\Shader\d3d11_yuv420_pixel.fxc">
+      <DeploymentContent>true</DeploymentContent>
+      <FileType>Document</FileType>
+    </None>
     <None Include="Assets\Shader\d3d11_vertex.fxc">
       <DeploymentContent>true</DeploymentContent>
       <FileType>Document</FileType>
@@ -822,6 +832,7 @@
     <Page Include="UI\Modals\HostActionsDialog.xaml" />
     <Page Include="UI\Modals\TestConnectionResultDialog.xaml" />
     <Page Include="UI\Modals\AlertDialog.xaml" />
+    <Page Include="UI\Modals\ConfirmDialog.xaml" />
     <Page Include="UI\Pages\HostSelectorPage.xaml">
       <SubType>Designer</SubType>
     </Page>

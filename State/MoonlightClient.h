@@ -54,6 +54,7 @@ namespace moonlight_xbox_dx {
         std::function<void()> OnCompleted;
         std::function<void(bool)> SetHDR;
         std::function<void(int,int, char*)> OnFailed;
+        std::function<void(int, const char*)> OnStartFailed;
         std::function<void(unsigned short, unsigned short, unsigned short)> OnRumble;
         std::function<void(unsigned short, unsigned short, unsigned short)> OnTriggerRumble;
     private:

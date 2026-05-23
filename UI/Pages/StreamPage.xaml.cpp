@@ -8,7 +8,6 @@
 #include "../Streaming/FFMpegDecoder.h"
 #include <Utils.hpp>
 #include <KeyboardControl.xaml.h>
-#include "../UI/Modals/ModalDialog.xaml.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -65,7 +64,6 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 
 	this->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
 
-	// Always start with menu and sub-menu hidden, regardless of state from previous stream
 	m_streamMenuVisible = false;
 	this->MenuShowStoryboard->Stop();
 	this->MenuHideStoryboard->Stop();
@@ -76,7 +74,6 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 		StartBgPanAnimation();
 		FadeInBackground();
 	}
-	// this->m_progressRing->IsActive = true;
 
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs ^>(this, &StreamPage::OnBackRequested);
@@ -95,29 +92,49 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	} catch (...) {
 		Utils::Log("StreamPage::Page_Loaded: SetSwapChainPanel failed\n");
 	}
-
+	
 	Platform::WeakReference weakThis(this);
-	DISPATCH_UI([weakThis] {
+	auto ignore = this->Dispatcher->RunAsync(CoreDispatcherPriority::Low, ref new DispatchedHandler([weakThis]() {
 		auto that = weakThis.Resolve<StreamPage>();
 		if (that == nullptr) return;
 		try {
 			that->m_main = std::unique_ptr<moonlight_xbox_dxMain>(new moonlight_xbox_dxMain(that->m_deviceResources, that, new MoonlightClient(), that->configuration));
-			that->m_main->CreateDeviceDependentResources();
-			that->m_main->CreateWindowSizeDependentResources();
-			that->m_main->StartRenderLoop();
-        } catch (const std::exception &ex) {
-			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", ex.what());
-        } catch (const std::string &string) {
-			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", string);
-        } catch (Platform::Exception ^ e) {
-            Platform::String ^ errorMsg = ref new Platform::String();
-            errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
-            errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
-			Utils::Logf("StreamPage::Page_Loaded: Exception when starting stream. Exception: %s", Utils::PlatformStringToStdString(errorMsg));
-        } catch (...) {
-            Utils::Log("StreamPage::Page_Loaded: Exception when starting stream. Exception: Generic Exception");
-        }
-	});
+
+			DISPATCH_UI([that], {
+				try {
+					that->m_main->CreateDeviceDependentResources();
+					that->m_main->CreateWindowSizeDependentResources();
+					that->m_main->StartRenderLoop();
+				} catch (...) {
+					Utils::Log("StreamPage: init failed\n");
+				}
+			});
+
+		} catch (const std::exception &ex) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = Utils::StringPrintf(ex.what());
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (const std::string &string) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = Utils::StringPrintf(string.c_str());
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (Platform::Exception ^ e) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			Platform::String ^ errorMsg = ref new Platform::String();
+			errorMsg = errorMsg->Concat(L"Exception: ", e->Message);
+			errorMsg = errorMsg->Concat(errorMsg, Utils::StringPrintf("%x", e->HResult));
+			dialog->Content = errorMsg;
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		} catch (...) {
+			Windows::UI::Xaml::Controls::ContentDialog ^ dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Content = L"Generic Exception";
+			dialog->CloseButtonText = L"OK";
+			dialog->ShowAsync();
+		}
+	}));
 }
 
 void StreamPage::Page_Unloaded(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {

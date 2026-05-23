@@ -693,6 +693,27 @@ int gs_pair(PSERVER_DATA server, char* pin) {
   return ret;
 }
 
+int gs_pair_check(PSERVER_DATA server) {
+  char url[4096];
+  uuid_t uuid;
+  char uuid_str[UUID_STRLEN];
+  PHTTP_DATA data = http_create_data();
+  if (data == NULL)
+    return GS_OUT_OF_MEMORY;
+
+  uuid_generate_random(&uuid);
+  uuid_unparse(&uuid, uuid_str);
+  snprintf(url, sizeof(url), "https://%s:%u/applist?uniqueid=%s&uuid=%s",
+    server->serverInfo.address, server->httpsPort, unique_id, uuid_str);
+
+  CURL* curl = get_curl_handle();
+  int ret = (http_request(curl, url, data) == GS_OK) ? GS_OK : GS_FAILED;
+
+  http_cleanup(curl);
+  http_free_data(data);
+  return ret;
+}
+
 int gs_applist(PSERVER_DATA server, PAPP_LIST *list) {
   int ret = GS_OK;
   char url[4096];

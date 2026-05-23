@@ -19,9 +19,6 @@ static constexpr double kAppsGridHeightFactor         =  0.50;
 static constexpr int    kAnimationDurationMs          =   500; //150;
 static constexpr int    kBgPanDurationSec             =    10;
 static constexpr float  kBlurAmountBackground         =  2.0f;
-// kBlurAmountGlow is intentionally removed; the glow blur amount is read at
-// runtime from the "BlurAmount" XAML resource (AppPage.Resources.xaml) so
-// that the blur processing and the padding/margin converters share one value.
 static constexpr float  kBlurGlowPaddingDip           = 60.0f;
 static constexpr float  kBlurGlowOpacity              = 0.50f;
 
@@ -46,21 +43,6 @@ void FindElementChildren(
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
 Windows::UI::Color AdjustColorHSLLightSat(Windows::UI::Color in, double satMul, double lightMul);
-
-// ── Animation helpers ─────────────────────────────────────────────────────────
-
-//void AnimateElementOpacity(Windows::UI::Xaml::UIElement^ element, float targetOpacity,
-//                           int durationMs = kAnimationDurationMs);
-//
-//void AnimateElementWidth(Windows::UI::Xaml::FrameworkElement^ element, double targetWidth,
-//                         int durationMs = kAnimationDurationMs);
-//
-//void AnimateElementPadding(Windows::UI::Xaml::FrameworkElement^ element,
-//                           Windows::UI::Xaml::Thickness targetPadding,
-//                           int durationMs = kAnimationDurationMs);
-//
-//void SetElementOpacityImmediate(Windows::UI::Xaml::UIElement^ element, float value);
-//void SetElementScaleImmediate(Windows::UI::Xaml::UIElement^ element, float scale);
 
 // ── Selection visuals ─────────────────────────────────────────────────────────
 

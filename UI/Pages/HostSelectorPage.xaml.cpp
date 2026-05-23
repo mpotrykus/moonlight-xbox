@@ -14,7 +14,6 @@
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "State\MDNSHandler.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
-#include "UI\Modals\ModalDialog.xaml.h"
 #include "UI\Modals\AlertDialog.xaml.h"
 #include "UI\Modals\HostActionsDialog.xaml.h"
 #include "UI\Modals\TestConnectionResultDialog.xaml.h"
@@ -539,7 +538,19 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 				} catch (...) {
 				}
 				query_mdns();
-				for (auto a : GetApplicationState()->SavedHosts) {
+				// Snapshot to avoid out-of-bounds if a host is deleted mid-iteration
+				std::vector<MoonlightHost^> hostsSnapshot;
+				{
+					auto savedHosts = GetApplicationState()->SavedHosts;
+					for (unsigned int i = 0; i < savedHosts->Size; i++) {
+						try {
+							hostsSnapshot.push_back(savedHosts->GetAt(i));
+						} catch (...) {
+							break;
+						}
+					}
+				}
+				for (auto a : hostsSnapshot) {
 					try {
 						a->UpdateHostInfo(true);
 					} catch (...) {

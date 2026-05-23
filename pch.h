@@ -41,19 +41,12 @@
 #endif
 
 // Helper for dispatching code to the UI thread
-#define DISPATCH_UI(LAMBDA)                                            \
-	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow   \
-		->Dispatcher                                                         \
-		->RunAsync(                                                          \
-			Windows::UI::Core::CoreDispatcherPriority::Normal,               \
-			ref new Windows::UI::Core::DispatchedHandler(LAMBDA)             \
-		)
-
-// Helper for dispatching code to the threadpool
-#define DISPATCH_THREADPOOL(LAMBDA) \
-    Windows::System::Threading::ThreadPool::RunAsync( \
-        ref new Windows::System::Threading::WorkItemHandler([=](Windows::Foundation::IAsyncAction^) { LAMBDA(); }) \
-    )
+#define DISPATCH_UI(CAPTURE, CODE)                                         \
+	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow \
+	    ->Dispatcher                                                       \
+	    ->RunAsync(                                                        \
+	        Windows::UI::Core::CoreDispatcherPriority::High,               \
+	        ref new Windows::UI::Core::DispatchedHandler(CAPTURE CODE))
 
 // Time helpers
 static inline int64_t QpcFreq() {

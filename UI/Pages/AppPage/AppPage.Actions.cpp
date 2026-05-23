@@ -1,11 +1,9 @@
 #include "pch.h"
 #include "AppPage.xaml.h"
-#include "AppPage.Helpers.h"
-#include "UI\Controls\SlidingMenu.xaml.h"
-#include "UI\Modals\ModalDialog.xaml.h"
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "UI\Modals\AppActionsDialog.xaml.h"
+#include "UI\Modals\ConfirmDialog.xaml.h"
 #include "State\MoonlightClient.h"
 #include "UI\Pages\StreamPage.xaml.h"
 #include "Utils.hpp"
@@ -143,21 +141,35 @@ void AppPage::closeAndStartButton_Click(Platform::Object^ sender, Windows::UI::X
     if (this->currentApp == nullptr) return;
     if (sender != nullptr) { this->ExecuteCloseAndStart(); return; }
 
-    auto dialog = ref new ContentDialog();
-    dialog->Title           = Utils::StringFromStdString("Confirm");
-    dialog->Content         = Utils::StringFromStdString("Close currently running app and connect?");
-    dialog->PrimaryButtonText = Utils::StringFromStdString("Yes");
-    dialog->CloseButtonText   = Utils::StringFromStdString("Cancel");
+    Platform::String^ runningName = nullptr;
+    if (this->host != nullptr) {
+        for (unsigned int i = 0; i < this->host->Apps->Size; ++i) {
+            auto candidate = this->host->Apps->GetAt(i);
+            if (candidate != nullptr && candidate->CurrentlyRunning && candidate->Id != this->currentApp->Id) {
+                runningName = candidate->Name;
+                break;
+            }
+        }
+    }
+
+    auto startName = (this->currentApp->Name != nullptr && this->currentApp->Name->Length() > 0)
+        ? std::wstring(this->currentApp->Name->Data()) : std::wstring(L"this app");
+    auto closePart = (runningName != nullptr && runningName->Length() > 0)
+        ? std::wstring(L"Close '") + runningName->Data() + L"'"
+        : std::wstring(L"Close the currently running app");
+    Platform::String^ message = ref new Platform::String((closePart + L" and start '" + startName + L"'?").c_str());
 
     Platform::WeakReference weakThis(this);
-    create_task(ModalDialog::ShowOnceAsync(dialog))
-        .then([weakThis](ContentDialogResult result) {
-        try {
-            if (result != ContentDialogResult::Primary) return;
+    auto dialog = ref new ConfirmDialog();
+    dialog->Configure(
+        ref new Platform::String(L"Close & Start"),
+        message,
+        ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
             auto that = weakThis.Resolve<AppPage>();
             if (that) that->ExecuteCloseAndStart();
-        } catch(...) {}
-    });
+        })
+    );
+    create_task(dialog->ShowAsync());
 }
 
 // ── AppPage::ExecuteCloseAndStart ─────────────────────────────────────────────

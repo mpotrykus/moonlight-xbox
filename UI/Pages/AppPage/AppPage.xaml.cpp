@@ -7,7 +7,6 @@
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "UI\Pages\StreamPage.xaml.h"
 #include "Utils.hpp"
-#include "UI\Utilities\XamlHelper.h"
 #include "UI\Models\ViewModels\AppPageViewModel.h"
 #include <algorithm>
 #include <cwctype>
@@ -964,13 +963,6 @@ void AppPage::Page_RightTapped(Platform::Object^, RightTappedRoutedEventArgs^ e)
     if (e != nullptr) {
         e->Handled = false;
     }
-}
-
-void AppPage::helpButton_Click(Platform::Object^, RoutedEventArgs^) {
-    auto path = ref new Platform::String(L"/UI/Pages/HelpDialog.xaml");
-    create_task(XamlHelper::LoadXamlFileAsStringAsync(path)).then([this](Platform::String^ xaml) {
-        try { ModalDialog::ShowOnceAsyncWithXaml(xaml, nullptr, Utils::StringFromStdString("OK")); } catch(...) {}
-    });
 }
 
 void AppPage::OnSampleActionClicked() {

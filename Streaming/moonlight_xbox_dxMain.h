@@ -41,6 +41,7 @@ namespace moonlight_xbox_dx
 		bool ToggleStats();
 
 		bool mouseMode = false;
+		std::atomic<bool> m_startFailed{ false };
 
 		MoonlightClient* moonlightClient;
 	private:

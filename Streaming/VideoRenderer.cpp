@@ -1,20 +1,19 @@
-﻿#include "pch.h"
-#include "VideoRenderer.h"
+﻿﻿#include "VideoRenderer.h"
+#include "pch.h"
 #include <State\MoonlightClient.h>
-#include "..\Common\DirectXHelper.h"
 #include <Streaming\FFMpegDecoder.h>
 #include <Utils.hpp>
-#include "..\UI\Modals\ModalDialog.xaml.h"
+#include "..\Common\DirectXHelper.h"
+#include "..\UI\Modals\AlertDialog.xaml.h"
 
 #include <d3d11shader.h>
 #include <d3dcompiler.h>
 
 extern "C" {
-#include "libgamestream/errors.h"
-#include "libgamestream/client.h"
 #include <Limelight.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/pixdesc.h>
+#include "libgamestream/client.h"
 }
 
 using Microsoft::WRL::ComPtr;
@@ -54,10 +53,9 @@ static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a 
 // Loads vertex and pixel shaders from files and instantiates the cube geometry.
 VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceResources, MoonlightClient* mclient, StreamConfiguration^ sConfig) :
 	m_LastColorTrc(AVCOL_TRC_UNSPECIFIED),
-	m_loadingComplete(false),
-	m_loadingSuccessful(false),
-	m_deviceResources(deviceResources),
-	client(mclient),
+      m_loadingComplete(false),
+      m_deviceResources(deviceResources),
+      client(mclient),
 	configuration(sConfig)
 {
 	ZeroMemory(&m_lastHdr10, sizeof(DXGI_HDR_METADATA_HDR10));
@@ -86,16 +84,13 @@ static inline std::vector<DXGI_FORMAT> getVideoTextureSRVFormats(DXGI_FORMAT fmt
 	if (fmt == DXGI_FORMAT_P010) {
 		return { DXGI_FORMAT_R16_UNORM, DXGI_FORMAT_R16G16_UNORM };
 	}
-	else {
-		return { DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8G8_UNORM };
-	}
 }
 
 bool renderedOneFrame = false;
 // Renders one frame using the vertex and pixel shaders.
 bool VideoRenderer::Render(AVFrame *frame) {
 	// Loading is asynchronous. Only draw geometry after it's loaded.
-	if (!m_loadingComplete.load(std::memory_order_acquire) && !m_loadingSuccessful.load(std::memory_order_acquire)) {
+	if (!m_loadingComplete.load(std::memory_order_acquire)) {
 		return true;
 	}
 
@@ -278,27 +273,34 @@ void VideoRenderer::CreateDeviceDependentResources()
 		DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&indexBufferDesc, &indexBufferData, &m_indexBuffer), "Index Buffer creation");
 	}
 
-    DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
-        int status = this->client->StartStreaming(devRes, cfg);
-		
-		if (status != 0) {
-			Utils::Logf("StartStreaming failed with status %d\n", status);
-			m_loadingSuccessful.store(false, std::memory_order_release);
-			m_loadingComplete.store(true, std::memory_order_release);
-			return;
-		}
+	int width = configuration->width;
+	int height = configuration->height;
 
-        m_loadingSuccessful.store(true, std::memory_order_release);
-        m_loadingComplete.store(true, std::memory_order_release);
-        Utils::Log("Loading Complete!\n");
-    }));
+	int status = client->StartStreaming(m_deviceResources, configuration);
+	if (status != 0) {
+		Utils::logMutex.lock();
+		std::wstring m_text = L"";
+		std::vector<std::wstring> lines = Utils::GetLogLines();
+		for (size_t i = 0; i < lines.size(); i++) {
+			if (lines.size() - i < 24) {
+				m_text += lines[i];
+			}
+		}
+		Utils::logMutex.unlock();
+		Utils::showLogs = true;
+		auto dialog = ref new moonlight_xbox_dx::AlertDialog();
+		dialog->Configure(L"Stream Failed", ref new Platform::String(m_text.c_str()));
+		dialog->ShowAsync();
+		return;
+	}
+	m_loadingComplete.store(true, std::memory_order_release);
+	Utils::Log("Loading Complete!\n");
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
 {
 	Windows::Graphics::Display::Core::HdmiDisplayInformation^ hdi = Windows::Graphics::Display::Core::HdmiDisplayInformation::GetForCurrentView();
 	m_loadingComplete.store(false, std::memory_order_release);
-	m_loadingSuccessful.store(false, std::memory_order_release);
 	m_vertexShader.Reset();
 	m_inputLayout.Reset();
 	m_pixelShaderYUV420.Reset();
@@ -403,12 +405,12 @@ void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
 	Utils::Logf("Setup vertex shader params: uMax %f, vMax %f\n", uMax, vMax);
 
 	VERTEX verts[] =
-	{
-		{renderRect.x, renderRect.y, 0, vMax},
-		{renderRect.x, renderRect.y + renderRect.h, 0, 0},
-		{renderRect.x + renderRect.w, renderRect.y, uMax, vMax},
-		{renderRect.x + renderRect.w, renderRect.y + renderRect.h, uMax, 0},
-	};
+	    {
+	        {renderRect.x, renderRect.y, 0, vMax},
+	        {renderRect.x, renderRect.y + renderRect.h, 0, 0},
+	        {renderRect.x + renderRect.w, renderRect.y, uMax, vMax},
+	        {renderRect.x + renderRect.w, renderRect.y + renderRect.h, uMax, 0},
+	    };
 
 	D3D11_BUFFER_DESC vbDesc = {};
 	vbDesc.ByteWidth = sizeof(verts);
@@ -421,9 +423,9 @@ void VideoRenderer::setupVertexBuffer(D3D11_TEXTURE2D_DESC frameDesc)
 	D3D11_SUBRESOURCE_DATA vbData = {};
 	vbData.pSysMem = verts;
 	DX::ThrowIfFailed(
-		m_deviceResources->GetD3DDevice()->CreateBuffer(
-			&vbDesc,
-			&vbData,
+	    m_deviceResources->GetD3DDevice()->CreateBuffer(
+	        &vbDesc,
+	        &vbData,
 			&m_VideoVertexBuffer
 		)
 		, "Vertex Buffer Creation");
@@ -538,7 +540,7 @@ void VideoRenderer::getFramePremultipliedCscConstants(const AVFrame* frame, std:
 	                                               : "Rec. 2020",
 	            bitsPerChannel,
 	            fullRange ? "full range" : "limited/standard range",
-				frame->colorspace,
+	            frame->colorspace,
 	            frame->chroma_location);
 }
 
@@ -594,12 +596,12 @@ void VideoRenderer::getFrameChromaCositingOffsets(const AVFrame* frame, std::arr
 bool VideoRenderer::hasFrameFormatChanged(const AVFrame* frame) {
 	AVPixelFormat format = getFrameSwPixelFormat(frame);
 	if (frame->width == m_LastFrameWidth &&
-		frame->height == m_LastFrameHeight &&
-		format == m_LastFramePixelFormat &&
-		frame->color_range == m_LastColorRange &&
-		frame->color_primaries == m_LastColorPrimaries &&
-		frame->colorspace == m_LastColorSpace &&
-		frame->chroma_location == m_LastChromaLocation) {
+	    frame->height == m_LastFrameHeight &&
+	    format == m_LastFramePixelFormat &&
+	    frame->color_range == m_LastColorRange &&
+	    frame->color_primaries == m_LastColorPrimaries &&
+	    frame->colorspace == m_LastColorSpace &&
+	    frame->chroma_location == m_LastChromaLocation) {
 		return false;
 	}
 
@@ -658,8 +660,8 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 	constData.pSysMem = &constBuf;
 
 	Utils::Logf("Setup pixel shader params: chromaOffset[0] %f, chromaOffset[1] %f, chromaUVMax[0] %f, chromaUVMax[1] %f\n",
-				constBuf.chromaOffset[0], constBuf.chromaOffset[1],
-				constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
+	            constBuf.chromaOffset[0], constBuf.chromaOffset[1],
+	            constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
 
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &m_cscConstantBuffer));
 }
@@ -686,4 +688,3 @@ void VideoRenderer::SetHDR(bool enabled)
 void VideoRenderer::Stop() {
 	// nothing to do
 }
-

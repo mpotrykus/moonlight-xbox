@@ -101,6 +101,54 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 		}));
 	});
 
+	client->OnStartFailed = ([this, appName, configuration](int status, const char* rawMessage) {
+		std::string msgCopy = rawMessage ? rawMessage : std::string();
+		auto self = this;
+		Platform::String^ hostname = configuration->hostname;
+
+		DISPATCH_UI(([self, appName, msgCopy, status, hostname]() {
+			auto dialog = ref new Windows::UI::Xaml::Controls::ContentDialog();
+			dialog->Title = L"Failed to start " + appName;
+			Platform::String^ content = status == 1
+				? L"Permission denied. You may need to re-pair with this host."
+				: Utils::StringFromStdString(msgCopy);
+			dialog->Content = content;
+			dialog->PrimaryButtonText = L"OK";
+
+			concurrency::create_task(::moonlight_xbox_dx::ModalDialog::ShowOnceAsync(dialog)).then(
+				[self, status, hostname](concurrency::task<Windows::UI::Xaml::Controls::ContentDialogResult> t) {
+					t.get();
+
+					if (status == 1) {
+						auto hosts = GetApplicationState()->SavedHosts;
+						for (unsigned int i = 0; i < hosts->Size; i++) {
+							auto h = hosts->GetAt(i);
+							if (h->LastHostname != nullptr && hostname != nullptr && h->LastHostname == hostname) {
+								h->Paired = false;
+								break;
+							}
+						}
+					}
+
+					self->m_startFailed.store(true);
+					self->StopRenderLoop();
+
+					auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
+					if (rootFrame) {
+						try {
+							if (status == 1) {
+								rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+							} else {
+								self->ExitStreamPage();
+							}
+						} catch (...) {
+							self->ExitStreamPage();
+						}
+					}
+				});
+		}));
+	});
+
 	client->OnStatusUpdate = ([streamPage](int status) {
 		std::string msg = LiGetFormattedStageName(status);
 		DISPATCH_UI(([streamPage, msg]() {
@@ -126,7 +174,6 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 			if (this->m_sceneRenderer && this->m_sceneRenderer->IsLoadingSuccessful()) {
 				DISPATCH_UI(([streamPage]() {
 					Sleep(500);
-					// streamPage->m_progressRing->IsActive = false;
 					using namespace Windows::UI::Xaml::Media::Animation;
 					auto anim = ref new DoubleAnimation();
 					anim->From = ref new Platform::Box<double>(1.0);
@@ -343,9 +390,11 @@ void moonlight_xbox_dxMain::StartRenderLoop() {
 		StopRenderLoop(); // also stops input
 		Disconnect();
 
-		DISPATCH_UI([this]() {
-			ExitStreamPage();
-		});
+		if (!m_startFailed.load()) {
+			DISPATCH_UI([this]() {
+				ExitStreamPage();
+			});
+		}
 	});
 	m_renderLoopWorker = ThreadPool::RunAsync(workItemHandler, WorkItemPriority::High, WorkItemOptions::TimeSliced);
 	if (m_inputLoopWorker != nullptr && m_inputLoopWorker->Status == Windows::Foundation::AsyncStatus::Started) {
