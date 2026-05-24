@@ -21,6 +21,7 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::Graphics::Imaging;
 using namespace Windows::Graphics::Display;
 using namespace Windows::UI::Xaml::Media::Imaging;
+using namespace Windows::Storage;
 using namespace Windows::Storage::Streams;
 using namespace concurrency;
 
@@ -51,6 +52,64 @@ static double GetSharedAnimationDurationMs(AppPage^ page) {
     }
 
     return Utils::DurationStringToMs(durationValue);
+}
+
+// Derives the blur cache path from the source image path.
+// Input:  "...\images\{hostId}\{appId}.png"  (absolute Win32 path with backslashes)
+// Output: "...\images\{hostId}\blur\{appId}_bg.png"  (or _glow.png)
+// Returns nullptr for ms-appx/ms-appdata URIs or any path without backslashes.
+static Platform::String^ BlurCachePath(Platform::String^ imagePath, bool isGlow) {
+    if (imagePath == nullptr) return nullptr;
+    const wchar_t* s = imagePath->Data();
+    int len = (int)wcslen(s);
+    int lastSlash = -1, lastDot = -1;
+    for (int i = len - 1; i >= 0; i--) {
+        if (s[i] == L'\\' && lastSlash < 0) lastSlash = i;
+        if (s[i] == L'.' && lastDot   < 0) lastDot   = i;
+    }
+    if (lastSlash < 0 || lastDot <= lastSlash) return nullptr;
+    auto dir     = ref new Platform::String(s, lastSlash + 1);
+    auto base    = ref new Platform::String(s + lastSlash + 1, lastDot - lastSlash - 1);
+    auto blurDir = Platform::String::Concat(dir, ref new Platform::String(L"blur\\"));
+    auto suffix  = ref new Platform::String(isGlow ? L"_glow.png" : L"_bg.png");
+    return Platform::String::Concat(blurDir, Platform::String::Concat(base, suffix));
+}
+
+// Saves an IRandomAccessStream to filePath, creating the parent directory if needed.
+// Reads from position 0 regardless of stream->Position; leaves stream->Position unchanged.
+// Blocks — call only from a background thread.
+static void SaveBlurStreamSync(IRandomAccessStream^ stream, Platform::String^ filePath) {
+    if (stream == nullptr || filePath == nullptr) return;
+    const wchar_t* s = filePath->Data();
+    int len = (int)wcslen(s);
+    int lastSlash = -1;
+    for (int i = len - 1; i >= 0; i--) {
+        if (s[i] == L'\\') { lastSlash = i; break; }
+    }
+    if (lastSlash < 0) return;
+    auto dirPath  = ref new Platform::String(s, lastSlash);
+    auto fileName = ref new Platform::String(s + lastSlash + 1);
+    CreateDirectory(dirPath->Data(), nullptr);
+    auto folder = create_task(StorageFolder::GetFolderFromPathAsync(dirPath)).get();
+    auto file   = create_task(folder->CreateFileAsync(fileName,
+                      CreationCollisionOption::ReplaceExisting)).get();
+    auto fs     = create_task(file->OpenAsync(FileAccessMode::ReadWrite)).get();
+    create_task(RandomAccessStream::CopyAsync(
+        stream->GetInputStreamAt(0), fs->GetOutputStreamAt(0))).get();
+    create_task(fs->FlushAsync()).get();
+}
+
+// Opens a cached blur PNG as a stream ready for BitmapImage::SetSourceAsync.
+// Returns nullptr immediately if the file does not exist.
+static concurrency::task<IRandomAccessStream^> OpenBlurCacheStreamAsync(Platform::String^ filePath) {
+    if (filePath == nullptr || GetFileAttributes(filePath->Data()) == INVALID_FILE_ATTRIBUTES)
+        return task_from_result<IRandomAccessStream^>(nullptr);
+    return create_task(StorageFile::GetFileFromPathAsync(filePath))
+        .then([](StorageFile^ file) -> concurrency::task<IRandomAccessStream^> {
+            if (file == nullptr) return task_from_result<IRandomAccessStream^>(nullptr);
+            return create_task(file->OpenReadAsync())
+                .then([](IRandomAccessStream^ s) -> IRandomAccessStream^ { return s; });
+        });
 }
 
 } // namespace
@@ -213,31 +272,20 @@ void AppPage::DoGridCentering() {
 void AppPage::UpdateItemHeights() {
     try {
         if (this->AppsGrid == nullptr) return;
+
+        // Grid template already has Height="250" on AspectRatioBox — leave it alone.
+        // Computing from containerWidth here overrides the template with wrong values
+        // derived from narrow grid containers.
+        if (m_isGridLayout) return;
+
         double listTarget = this->AppsGrid->ActualHeight * 0.85;
-        bool isGrid = m_isGridLayout;
-        double perItemWidth = 0.0;
+        if (listTarget <= 0.0) return;
 
-        if (isGrid) {
-            try {
-                auto panel = dynamic_cast<ItemsWrapGrid^>(this->AppsGrid->ItemsPanelRoot);
-                if (panel != nullptr) perItemWidth = panel->ItemWidth;
-            } catch(...) {}
-        }
-
-        struct ItemSize { FrameworkElement^ fe; double desiredH; };
-        std::vector<ItemSize> items;
+        std::vector<FrameworkElement^> items;
 
         for (unsigned int i = 0; i < this->AppsGrid->Items->Size; ++i) {
             auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromIndex(i));
             if (container == nullptr) continue;
-
-            double containerHeight = container->ActualHeight;
-            double availableH = containerHeight - 50.0;
-            if (availableH <= 0.0) availableH = listTarget;
-
-            double containerWidth = container->ActualWidth;
-            double availableW = containerWidth > 0.0 ? containerWidth : this->AppsGrid->ActualWidth;
-            if (isGrid && perItemWidth > 0.0) availableW = perItemWidth;
 
             std::function<DependencyObject^(DependencyObject^)> find = [&](DependencyObject^ parent) -> DependencyObject^ {
                 if (parent == nullptr) return nullptr;
@@ -256,27 +304,16 @@ void AppPage::UpdateItemHeights() {
             if (found == nullptr) continue;
             auto fe = dynamic_cast<FrameworkElement^>(found);
             if (fe == nullptr) continue;
-
-            double desiredH = listTarget;
-            try {
-                constexpr double ratio = 0.65;
-                if (availableW > 0.0 && ratio > 0.0) {
-                    double h = availableW / ratio;
-                    if (h > listTarget) h = listTarget;
-                    if (h > 0.0) desiredH = h;
-                }
-            } catch(...) {}
-            if (desiredH < 0.0) desiredH = 0.0;
-            items.push_back({ fe, desiredH });
+            items.push_back(fe);
         }
 
-        for (auto& it : items) {
-            if (it.fe == nullptr) continue;
-            double prevH = it.fe->Height;
-            if (std::isnan(prevH) || std::fabs(prevH - it.desiredH) > 1.0) {
-                it.fe->Height = it.desiredH;
-                it.fe->InvalidateMeasure();
-                it.fe->UpdateLayout();
+        for (auto fe : items) {
+            if (fe == nullptr) continue;
+            double prevH = fe->Height;
+            if (std::isnan(prevH) || std::fabs(prevH - listTarget) > 1.0) {
+                fe->Height = listTarget;
+                fe->InvalidateMeasure();
+                fe->UpdateLayout();
             }
         }
     } catch(...) {}
@@ -594,13 +631,32 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
             if (pv != nullptr) glowBlurAmount = (float)pv->GetDouble();
         } catch(...) {}
 
+        // Returns a stream from the blur cache if it exists, otherwise runs ApplyBlur
+        // and saves the result so future calls skip the GPU work.
+        auto getOrComputeStream = [this, selApp](float blurDip, float padDip,
+                                                  Platform::String^ cachePath)
+            -> concurrency::task<IRandomAccessStream^>
+        {
+            if (cachePath != nullptr && GetFileAttributes(cachePath->Data()) != INVALID_FILE_ATTRIBUTES)
+                return OpenBlurCacheStreamAsync(cachePath);
+            return ApplyBlur(selApp, blurDip, padDip)
+                .then([cachePath](IRandomAccessStream^ stream) -> IRandomAccessStream^ {
+                    if (stream != nullptr && cachePath != nullptr) {
+                        try { SaveBlurStreamSync(stream, cachePath); } catch(...) {}
+                        stream->Seek(0);
+                    }
+                    return stream;
+                }, concurrency::task_continuation_context::use_arbitrary());
+        };
+
         // Background blur — always generated, used for page background
+        auto bgCachePath = BlurCachePath(selApp->ImagePath, false);
         try {
-            ApplyBlur(selApp, kBlurAmountBackground)
+            getOrComputeStream(kBlurAmountBackground, 0.0f, bgCachePath)
                 .then([selApp, weakThis](IRandomAccessStream^ stream) {
                 try {
                     if (stream == nullptr) {
-                        Utils::Logf("[AppPage] BlurAppImage: ApplyBlur (background) returned null stream for app id=%d\n", selApp->Id);
+                        Utils::Logf("[AppPage] BlurAppImage: background stream null for app id=%d\n", selApp->Id);
                         return;
                     }
                     auto that = weakThis.Resolve<AppPage>();
@@ -638,8 +694,9 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
 
         // Glow blur — only in list mode, used for the per-item glow rect
         if (!isGrid) {
+            auto glowCachePath = BlurCachePath(selApp->ImagePath, true);
             try {
-                ApplyBlur(selApp, glowBlurAmount, kBlurGlowPaddingDip)
+                getOrComputeStream(glowBlurAmount, kBlurGlowPaddingDip, glowCachePath)
                     .then([selApp, weakThis](IRandomAccessStream^ stream) {
                     try {
                         if (stream == nullptr) return;

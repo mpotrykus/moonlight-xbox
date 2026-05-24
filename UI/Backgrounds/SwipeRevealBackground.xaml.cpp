@@ -78,7 +78,11 @@ SwipeRevealBackground::SwipeRevealBackground()
 
 void SwipeRevealBackground::SetHosts(IVector<MoonlightHost^>^ hosts)
 {
-    m_hosts = hosts;
+    m_hosts      = hosts;
+    m_appsLoaded = false;
+    m_apps       = nullptr;
+    m_frontAppIdx = -1;
+    m_backAppIdx  = -1;
 }
 
 void SwipeRevealBackground::Grid_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -109,7 +113,114 @@ void SwipeRevealBackground::UpdateGlassEdgeSkew()
     GlassEdgeSkew->AngleX = (m_wipeDir > 0) ? -angle : angle;
 }
 
+void SwipeRevealBackground::ShuffleAndApply(Platform::Collections::Vector<MoonlightApp^>^ collected)
+{
+    std::vector<MoonlightApp^> vec;
+    vec.reserve(collected->Size);
+    for (auto a : collected) vec.push_back(a);
+    std::mt19937 rng(std::random_device{}());
+    std::shuffle(vec.begin(), vec.end(), rng);
+    auto shuffled = ref new Platform::Collections::Vector<MoonlightApp^>();
+    for (auto a : vec) shuffled->Append(a);
+    m_apps       = shuffled;
+    m_appsLoaded = true;
+    InitSlides();
+}
+
 void SwipeRevealBackground::LoadAppsAsync()
+{
+    if (m_hosts == nullptr) return;
+
+    // Phase 1: apps already loaded in memory for any paired host (works when host is offline)
+    {
+        auto inMemory = ref new Vector<MoonlightApp^>();
+        for (auto h : m_hosts)
+            if (h->Paired)
+                for (auto a : h->Apps) inMemory->Append(a);
+        if (inMemory->Size > 0) {
+            ShuffleAndApply(inMemory);
+            // Best-effort background refresh so h->Apps stays current
+            auto targets = ref new Vector<MoonlightHost^>();
+            for (auto h : m_hosts)
+                if (h->Paired && h->Connected) targets->Append(h);
+            if (targets->Size > 0)
+                create_task([targets]() {
+                    for (auto h : targets)
+                        try { h->UpdateApps(); } catch (...) {}
+                });
+            return;
+        }
+    }
+
+    // Phase 2: scan per-host disk cache using InstanceId (available from state.json even offline)
+    Platform::WeakReference weakThis(this);
+    Platform::String^ baseImages = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+    baseImages = Platform::String::Concat(baseImages, L"\\images\\");
+
+    // Collect per-host subdirectory paths for any host with a known InstanceId.
+    // Do NOT gate on h->Paired — Paired is only set after a live network handshake,
+    // so it is always false on a fresh launch with the host offline.
+    // InstanceId comes from state.json and is available regardless of connectivity.
+    auto hostDirs = std::make_shared<std::vector<std::wstring>>();
+    for (auto h : m_hosts) {
+        if (h->InstanceId != nullptr && !h->InstanceId->IsEmpty())
+            hostDirs->push_back(std::wstring(Platform::String::Concat(baseImages,
+                Platform::String::Concat(h->InstanceId, L"\\"))->Data()));
+    }
+
+    if (hostDirs->empty()) {
+        LoadFromNetworkAsync();
+        return;
+    }
+
+    auto imagePaths = std::make_shared<std::vector<std::wstring>>();
+    create_task([hostDirs, imagePaths]() {
+        for (auto& dir : *hostDirs) {
+            std::wstring search = dir + L"*.png";
+            WIN32_FIND_DATAW fd;
+            HANDLE h = FindFirstFileW(search.c_str(), &fd);
+            if (h == INVALID_HANDLE_VALUE) continue;
+            do {
+                imagePaths->push_back(dir + fd.cFileName);
+            } while (FindNextFileW(h, &fd));
+            FindClose(h);
+        }
+    }).then([weakThis, imagePaths]() {
+        auto dispatcher = Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher;
+        dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Low,
+            ref new Windows::UI::Core::DispatchedHandler([weakThis, imagePaths]() {
+                auto that = weakThis.Resolve<SwipeRevealBackground>();
+                if (that == nullptr) return;
+
+                if (!imagePaths->empty()) {
+                    auto fromDisk = ref new Platform::Collections::Vector<MoonlightApp^>();
+                    for (auto& path : *imagePaths) {
+                        auto app = ref new MoonlightApp();
+                        app->ImagePath = ref new Platform::String(path.c_str());
+                        fromDisk->Append(app);
+                    }
+                    that->ShuffleAndApply(fromDisk);
+                    // Best-effort background refresh for connected hosts
+                    if (that->m_hosts != nullptr) {
+                        auto targets = ref new Platform::Collections::Vector<MoonlightHost^>();
+                        for (auto h : that->m_hosts)
+                            if (h->Paired && h->Connected) targets->Append(h);
+                        if (targets->Size > 0)
+                            create_task([targets]() {
+                                for (auto h : targets)
+                                    try { h->UpdateApps(); } catch (...) {}
+                            });
+                    }
+                    return;
+                }
+
+                // No cached images found — fall back to network
+                that->LoadFromNetworkAsync();
+            }));
+    });
+}
+
+void SwipeRevealBackground::LoadFromNetworkAsync()
 {
     if (m_hosts == nullptr) return;
     auto targets = ref new Vector<MoonlightHost^>();
@@ -130,18 +241,8 @@ void SwipeRevealBackground::LoadAppsAsync()
                 auto collected = ref new Vector<MoonlightApp^>();
                 for (auto h : targets)
                     for (auto a : h->Apps) collected->Append(a);
-                if (collected->Size > 0) {
-                    std::vector<MoonlightApp^> vec;
-                    vec.reserve(collected->Size);
-                    for (auto a : collected) vec.push_back(a);
-                    std::mt19937 rng(std::random_device{}());
-                    std::shuffle(vec.begin(), vec.end(), rng);
-                    auto shuffled = ref new Platform::Collections::Vector<MoonlightApp^>();
-                    for (auto a : vec) shuffled->Append(a);
-                    that->m_apps       = shuffled;
-                    that->m_appsLoaded = true;
-                    that->InitSlides();
-                }
+                if (collected->Size > 0)
+                    that->ShuffleAndApply(collected);
             }));
     });
 }
@@ -206,13 +307,16 @@ void SwipeRevealBackground::UpdateDiagonalClip(float swept)
 
 void SwipeRevealBackground::InitSlides()
 {
-    // First app wipes in over black — back starts empty
-    m_frontAppIdx = FindNextAppWithImage(0);
-    if (m_frontAppIdx < 0) return;
+    // First image appears immediately in the back layer; second image is preloaded
+    // into the front layer ready to wipe in after the first hold period.
+    m_backAppIdx = FindNextAppWithImage(0);
+    if (m_backAppIdx < 0) return;
 
-    m_backAppIdx = -1;
-    BackBrush->ImageSource    = nullptr;
-    m_frontBrush->ImageSource = m_apps->GetAt(m_frontAppIdx)->Image;
+    BackBrush->ImageSource = m_apps->GetAt(m_backAppIdx)->Image;
+
+    m_frontAppIdx = FindNextAppWithImage(m_backAppIdx + 1);
+    m_frontBrush->ImageSource = (m_frontAppIdx >= 0)
+        ? m_apps->GetAt(m_frontAppIdx)->Image : nullptr;
 
     InitPanForLayer(m_backPanX,  m_backPanY,  m_backVX,  m_backVY);
     InitPanForLayer(m_frontPanX, m_frontPanY, m_frontVX, m_frontVY);
@@ -221,9 +325,9 @@ void SwipeRevealBackground::InitSlides()
 
     m_wipeDir  = 1;
     m_wipeTick = 0;
-    m_phase    = 1;  // wipe in immediately
+    m_phase    = 0;  // hold first, then wipe
     m_holdTick = 0;
-    GlassEdge->Opacity = 1.0;
+    GlassEdge->Opacity = 0.0;
     ZeroFrontClips();
     UpdateGlassEdgeSkew();
 }

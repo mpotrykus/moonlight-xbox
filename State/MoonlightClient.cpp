@@ -502,15 +502,20 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 		a->Name = s.Name;
 		values.push_back(a);
 	}
-	Platform::String ^ folderString = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
-	folderString = folderString->Concat(folderString, "\\images\\");
+	Platform::String ^ baseImages = Windows::Storage::ApplicationData::Current->LocalFolder->Path;
+	baseImages = Platform::String::Concat(baseImages, L"\\images\\");
+	Platform::String ^ hostId = (serverData.uniqueId != nullptr)
+	    ? Utils::StringFromChars(serverData.uniqueId)
+	    : ref new Platform::String(L"unknown");
+	Platform::String ^ folderString = Platform::String::Concat(baseImages, Platform::String::Concat(hostId, L"\\"));
 	char folder[2048];
 	wcstombs_s(NULL, folder, folderString->Data(), 2047);
+	CreateDirectory(baseImages->Data(), NULL);
 	CreateDirectory(folderString->Data(), NULL);
 	if (fetchAssets) {
 		Concurrency::create_task([folder, folderString, values, this]() {
 			for (auto a : values) {
-				auto imgPath = folderString->Concat(folderString, a->Id + ".png");
+				auto imgPath = Platform::String::Concat(folderString, a->Id + ".png");
 				// https://stackoverflow.com/a/6218957
 				DWORD dwAttrib = GetFileAttributes(imgPath->Data());
 				if (dwAttrib == INVALID_FILE_ATTRIBUTES) {

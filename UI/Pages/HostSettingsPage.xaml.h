@@ -178,5 +178,7 @@ namespace moonlight_xbox_dx
 		void InitSpheresCustomPickers();
 		void UpdateSpheresColorSectionVisibility();
 		void UpdateSpheresCustomPanelVisibility();
+
+		void ClearAppImageCacheButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

@@ -27,7 +27,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Name="backButton" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
+            <Button Grid.Column="0" Name="backButton" Style="{StaticResource SettingsButtonStyle}" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
@@ -38,7 +38,7 @@
                 <TextBlock Text="{x:Bind Host.LastHostname}" FontSize="12" Opacity="0.5" Margin="2,2,0,0" />
             </StackPanel>
 
-            <Button Grid.Column="2" x:Name="GlobalSettingsOption" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
+            <Button Grid.Column="2" x:Name="GlobalSettingsOption" Style="{StaticResource SettingsButtonStyle}" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
                     XYFocusDown="{x:Bind DisplayTab}">
                 Open Moonlight Settings
             </Button>
@@ -376,6 +376,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" />
                                             <Button Grid.Column="1" x:Name="ParticleResetButton"
+                                                    Style="{StaticResource SettingsButtonStyle}"
                                                     Click="ParticleResetButton_Click">Reset to Default</Button>
                                         </Grid>
                                     </StackPanel>
@@ -451,6 +452,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" />
                                             <Button Grid.Column="1" x:Name="StreaksResetButton"
+                                                    Style="{StaticResource SettingsButtonStyle}"
                                                     Click="StreaksResetButton_Click">Reset to Default</Button>
                                         </Grid>
                                     </StackPanel>
@@ -499,6 +501,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" />
                                             <Button Grid.Column="1" x:Name="OrbsResetButton"
+                                                    Style="{StaticResource SettingsButtonStyle}"
                                                     Click="OrbsResetButton_Click">Reset to Default</Button>
                                         </Grid>
                                     </StackPanel>
@@ -559,6 +562,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" />
                                             <Button Grid.Column="1" x:Name="SpheresResetButton"
+                                                    Style="{StaticResource SettingsButtonStyle}"
                                                     Click="SpheresResetButton_Click">Reset to Default</Button>
                                         </Grid>
                                     </StackPanel>
@@ -625,6 +629,7 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" />
                                             <Button Grid.Column="1" x:Name="BlobsResetButton"
+                                                    Style="{StaticResource SettingsButtonStyle}"
                                                     Click="BlobsResetButton_Click">Reset to Default</Button>
                                         </Grid>
                                     </StackPanel>
@@ -652,6 +657,30 @@
                                                             VerticalAlignment="Center" />
                                     </Grid>
                                 </StackPanel>
+                            </Border>
+
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="APP IMAGES"/>
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid Padding="{StaticResource SettingsRowPadding}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="Image Cache" />
+                                        <TextBlock Text="Re-downloads artwork from host"
+                                                   FontSize="11"
+                                                   Opacity="0.6"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            x:Name="ClearAppImageCacheButton"
+                                            Style="{StaticResource SettingsButtonStyle}"
+                                            Click="ClearAppImageCacheButton_Click"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Left"
+                                            Content="Clear App Image Cache" />
+                                </Grid>
                             </Border>
                         </StackPanel>
 

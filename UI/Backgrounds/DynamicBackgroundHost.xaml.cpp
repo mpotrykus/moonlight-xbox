@@ -148,6 +148,10 @@ void DynamicBackgroundHost::SetHosts(Windows::Foundation::Collections::IVector<M
         auto el = dynamic_cast<UIElement^>(BackgroundPresenter->Content);
         if (auto sr = dynamic_cast<SwipeRevealBackground^>(el)) { sr->SetHosts(hosts); }
     } catch (...) {}
+    try {
+        auto el = dynamic_cast<UIElement^>(FadePresenter->Content);
+        if (auto sr = dynamic_cast<SwipeRevealBackground^>(el)) { sr->SetHosts(hosts); }
+    } catch (...) {}
 }
 
 void DynamicBackgroundHost::StartAnimations()

@@ -27,7 +27,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Name="backButton" Click="backButton_Click">
+            <Button Grid.Column="0" Name="backButton" Style="{StaticResource SettingsButtonStyle}" Click="backButton_Click">
                 <Button.Content>
                     <SymbolIcon Symbol="Back" />
                 </Button.Content>
@@ -36,7 +36,7 @@
             <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                 <TextBlock Text="Moonlight Settings" Style="{StaticResource PageTitleStyle}" />
             </StackPanel>
-            <Button x:Name="WelcomeButton" Grid.Column="2" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center">Open Welcome Wizard</Button>
+            <Button x:Name="WelcomeButton" Grid.Column="2" Style="{StaticResource SettingsButtonStyle}" Click="WelcomeButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center">Open Welcome Wizard</Button>
         </Grid>
 
         <Border Grid.Row="1" Margin="{StaticResource SettingsPanelMargin}" CornerRadius="16" MaxWidth="{StaticResource SettingsPanelMaxWidth}" MaxHeight="{StaticResource SettingsPanelMaxHeight}"

@@ -60,6 +60,9 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 
 	try {
 		if (BackgroundHost != nullptr) {
+			auto singleHost = ref new Platform::Collections::Vector<MoonlightHost^>();
+			singleHost->Append(host);
+			BackgroundHost->SetHosts(singleHost);
 			BackgroundHost->Refresh();
 			BackgroundHost->StartAnimations();
 		}
@@ -1358,4 +1361,37 @@ void HostSettingsPage::BlobsResetButton_Click(Platform::Object^, Windows::UI::Xa
     try {
         if (BackgroundHost != nullptr) BackgroundHost->ReloadBackgroundColors();
     } catch (...) {}
+}
+
+void HostSettingsPage::ClearAppImageCacheButton_Click(Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^)
+{
+    ClearAppImageCacheButton->IsEnabled = false;
+    auto host = this->host;
+    Platform::WeakReference weakThis(this);
+    Concurrency::create_task([host]() {
+        if (host == nullptr || host->InstanceId == nullptr || host->InstanceId->IsEmpty()) return;
+        std::wstring dir = std::wstring(
+            Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data())
+            + L"\\images\\" + host->InstanceId->Data() + L"\\";
+        std::wstring pattern = dir + L"*.png";
+        WIN32_FIND_DATA fd;
+        HANDLE h = FindFirstFile(pattern.c_str(), &fd);
+        if (h != INVALID_HANDLE_VALUE) {
+            do {
+                if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+                    DeleteFile((dir + fd.cFileName).c_str());
+            } while (FindNextFile(h, &fd));
+            FindClose(h);
+        }
+        if (host != nullptr) {
+            try { host->UpdateApps(); } catch (...) {}
+        }
+    }).then([weakThis]() {
+        DISPATCH_UI([weakThis]() {
+            auto that = weakThis.Resolve<HostSettingsPage>();
+            if (that != nullptr) {
+                try { that->ClearAppImageCacheButton->IsEnabled = true; } catch (...) {}
+            }
+        });
+    });
 }

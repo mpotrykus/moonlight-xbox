@@ -369,7 +369,17 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
             }
         }
     } catch(...) { identical = false; }
-    if (identical) return true;
+    if (identical) {
+        // Swap object references so that in-place property updates (e.g. CurrentlyRunning from
+        // the polling loop) hit the same instances the UI is bound to via m_filteredApps.
+        try {
+            for (unsigned int i = 0; i < vec->Size; ++i) {
+                auto a = vec->GetAt(i), b = newResults->GetAt(i);
+                if (a != b) vec->SetAt(i, b);
+            }
+        } catch(...) {}
+        return true;
+    }
 
     vec->Clear();
     for (unsigned int i = 0; i < newResults->Size; ++i) vec->Append(newResults->GetAt(i));
@@ -662,27 +672,10 @@ void AppPage::OnGamepadKeyDown(CoreWindow^, KeyEventArgs^ args) {
             args->Handled = true;
         }
 
-        // DPad left/right is handled natively by the ListView's XY focus navigation
-        // (same path as arrow keys on PC). Handling it here too causes a double skip
-        // because CoreWindow::KeyDown Handled=true does not suppress gamepad XY nav.
-        // Thumbstick keys are NOT handled by native XY nav, so we manage those here.
-        // The cooldown prevents the thumbstick auto-repeat from firing multiple navigations
-        // per flick — the stick crosses the threshold, fires, then may fire again before
-        // returning to neutral.
-        if (!m_isGridLayout &&
-            (key == VirtualKey::GamepadLeftThumbstickRight || key == VirtualKey::GamepadLeftThumbstickLeft)) {
-            auto now = std::chrono::steady_clock::now();
-            auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastThumbstickNav).count();
-            if (elapsedMs >= kAnimationDurationMs) {
-                m_lastThumbstickNav = now;
-                using namespace Windows::UI::Xaml::Input;
-                auto dir = (key == VirtualKey::GamepadLeftThumbstickRight)
-                    ? FocusNavigationDirection::Right
-                    : FocusNavigationDirection::Left;
-                try { FocusManager::TryMoveFocus(dir); } catch(...) {}
-            }
-            args->Handled = true;
-        }
+        // DPad and thumbstick navigation are both handled natively by the ListView's
+        // XY focus system — same code path as arrow keys on PC. Adding a custom handler
+        // here too causes a double-skip because CoreWindow::KeyDown Handled=true does
+        // not suppress gamepad XY focus navigation.
 
     } catch(...) {}
 }
@@ -750,8 +743,6 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                 this->Host->Apps->SetAt(i, app);
             }
 
-            this->UpdateItemHeights();
-
             // Signal LayoutUpdated to center once the new panel has measured.
             m_pendingToggleCentering = true;
             Utils::Log("LayoutToggle: m_pendingToggleCentering set\n");
@@ -791,6 +782,9 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                     // grid/list width from the previous layout mode. Without this,
                                     // the centering error grows linearly with the selected index.
                                     try { that2->AppsGrid->UpdateLayout(); } catch(...) {}
+                                    // Set item heights now that the new template is applied and layout
+                                    // has run — avoids using stale container dimensions from the old mode.
+                                    try { that2->UpdateItemHeights(); } catch(...) {}
                                     // Reset Composition CenterPoints on the selected item's visuals.
                                     // They were set from grid-mode dimensions; after UpdateLayout()
                                     // the elements have their correct list-mode sizes. Without this

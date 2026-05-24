@@ -244,6 +244,9 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 		}
 
 		if (BackgroundHost != nullptr) {
+			auto singleHost = ref new Platform::Collections::Vector<MoonlightHost^>();
+			if (selectedHost != nullptr) singleHost->Append(selectedHost);
+			BackgroundHost->SetHosts(singleHost->Size > 0 ? (IVector<MoonlightHost^>^)singleHost : State->SavedHosts);
 			BackgroundHost->Refresh();
 			BackgroundHost->StartAnimations();
 		}

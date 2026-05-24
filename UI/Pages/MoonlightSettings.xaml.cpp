@@ -67,6 +67,7 @@ MoonlightSettings::MoonlightSettings()
 void MoonlightSettings::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
 	try {
 		if (BackgroundHost != nullptr) {
+			BackgroundHost->SetHosts(state->SavedHosts);
 			BackgroundHost->Refresh();
 			BackgroundHost->StartAnimations();
 		}

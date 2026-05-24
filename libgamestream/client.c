@@ -854,21 +854,19 @@ int gs_init(PSERVER_DATA server, char *address, unsigned short httpPort, const c
 
 int gs_appasset(PSERVER_DATA server, const char *keyDirectory, int appId) {
     int ret = GS_OK;
-    char url[4096];    
-    char* result = NULL;
+    char url[4096];
 
     snprintf(url, sizeof(url), "https://%s:%u/appasset?appid=%d&AssetType=2&AssetIdx=0", server->serverInfo.address, server->httpsPort, appId);
     char uniqueFilePath[PATH_MAX];
     snprintf(uniqueFilePath, PATH_MAX, "%s%d.png", keyDirectory, appId);
     FILE* fd = fopen(uniqueFilePath, "wb");
     CURL* curl = get_curl_handle();
-    if ((ret = http_request_binary(curl, url, fd)) != GS_OK)
-        goto cleanup;
+    ret = http_request_binary(curl, url, fd);
     fclose(fd);
+    if (ret != GS_OK)
+        remove(uniqueFilePath);
 
 cleanup:
-    if (result != NULL)
-        free(result);
     http_cleanup(curl);
     return ret;
 }

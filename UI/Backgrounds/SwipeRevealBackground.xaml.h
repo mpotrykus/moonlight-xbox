@@ -45,6 +45,8 @@ private:
     void Grid_SizeChanged(Platform::Object^ sender, Windows::UI::Xaml::SizeChangedEventArgs^ e);
     void OnTick(Platform::Object^ sender, Platform::Object^ args);
     void LoadAppsAsync();
+    void LoadFromNetworkAsync();
+    void ShuffleAndApply(Platform::Collections::Vector<MoonlightApp^>^ apps);
     void InitSlides();
     void AdvanceSlide();
     int  FindNextAppWithImage(int startIdx);
