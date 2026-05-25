@@ -439,6 +439,8 @@ void moonlight_xbox_dxMain::ProcessInput() {
 					m_streamPage->SetStreamMenuVisible(false);
 				}));
 				insideMenu = false;
+				state.buttonSuppressMask = static_cast<GamepadButtons>(
+				    static_cast<uint32_t>(state.buttonSuppressMask) | static_cast<uint32_t>(GamepadButtons::B));
 				SendGamepadReadingForState(state, EmptyReading());
 			}
 			state.reading = EmptyReading();
@@ -458,6 +460,12 @@ void moonlight_xbox_dxMain::ProcessInput() {
 
 		// GetComboResult() will have masked off our combo buttons if they are pending
 		auto reading = result.maskedReading;
+
+		// Drop any buttons from the suppress mask that are now released, then mask remaining ones
+		state.buttonSuppressMask = static_cast<GamepadButtons>(
+		    static_cast<uint32_t>(state.buttonSuppressMask) & static_cast<uint32_t>(reading.Buttons));
+		reading.Buttons = GamepadState::clearButtons(reading.Buttons, state.buttonSuppressMask);
+
 		auto prevReading = state.previousReading;
 
 		// If mouse mode is enabled the gamepad acts as a mouse, instead we pass the raw events to the host

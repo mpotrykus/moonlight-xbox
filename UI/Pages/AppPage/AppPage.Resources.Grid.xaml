@@ -122,7 +122,22 @@
                                                          To="0.0" Duration="{StaticResource SharedAnimationDuration}"/>
                                     </Storyboard>
                                 </VisualState>
-                                <VisualState x:Name="PointerOverSelected"/>
+                                <VisualState x:Name="PointerOverSelected">
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="{StaticResource GridScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1.0" Duration="{StaticResource SharedAnimationDuration}"/>
+                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0.0" Duration="{StaticResource SharedAnimationDuration}"/>
+                                    </Storyboard>
+                                </VisualState>
                                 <VisualState x:Name="PressedSelected">
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="AppVisualRoot"

@@ -54,7 +54,7 @@
                                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
 
 
-                                    <Rectangle x:Name="Play" RadiusX="12" RadiusY="12" IsHitTestVisible="False" Margin="60"
+                                    <Rectangle x:Name="Play" RadiusX="12" RadiusY="12" IsHitTestVisible="False" Margin="75"
                                                Visibility="{Binding CurrentlyRunning, Converter={StaticResource BoolToVis}}">
                                         <Rectangle.Fill>
                                             <ImageBrush Stretch="Uniform" ImageSource="ms-appx:///Assets/Play1.png" />
@@ -170,7 +170,31 @@
                                                          To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
                                     </Storyboard>
                                 </VisualState>
-                                <VisualState x:Name="PointerOverSelected"/>
+                                <VisualState x:Name="PointerOverSelected">
+                                    <VisualState.Setters>
+                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
+                                    </VisualState.Setters>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="{StaticResource SelectedBlurScaleX}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="{StaticResource SelectedBlurScaleY}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="{StaticResource SelectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                    </Storyboard>
+                                </VisualState>
                                 <VisualState x:Name="PressedSelected">
                                     <VisualState.Setters>
                                         <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>

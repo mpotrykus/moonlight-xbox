@@ -9,7 +9,8 @@ enum class ComboState {
 	ViewWaiting,
 	MenuWaiting,
 	MenuLongPressWaiting,
-	ComboActive
+	ComboActive,
+	ComboReleasing
 };
 
 struct GamepadComboState {
@@ -41,6 +42,7 @@ struct GamepadState {
 	Windows::Gaming::Input::GamepadReading previousReading;
 	bool previousGuideButtonDown;
 	GamepadComboState combo;
+	Windows::Gaming::Input::GamepadButtons buttonSuppressMask = Windows::Gaming::Input::GamepadButtons::None;
 
 	short ltX, ltY, rtX, rtY;   // after a call to normalizeAxes() these are
 	unsigned char lTrig, rTrig; // populated with values expected by the protocol
@@ -81,6 +83,7 @@ struct GamepadState {
 		combo.menuLongPressFired = false;
 		combo.menuInjectionStartQpc = 0;
 		combo.viewInjectionStartQpc = 0;
+		buttonSuppressMask = Windows::Gaming::Input::GamepadButtons::None;
 	}
 
 	void SetGuideButtonDown(bool isDown) {
@@ -228,10 +231,17 @@ struct GamepadState {
 		case ComboState::ComboActive:
 			// Remain in combo state while both are held
 			if (viewCurrentlyPressed && menuCurrentlyPressed) {
-				// Continue masking both buttons
 				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
 			} else {
-				// One or both released, reset state
+				// One or both released — keep masking until both are fully up to avoid ghost presses
+				combo.comboState = ComboState::ComboReleasing;
+				maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
+			}
+			break;
+
+		case ComboState::ComboReleasing:
+			maskedButtons = clearButtons(buttons, GamepadButtons::View | GamepadButtons::Menu);
+			if (!viewCurrentlyPressed && !menuCurrentlyPressed) {
 				combo.comboState = ComboState::None;
 			}
 			break;
