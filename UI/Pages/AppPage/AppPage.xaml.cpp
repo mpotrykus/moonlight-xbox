@@ -754,22 +754,14 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                         auto that = weakThis.Resolve<AppPage>();
                         if (that == nullptr || that->AppsGrid == nullptr) return;
                         that->AppsGrid_SelectionChanged(that->AppsGrid, nullptr);
-                        // Restore keyboard focus to the list after the panel rebuild.
-                        // In list mode CenterSelectedItem already focuses the container.
-                        // In grid mode we must NOT call container->Focus() here: XAML's
-                        // "bring focused element into view" auto-scroll fires after
-                        // DoGridCentering and overrides the centering scroll position.
-                        // Focusing the ListView itself gives arrow-key nav without triggering
-                        // per-item auto-scroll in either mode.
+                        // Give the ListView interim focus while the inner dispatch runs;
+                        // the inner dispatch focuses the selected container after centering.
                         auto lv = that->AppsGrid;
                         try { lv->Focus(Windows::UI::Xaml::FocusState::Programmatic); } catch(...) {}
                         // AppsGrid_SelectionChanged → CenterSelectedItem may have used the
                         // translate path (ScrollableWidth==0 during panel swap). One extra
                         // pump lets the ScrollViewer update its ExtentWidth so re-centering
                         // can use ChangeView with the correct ScrollableWidth.
-                        // Suppress container focus during this re-centering: focusing a
-                        // specific ListViewItem causes XAML bring-into-view which scrolls
-                        // to the nearest edge and overrides the centering scroll position.
                         {
                             auto wt2 = WeakReference(that);
                             bool isGrid = that->m_isGridLayout;
@@ -814,14 +806,20 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                             }
                                         }
                                     } catch(...) {}
-                                    if (isGrid) {
-                                        if (that2->m_isGridLayout)
-                                            try { that2->DoGridCentering(); } catch(...) {}
-                                    } else {
-                                        if (!that2->m_isGridLayout) {
-                                            try { that2->CenterSelectedItem(3, true); } catch(...) {}
+                                    if (isGrid ? that2->m_isGridLayout : !that2->m_isGridLayout)
+                                        try { that2->CenterSelectedItem(3, true); } catch(...) {}
+                                    // Focus the selected container so XY nav resumes from the
+                                    // selected item instead of item 0. CenterSelectedItem with
+                                    // immediate=true has already applied the scroll offset, so
+                                    // BringIntoViewRequested is a no-op (item is fully visible).
+                                    try {
+                                        auto lv3 = that2->AppsGrid;
+                                        if (lv3 != nullptr && lv3->SelectedItem != nullptr) {
+                                            auto sel = dynamic_cast<ListViewItem^>(lv3->ContainerFromItem(lv3->SelectedItem));
+                                            if (sel != nullptr)
+                                                sel->Focus(Windows::UI::Xaml::FocusState::Programmatic);
                                         }
-                                    }
+                                    } catch(...) {}
                                 }));
                         }
                     }));

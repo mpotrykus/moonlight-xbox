@@ -93,7 +93,31 @@
                                                          To="{StaticResource UnselectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
                                     </Storyboard>
                                 </VisualState>
-                                <VisualState x:Name="PointerOver"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
+                                    </VisualState.Setters>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppVisualRoot"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="{StaticResource SelectedScale}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                         To="{StaticResource SelectedBlurScaleX}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                         To="{StaticResource SelectedBlurScaleY}" Duration="{StaticResource SharedAnimationDuration}" EnableDependentAnimation="True"/>
+                                        <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="{StaticResource SelectedBlurGlowOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                        <DoubleAnimation Storyboard.TargetName="Desaturator"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="{StaticResource SelectedDesaturatorOpacity}" Duration="{StaticResource SharedAnimationDuration}"/>
+                                    </Storyboard>
+                                </VisualState>
                                 <VisualState x:Name="Pressed">
                                     <VisualState.Setters>
                                         <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>

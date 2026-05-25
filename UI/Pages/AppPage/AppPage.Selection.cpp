@@ -268,20 +268,28 @@ void AppPage::DoGridCentering() {
 }
 
 // ── AppPage::UpdateItemHeights ────────────────────────────────────────────────
+// Clears any stale explicit Height on the AspectRatioBox of each realized list
+// container so XAML can size it naturally from the Row1 panel constraint.
+//
+// The list template's AspectRatioBox has no Height set in XAML (unlike the grid
+// template's Height="250").  The panel gives each container the full viewport
+// height; Row1 (4* after capped rows 0/2) then provides the correct image height
+// automatically.  Setting an explicit pixel value here — e.g. ActualHeight*0.85
+// — overflows Row1 and causes the artwork to be clipped.
+//
+// Recycled containers that went through a previous toggle may still carry a
+// stale explicit Height because Phase 0 preserves the visual tree.  This method
+// is called from the post-toggle RunAsync (after UpdateLayout) precisely to
+// clear those stale values on containers whose visual trees are already inflated.
+// Freshly created containers (Phase 0, tree not yet inflated) return null from
+// find() and are skipped — they already have NaN from the template.
 
 void AppPage::UpdateItemHeights() {
     try {
         if (this->AppsGrid == nullptr) return;
 
         // Grid template already has Height="250" on AspectRatioBox — leave it alone.
-        // Computing from containerWidth here overrides the template with wrong values
-        // derived from narrow grid containers.
         if (m_isGridLayout) return;
-
-        double listTarget = this->AppsGrid->ActualHeight * 0.85;
-        if (listTarget <= 0.0) return;
-
-        std::vector<FrameworkElement^> items;
 
         for (unsigned int i = 0; i < this->AppsGrid->Items->Size; ++i) {
             auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromIndex(i));
@@ -304,14 +312,9 @@ void AppPage::UpdateItemHeights() {
             if (found == nullptr) continue;
             auto fe = dynamic_cast<FrameworkElement^>(found);
             if (fe == nullptr) continue;
-            items.push_back(fe);
-        }
 
-        for (auto fe : items) {
-            if (fe == nullptr) continue;
-            double prevH = fe->Height;
-            if (std::isnan(prevH) || std::fabs(prevH - listTarget) > 1.0) {
-                fe->Height = listTarget;
+            if (!std::isnan(fe->Height)) {
+                fe->Height = std::nan("");
                 fe->InvalidateMeasure();
                 fe->UpdateLayout();
             }
