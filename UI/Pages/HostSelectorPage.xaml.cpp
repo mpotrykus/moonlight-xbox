@@ -203,6 +203,22 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 			if (grid->Items != nullptr && grid->Items->Size > 0 && grid->SelectedIndex < 0) {
 				grid->SelectedIndex = 0;
 			}
+			if (grid->Items != nullptr && grid->Items->Size > 0) {
+				Platform::WeakReference weakGrid(grid);
+				this->Dispatcher->RunAsync(
+					Windows::UI::Core::CoreDispatcherPriority::Low,
+					ref new Windows::UI::Core::DispatchedHandler([weakGrid]() {
+						auto g = weakGrid.Resolve<ListViewBase>();
+						if (g == nullptr || g->Items == nullptr || g->Items->Size == 0) return;
+						int idx = g->SelectedIndex >= 0 ? g->SelectedIndex : 0;
+						auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(g->ContainerFromIndex(idx));
+						if (container != nullptr) {
+							container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+						} else {
+							g->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+						}
+					}));
+			}
 		} catch (...) {}
 
 		EnsureCenteringPadding(3);
@@ -442,6 +458,29 @@ void HostSelectorPage::OnStateLoaded() {
 				ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
 					auto that = weakThis.Resolve<HostSelectorPage>();
 					if (that != nullptr) that->UpdateAllMoonPhases(true, 4);
+				}));
+		} catch (...) {}
+	}
+
+	// Focus the first host item — items were empty at Loaded time so we do it here.
+	{
+		auto weakThis = WeakReference(this);
+		try {
+			this->Dispatcher->RunAsync(
+				Windows::UI::Core::CoreDispatcherPriority::Low,
+				ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+					auto that = weakThis.Resolve<HostSelectorPage>();
+					if (that == nullptr) return;
+					auto grid = that->HostsGrid;
+					if (grid == nullptr || grid->Items == nullptr || grid->Items->Size == 0) return;
+					if (grid->SelectedIndex < 0) grid->SelectedIndex = 0;
+					int idx = grid->SelectedIndex >= 0 ? grid->SelectedIndex : 0;
+					auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(grid->ContainerFromIndex(idx));
+					if (container != nullptr) {
+						container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+					} else {
+						grid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+					}
 				}));
 		} catch (...) {}
 	}
