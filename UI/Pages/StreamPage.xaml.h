@@ -30,8 +30,6 @@ namespace moonlight_xbox_dx
 		bool ShouldRefreshGamepads();
 		void RequestRefreshGamepads();
 		void SetMouseMode(bool enabled);
-		void ShowToast(Platform::String^ message);
-
 		property bool MouseMode {
 			bool get() { return m_mouseMode; }
 			void set(bool value) {
@@ -116,18 +114,6 @@ namespace moonlight_xbox_dx
 			}
 		}
 
-		property Windows::UI::Xaml::Controls::Border^ m_toastView {
-			Windows::UI::Xaml::Controls::Border^ get() {
-				return this->ToastView;
-			}
-		}
-
-		property TextBlock^ m_toastText {
-			TextBlock^ get() {
-				return this->ToastText;
-			}
-		}
-
 	protected:
 		virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
 	private:
@@ -188,7 +174,6 @@ namespace moonlight_xbox_dx
 	    bool m_streamMenuVisible = false;
 	    bool m_subMenuVisible = false;
 	    Windows::UI::Xaml::DispatcherTimer^ m_subMenuCloseTimer = nullptr;
-	    void ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	    void MenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e);
 	};
 }

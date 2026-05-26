@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "UI\Controls\LunarPhaseControl.xaml.h"
+#include "..\..\Utils.hpp"
 #include <cmath>
 
 using namespace moonlight_xbox_dx;
@@ -8,11 +9,67 @@ using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Media::Animation;
+using namespace Windows::UI::Xaml::Media::Imaging;
 using namespace Windows::Foundation;
+using namespace Windows::Storage;
+using namespace Windows::Storage::Streams;
+using namespace concurrency;
 
 static constexpr long long kAnimationMs = 150;
 static constexpr double kShadowTravelPx = 100.0;
-static constexpr long long kOrbitLoopMs = 2040;
+static constexpr long long kOrbitLoopMs = 2040; // fallback until GIF is parsed
+
+static std::atomic<long long> s_orbitLoopMs { kOrbitLoopMs };
+static std::once_flag s_orbitDurationFlag;
+
+static void ReadOrbitGifDurationAsync()
+{
+    std::call_once(s_orbitDurationFlag, []() {
+        auto uri = ref new Uri(L"ms-appx:///Assets/orbit_load3.gif");
+        create_task(StorageFile::GetFileFromApplicationUriAsync(uri))
+        .then([](task<StorageFile^> fileTask) -> task<IBuffer^> {
+            try {
+                return create_task(FileIO::ReadBufferAsync(fileTask.get()));
+            } catch (Platform::COMException^ ex) {
+                moonlight_xbox_dx::Utils::Logf("LunarPhase: failed to open orbit gif hr=0x%08x — using fallback %lldms\n", ex->HResult, kOrbitLoopMs);
+                return task_from_result<IBuffer^>(nullptr);
+            } catch (...) {
+                moonlight_xbox_dx::Utils::Logf("LunarPhase: failed to open orbit gif (unknown) — using fallback %lldms\n", kOrbitLoopMs);
+                return task_from_result<IBuffer^>(nullptr);
+            }
+        })
+        .then([](IBuffer^ buf) -> long long {
+            if (buf == nullptr) return kOrbitLoopMs;
+
+            auto reader = DataReader::FromBuffer(buf);
+            unsigned int len = buf->Length;
+            auto bytes = ref new Array<unsigned char>(len);
+            reader->ReadBytes(bytes);
+
+            // Sum each frame's GCE delay (centiseconds × 10 = ms).
+            // GCE block: 0x21 0xF9 0x04 <flags> <delayLo> <delayHi> <transIdx> 0x00
+            int frameCount = 0;
+            long long totalMs = 0;
+            for (unsigned int i = 0; i + 5 < len; i++) {
+                if (bytes[i] == 0x21 && bytes[i+1] == 0xF9 && bytes[i+2] == 0x04) {
+                    unsigned short cs = bytes[i+4] | (unsigned short)(bytes[i+5] << 8);
+                    totalMs += (long long)cs * 10;
+                    frameCount++;
+                    i += 7; // skip past this 8-byte GCE (loop adds 1 more)
+                }
+            }
+
+            if (totalMs > 0) {
+                return totalMs;
+            }
+            moonlight_xbox_dx::Utils::Logf("LunarPhase: orbit gif parse found no GCE frames (len=%u) — using fallback %lldms\n", len, kOrbitLoopMs);
+            return kOrbitLoopMs;
+        })
+        .then([](task<long long> t) {
+            try { s_orbitLoopMs = t.get(); } catch (...) {}
+        });
+    });
+}
 
 Windows::UI::Xaml::DependencyProperty^ LunarPhaseControl::m_showOrbitProperty =
     DependencyProperty::Register(
@@ -51,6 +108,7 @@ LunarPhaseControl::LunarPhaseControl()
     m_selectionStoryboard = nullptr;
     m_orbitHideTimer = nullptr;
     m_orbitShownTick = 0;
+    ReadOrbitGifDurationAsync();
 
     // Build PathGeometry for the crescent shape entirely in code so no x:Name
     // is needed on geometry objects inside Path.Data.
@@ -149,19 +207,28 @@ void LunarPhaseControl::OnShowOrbitChanged(
             try { ctrl->m_orbitHideTimer->Stop(); } catch (...) {}
             ctrl->m_orbitHideTimer = nullptr;
         }
-        ctrl->m_orbitShownTick = (long long)GetTickCount64();
+        // Assign a fresh BitmapImage so the GIF always restarts from frame 0.
+        // Resuming a paused GIF would cause the phase to drift each cycle as
+        // DispatcherTimer fires slightly late and the accumulated offset compounds.
+        ctrl->OrbitGif->Source = ref new BitmapImage(
+            ref new Uri(L"ms-appx:///Assets/orbit_load3.gif"));
         ctrl->OrbitGif->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        ctrl->m_orbitShownTick = QpcNow();
         return;
     }
 
     // Compute remaining ms in the current gif loop so we hide at a loop boundary.
+    // kTimerMarginMs is subtracted so the DispatcherTimer fires ~20ms before the
+    // boundary rather than after — DispatcherTimer can fire up to ~17ms late at 60fps.
+    static constexpr long long kTimerMarginMs = 20;
+    long long loopMs = s_orbitLoopMs.load();
     long long rem;
     if (ctrl->m_orbitShownTick == 0) {
-        rem = kOrbitLoopMs;
+        rem = loopMs - kTimerMarginMs;
     } else {
-        long long elapsed = (long long)GetTickCount64() - ctrl->m_orbitShownTick;
+        long long elapsed = (long long)QpcToMs(QpcNow() - ctrl->m_orbitShownTick);
         if (elapsed < 0) elapsed = 0;
-        rem = kOrbitLoopMs - (elapsed % kOrbitLoopMs);
+        rem = loopMs - (elapsed % loopMs) - kTimerMarginMs;
         if (rem <= 50) {
             // Close enough to a boundary — hide now without starting a timer.
             ctrl->OrbitGif->Visibility = Windows::UI::Xaml::Visibility::Collapsed;

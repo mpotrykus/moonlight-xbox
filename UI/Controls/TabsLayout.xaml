@@ -23,7 +23,16 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6" HorizontalAlignment="Stretch" Margin="0,2">
+                        <Grid CornerRadius="6" HorizontalAlignment="Stretch" Margin="0,2">
+                            <Border x:Name="BackgroundLayer"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"/>
+
+                            <Border x:Name="FocusLayer"
+                                    Background="#1AFFFFFF"
+                                    CornerRadius="6"
+                                    Opacity="0"/>
+
                             <TextBlock
                                 Text="{TemplateBinding Content}"
                                 FontSize="15"
@@ -31,7 +40,30 @@
                                 VerticalAlignment="Center"
                                 Margin="16,10"
                                 Foreground="{TemplateBinding Foreground}" />
-                        </Border>
+
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="FocusStates">
+                                    <VisualState x:Name="Focused">
+                                        <VisualState.Storyboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="1" Duration="0:0:0.15"/>
+                                            </Storyboard>
+                                        </VisualState.Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Unfocused">
+                                        <VisualState.Storyboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="0" Duration="0:0:0.1"/>
+                                            </Storyboard>
+                                        </VisualState.Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>

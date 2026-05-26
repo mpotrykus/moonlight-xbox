@@ -10,5 +10,6 @@ Windows::UI::Xaml::FrameworkElement^
     FindChildByName(Windows::UI::Xaml::DependencyObject^ parent, Platform::String^ name);
 
 void ApplyAccentColor(Windows::UI::Color color);
+Windows::UI::Color GetAppliedAccentColor();
 
 } // namespace moonlight_xbox_dx

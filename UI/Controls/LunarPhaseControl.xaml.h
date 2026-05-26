@@ -88,6 +88,6 @@ namespace moonlight_xbox_dx {
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_phaseStoryboard;
         Windows::UI::Xaml::Media::Animation::Storyboard^ m_selectionStoryboard;
         Windows::UI::Xaml::DispatcherTimer^ m_orbitHideTimer;
-        long long m_orbitShownTick; // GetTickCount64() when orbit gif was last shown
+        long long m_orbitShownTick; // QpcNow() when orbit gif was last shown
     };
 }

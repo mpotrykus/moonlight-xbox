@@ -12,6 +12,7 @@
 #include "UI\Pages\HostSettingsPage.xaml.h"
 #include "Utils.hpp"
 #include "UI\Utilities\XamlHelpers.h"
+#include "UI\Utilities\ToastService.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "State\MDNSHandler.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
@@ -659,6 +660,7 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 		}
 
 		if (success) {
+			ShowToast(L"Wake on LAN sent");
 			auto host = currentHost;
 			host->WolPolling = true;
 			concurrency::create_task(concurrency::create_async([host]() {

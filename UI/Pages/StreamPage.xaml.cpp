@@ -245,17 +245,6 @@ void StreamPage::SetMouseMode(bool enabled)
     }
 }
 
-void StreamPage::ShowToast(Platform::String^ message) {
-	ToastStoryboard->Stop();
-	this->ToastText->Text = message;
-	this->ToastView->Visibility = Windows::UI::Xaml::Visibility::Visible;
-	ToastStoryboard->Begin();
-}
-
-void StreamPage::ToastStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e) {
-	this->ToastView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
-}
-
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
 	if (!m_main) return;
@@ -450,12 +439,14 @@ void StreamPage::Keyboard_OnKeyUp(KeyboardControl^ sender, KeyEvent^ e)
 
 void StreamPage::guideButtonShort_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	SetStreamMenuVisible(false);
 	this->m_main->SendGuideButton(500);
 }
 
 
 void StreamPage::guideButtonLong_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
+	SetStreamMenuVisible(false);
 	this->m_main->SendGuideButton(3000);
 }
 

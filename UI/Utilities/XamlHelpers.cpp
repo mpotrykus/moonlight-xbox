@@ -34,7 +34,14 @@ ScrollViewer^ FindScrollViewer(DependencyObject^ parent) {
     return nullptr;
 }
 
+static Windows::UI::Color s_appliedAccentColor = Windows::UI::Color{ 255, 0, 120, 215 };
+
+Windows::UI::Color GetAppliedAccentColor() {
+    return s_appliedAccentColor;
+}
+
 void ApplyAccentColor(Windows::UI::Color color) {
+    s_appliedAccentColor = color;
     // Use XamlBindingHelper::ConvertValue to produce a properly XAML-boxed Color.
     // Direct C++/CX boxing of WinRT structs (IReference<Color>) is rejected by
     // ResourceDictionary at runtime with E_UNEXPECTED.

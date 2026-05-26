@@ -340,6 +340,7 @@
     </ClInclude>
     <ClInclude Include="UI\Utilities\ImageHelpers.h" />
     <ClInclude Include="UI\Utilities\XamlHelpers.h" />
+    <ClInclude Include="UI\Utilities\ToastService.h" />
     <ClInclude Include="Common\imconfig.moonlight.h" />
     <ClInclude Include="Common\TextConsole.h" />
     <ClInclude Include="UI\Controls\AspectRatioBox.xaml.h">
@@ -623,6 +624,7 @@
     <ClCompile Include="UI\Utilities\EffectsLibrary.cpp" />
     <ClCompile Include="UI\Utilities\ImageHelpers.cpp" />
     <ClCompile Include="UI\Utilities\XamlHelpers.cpp" />
+    <ClCompile Include="UI\Utilities\ToastService.cpp" />
     <ClCompile Include="Streaming\LogRenderer.cpp" />
     <ClCompile Include="Streaming\Pacer.cpp" />
     <ClCompile Include="Streaming\FrameCadence.cpp" />

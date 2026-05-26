@@ -7,6 +7,8 @@
 #include <Utils.hpp>
 #include "UI\Pages\MoonlightWelcome.xaml.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
+#include "UI\Utilities\XamlHelpers.h"
+#include "UI\Utilities\ToastService.h"
 
 using namespace moonlight_xbox_dx;
 
@@ -24,6 +26,10 @@ using namespace Windows::UI::Xaml::Input;
 using namespace Windows::UI::Xaml::Interop;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
+using namespace Windows::UI::Xaml::Media::Animation;
+
+static Windows::UI::Xaml::Controls::Frame^ s_rootFrame = nullptr;
+
 /// <summary>
 /// Initializes the singleton application object.  This is the first line of authored code
 /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -51,12 +57,11 @@ App::App()
 	GlobalMenuItems = ref new Platform::Collections::Vector<moonlight_xbox_dx::MenuItem^>();
 	GlobalMenuItems->Append(ref new moonlight_xbox_dx::MenuItem(
 		ref new Platform::String(L"App Settings"),
-		ref new Platform::String(L"\uE713"),
+		ref new Platform::String(L""),
 		ref new Windows::Foundation::EventHandler<Platform::Object^>([](Platform::Object^ s, Platform::Object^ e) {
 			try {
-				auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);
-				if (rootFrame != nullptr) {
-					rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+				if (s_rootFrame != nullptr) {
+					s_rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
 				}
 			} catch(...) {}
 		})
@@ -78,33 +83,26 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 // 	}
 // #endif
 	moonlight_xbox_dx::Utils::Log("Hello from Moonlight!\n");
-	auto rootFrame = dynamic_cast<Frame^>(Window::Current->Content);
 
-	// Do not repeat app initialization when the Window already has content,
-	// just ensure that the window is active
-	if (rootFrame == nullptr)
+	if (s_rootFrame == nullptr)
 	{
-		// Create a Frame to act as the navigation context and associate it with
-		// a SuspensionManager key
-		rootFrame = ref new Frame();
+		s_rootFrame = ref new Frame();
+		s_rootFrame->NavigationFailed += ref new NavigationFailedEventHandler(this, &App::OnNavigationFailed);
 
-		rootFrame->NavigationFailed += ref new Windows::UI::Xaml::Navigation::NavigationFailedEventHandler(this, &App::OnNavigationFailed);
-
-		// Place the frame in the current Window
-		Window::Current->Content = rootFrame;
+		auto rootGrid = ref new Grid();
+		rootGrid->Children->Append(s_rootFrame);
+		InitializeToastService(rootGrid);
+		Window::Current->Content = rootGrid;
 	}
 
-	if (rootFrame->Content == nullptr)
+	if (s_rootFrame->Content == nullptr)
 	{
-		// When the navigation stack isn't restored navigate to the first page,
-		// configuring the new page by passing required information as a navigation
-		// parameter
-		rootFrame->Navigate(TypeName(HostSelectorPage::typeid), e->Arguments);
+		s_rootFrame->Navigate(TypeName(HostSelectorPage::typeid), e->Arguments);
 	}
 
 	if (m_menuPage == nullptr)
 	{
-		m_menuPage = dynamic_cast<HostSelectorPage^>(rootFrame->Content);
+		m_menuPage = dynamic_cast<HostSelectorPage^>(s_rootFrame->Content);
 	}
 	// Ensure the current window is active
 	Window::Current->Activate();
@@ -156,3 +154,7 @@ void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Naviga
 	dialog->ShowAsync();
 }
 
+Windows::UI::Xaml::Controls::Frame^ App::GetRootFrame()
+{
+	return s_rootFrame;
+}

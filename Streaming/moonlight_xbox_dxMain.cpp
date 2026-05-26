@@ -8,6 +8,7 @@
 #include "Common\DirectXHelper.h"
 #include "State\GamepadState.h"
 #include "Utils.hpp"
+#include <UI/Utilities/ToastService.h>
 
 #include <algorithm>
 
@@ -452,7 +453,7 @@ void moonlight_xbox_dxMain::ProcessInput() {
 			DISPATCH_UI(([this]() {
 				bool newMode = !m_streamPage->MouseMode;
 				m_streamPage->SetMouseMode(newMode);
-				m_streamPage->ShowToast(newMode ? L"Mouse Mode: On" : L"Mouse Mode: Off");
+				ShowToast(newMode ? L"Mouse Mode: On" : L"Mouse Mode: Off");
 			}));
 			SendGamepadReadingForState(state, EmptyReading());
 			continue;
@@ -789,7 +790,7 @@ void moonlight_xbox_dxMain::ExitStreamPage() {
 	bool reachedAppPage = false;
 
 	try {
-		auto rootFrame = dynamic_cast<Windows::UI::Xaml::Controls::Frame ^>(Windows::UI::Xaml::Window::Current->Content);
+		auto rootFrame = App::GetRootFrame();
 		if (!rootFrame) return;
 
 		auto current = dynamic_cast<AppPage ^>(rootFrame->Content);

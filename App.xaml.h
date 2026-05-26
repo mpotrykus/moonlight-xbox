@@ -19,6 +19,8 @@ namespace moonlight_xbox_dx
 	public:
 		App();
 
+		static Windows::UI::Xaml::Controls::Frame^ GetRootFrame();
+
 		property Windows::Foundation::Collections::IObservableVector<moonlight_xbox_dx::MenuItem^>^ GlobalMenuItems;
 		virtual void OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEventArgs^ e) override;
 		void OnStateLoaded();

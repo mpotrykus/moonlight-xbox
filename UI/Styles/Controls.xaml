@@ -37,14 +37,22 @@
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="FocusStates">
                                 <VisualState x:Name="Focused">
-                                    <VisualState.Setters>
-                                        <Setter Target="FocusLayer.Opacity" Value="1"/>
-                                    </VisualState.Setters>
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
                                 </VisualState>
                                 <VisualState x:Name="Unfocused">
-                                    <VisualState.Setters>
-                                        <Setter Target="FocusLayer.Opacity" Value="0"/>
-                                    </VisualState.Setters>
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
                                 </VisualState>
                             </VisualStateGroup>
 
@@ -190,6 +198,11 @@
                                 BorderThickness="1"
                                 CornerRadius="{TemplateBinding CornerRadius}"/>
 
+                        <Border x:Name="FocusLayer"
+                                Background="#33FFFFFF"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Opacity="0"/>
+
                         <Border x:Name="FocusBorderLayer"
                                 BorderBrush="{ThemeResource SystemAccentColor}"
                                 BorderThickness="2"
@@ -207,15 +220,28 @@
                         <VisualStateManager.VisualStateGroups>
                             <VisualStateGroup x:Name="FocusStates">
                                 <VisualState x:Name="Focused">
-                                    <VisualState.Setters>
-                                        <Setter Target="FocusBorderLayer.Opacity" Value="1"/>
-                                        <Setter Target="BackgroundLayer.Background" Value="#33FFFFFF"/>
-                                    </VisualState.Setters>
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorderLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
                                 </VisualState>
                                 <VisualState x:Name="Unfocused">
-                                    <VisualState.Setters>
-                                        <Setter Target="FocusBorderLayer.Opacity" Value="0"/>
-                                    </VisualState.Setters>
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorderLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
                                 </VisualState>
                             </VisualStateGroup>
                             <VisualStateGroup x:Name="CommonStates">
@@ -242,6 +268,96 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Shared dialog button styles used by HostActionsDialog and AppActionsDialog -->
+    <Style x:Key="DialogButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="#0CFFFFFF"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="CornerRadius" Value="12"/>
+        <Setter Property="Width" Value="125"/>
+        <Setter Property="Height" Value="80"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="UseSystemFocusVisuals" Value="False"/>
+        <Setter Property="FocusVisualPrimaryThickness" Value="0"/>
+        <Setter Property="FocusVisualSecondaryThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Padding="0,2">
+                        <Border x:Name="BackgroundLayer"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{TemplateBinding CornerRadius}"/>
+
+                        <Border x:Name="FocusLayer"
+                                Background="#77000000"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                Opacity="0"/>
+
+                        <ContentPresenter x:Name="ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="BackgroundLayer.Background" Value="#3A3A3A"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="BackgroundLayer.Background" Value="{ThemeResource SystemAccentColor}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="BackgroundLayer.Opacity" Value="0.4"/>
+                                        <Setter Target="ContentPresenter.Opacity" Value="0.4"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+
+                            <VisualStateGroup x:Name="FocusStates">
+                                <VisualState x:Name="Focused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Unfocused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusLayer"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="HamburgerButtonStyle" TargetType="Button" BasedOn="{StaticResource DialogButtonStyle}">
+        <Setter Property="Width" Value="NaN"/>
+        <Setter Property="Height" Value="56"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 
     <!-- Settings page layout resources — change these to scale both settings pages -->
