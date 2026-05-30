@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
     x:Name="root"
+    FontSize="12"
     HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
     <UserControl.Resources>
@@ -35,8 +36,8 @@
 
                             <TextBlock
                                 Text="{TemplateBinding Content}"
-                                FontSize="15"
                                 HorizontalAlignment="Left"
+                                FontSize="12"
                                 VerticalAlignment="Center"
                                 Margin="16,10"
                                 Foreground="{TemplateBinding Foreground}" />

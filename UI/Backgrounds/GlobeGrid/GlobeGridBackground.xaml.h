@@ -1,5 +1,5 @@
 #pragma once
-#include "UI\Backgrounds\GlobeGridBackground.g.h"
+#include "UI\Backgrounds\GlobeGrid\GlobeGridBackground.g.h"
 #include <vector>
 #include <random>
 

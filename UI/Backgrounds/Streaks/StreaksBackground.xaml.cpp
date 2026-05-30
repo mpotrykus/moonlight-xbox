@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "UI\Backgrounds\StreaksBackground.xaml.h"
+#include "UI\Backgrounds\Streaks\StreaksBackground.xaml.h"
 #include <cmath>
 
 using namespace moonlight_xbox_dx;

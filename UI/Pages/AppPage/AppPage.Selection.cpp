@@ -424,21 +424,44 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
         }
     } catch(...) {}
 
-    // Update SelectedApp text overlay
+    // Update SelectedApp text overlay (fade out → update text → fade in on change)
     try {
         auto selApp = dynamic_cast<MoonlightApp^>(lv->SelectedItem);
         auto res = this->Resources;
         if (selApp != nullptr && this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
-            try {
-                this->SelectedAppText->Text = selApp->Name != nullptr ? selApp->Name : ref new Platform::String(L"");
-            } catch(...) { this->SelectedAppText->Text = selApp->Name; }
+            Platform::String^ newText = (selApp->Name != nullptr) ? selApp->Name : ref new Platform::String(L"");
             this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
             this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
-            this->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
+            this->SelectedAppText->Foreground = ref new SolidColorBrush(Windows::UI::Colors::White);
+
+            Windows::UI::Xaml::Media::Animation::Storyboard^ showSb = nullptr;
+            Windows::UI::Xaml::Media::Animation::Storyboard^ hideSb = nullptr;
             if (res != nullptr) {
-                auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
-                    res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
-                if (sb != nullptr) sb->Begin();
+                try { showSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard"))); } catch(...) {}
+                try { hideSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard"))); } catch(...) {}
+            }
+
+            bool alreadyVisible = this->SelectedAppBox->Opacity > 0.01;
+            if (prevItem != nullptr && alreadyVisible && hideSb != nullptr && showSb != nullptr) {
+                const unsigned int animVer = ++m_appTextAnimVersion;
+                auto weakThis = WeakReference(this);
+                auto capturedText = newText;
+                auto capturedShow = showSb;
+                auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
+                *token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+                    [weakThis, capturedText, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
+                        try { hideSb->Completed -= *token; } catch(...) {}
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr || that->m_appTextAnimVersion != animVer) return;
+                        try {
+                            if (that->SelectedAppText != nullptr) that->SelectedAppText->Text = capturedText;
+                            if (capturedShow != nullptr) capturedShow->Begin();
+                        } catch(...) {}
+                    });
+                hideSb->Begin();
+            } else {
+                this->SelectedAppText->Text = newText;
+                if (showSb != nullptr) showSb->Begin();
             }
         }
     } catch(...) {}

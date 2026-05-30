@@ -274,6 +274,51 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 				->GetColorValue(Windows::UI::ViewManagement::UIColorType::Accent);
 		ApplyAccentColor(accentColor);
 	} catch (...) {}
+
+	// Fade host name banner: fade out → update text → fade in
+	try {
+		auto grid = dynamic_cast<Windows::UI::Xaml::Controls::ListViewBase^>(sender);
+		auto selectedHost = (grid != nullptr && grid->SelectedItem != nullptr)
+			? dynamic_cast<MoonlightHost^>(grid->SelectedItem)
+			: nullptr;
+
+		if (this->SelectedHostBanner != nullptr && this->SelectedHostText != nullptr) {
+			Platform::String^ newName = (selectedHost != nullptr && selectedHost->ComputerName != nullptr)
+				? selectedHost->ComputerName
+				: ref new Platform::String(L"");
+
+			Windows::UI::Xaml::Media::Animation::Storyboard^ showSb = nullptr;
+			Windows::UI::Xaml::Media::Animation::Storyboard^ hideSb = nullptr;
+			auto res = this->Resources;
+			if (res != nullptr) {
+				try { showSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"ShowSelectedHostStoryboard"))); } catch (...) {}
+				try { hideSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"HideSelectedHostStoryboard"))); } catch (...) {}
+			}
+
+			bool alreadyVisible = this->SelectedHostBanner->Opacity > 0.01;
+			if (alreadyVisible && hideSb != nullptr && showSb != nullptr) {
+				const unsigned int animVer = ++m_hostTextAnimVersion;
+				Platform::WeakReference weakThis(this);
+				auto capturedName = newName;
+				auto capturedShow = showSb;
+				auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
+				*token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+					[weakThis, capturedName, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
+						try { hideSb->Completed -= *token; } catch (...) {}
+						auto that = weakThis.Resolve<HostSelectorPage>();
+						if (that == nullptr || that->m_hostTextAnimVersion != animVer) return;
+						try {
+							if (that->SelectedHostText != nullptr) that->SelectedHostText->Text = capturedName;
+							if (capturedShow != nullptr) capturedShow->Begin();
+						} catch (...) {}
+					});
+				hideSb->Begin();
+			} else {
+				this->SelectedHostText->Text = newName;
+				if (showSb != nullptr) showSb->Begin();
+			}
+		}
+	} catch (...) {}
 }
 
 void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

@@ -18,6 +18,17 @@
 
             <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
 
+            <Storyboard x:Key="ShowSelectedHostStoryboard">
+                <DoubleAnimation Storyboard.TargetName="SelectedHostBanner"
+                                 Storyboard.TargetProperty="Opacity"
+                                 To="1" Duration="0:0:0.125" />
+            </Storyboard>
+            <Storyboard x:Key="HideSelectedHostStoryboard">
+                <DoubleAnimation Storyboard.TargetName="SelectedHostBanner"
+                                 Storyboard.TargetProperty="Opacity"
+                                 To="0" Duration="0:0:0.125" />
+            </Storyboard>
+
             <Style x:Key="HostGridViewItemContainerStyle" TargetType="ListViewItem">
                 <Setter Property="UseSystemFocusVisuals" Value="False" />
                 <Setter Property="FocusVisualPrimaryThickness" Value="0" />
@@ -108,11 +119,13 @@
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <Border Grid.Row="2"
+                <Border x:Name="SelectedHostBanner"
+                        Grid.Row="2"
                         HorizontalAlignment="Center"
                         Margin="0,8,0,0"
                         Padding="24,12"
                         CornerRadius="12"
+                        Opacity="0"
                         Background="#66000000">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                     <Grid Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,0,3">
@@ -125,10 +138,11 @@
                             <Image Source="ms-appx:///Assets/loading2.gif" Width="10" Height="10"
                                    Visibility="{Binding ElementName=HostsGrid, Path=SelectedItem.StatusIsPolling, Converter={StaticResource BoolToVis}}" />
                         </Grid>
-                        <TextBlock FontFamily="Bahnschrift"
+                        <TextBlock x:Name="SelectedHostText"
+                                   FontFamily="Bahnschrift"
                                    FontSize="10"
                                    VerticalAlignment="Center"
-                                   Text="{Binding ElementName=HostsGrid, Path=SelectedItem.ComputerName}" />
+                                   Text="" />
                     </StackPanel>
                 </Border>
             </Grid>

@@ -32,7 +32,7 @@ MoonlightSettings::MoonlightSettings()
 	state = GetApplicationState();
 
 	auto item = ref new ComboBoxItem();
-	item->Content = "Don't autoconnect";
+	item->Content = "Do not auto-connect";
 	item->DataContext = "";
 	HostSelector->Items->Append(item);
 	

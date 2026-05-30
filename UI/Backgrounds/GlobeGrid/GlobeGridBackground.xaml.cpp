@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "UI\Backgrounds\GlobeGridBackground.xaml.h"
+#include "UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.h"
 #include <cmath>
 #include <algorithm>
 

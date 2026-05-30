@@ -91,88 +91,94 @@
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="GENERAL" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Autostart Host" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Autostart Host" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" x:Name="HostSelector" SelectionChanged="HostSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                </Grid>
                             </Border>
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="DISPLAY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Screen Margin Height" VerticalAlignment="Center" />
-                                        <Slider Grid.Column="1" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Screen Margin Width" VerticalAlignment="Center" />
-                                        <Slider Grid.Column="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Screen Margin Height" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="0" Value="{x:Bind State.ScreenMarginHeight}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Screen Margin Width" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="1" Value="{x:Bind State.ScreenMarginWidth}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="0" Maximum="100" StepFrequency="1" VerticalAlignment="Center" />
+                                </Grid>
                             </Border>
                             <TextBlock Margin="4,4,0,0" FontSize="12" Opacity="0.5" TextWrapping="Wrap">
                                 Change these parameters until you can see a green border around the screen
                             </TextBlock>
                         </StackPanel>
 
-
                         <!-- Input -->
 
                         <StackPanel x:Name="InputPanel" Visibility="Collapsed" Padding="0,0,16,0">
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Mouse Sensitivity" VerticalAlignment="Center" />
-                                        <Slider Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="1" Maximum="16" StepFrequency="1" VerticalAlignment="Center" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Mouse Sensitivity" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Value="{x:Bind State.MouseSensitivity}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="1" Maximum="16" StepFrequency="1" VerticalAlignment="Center" />
+                                </Grid>
                             </Border>
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Experimental Keyboard" VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}" Name="KeyboardEnable" XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
-                                            <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" x:Name="KeyboardLayoutSelector" SelectionChanged="LayoutSelector_SelectionChanged" HorizontalAlignment="Stretch" />
-                                            <TextBlock Text="Layout" VerticalAlignment="Center" Margin="8,0,0,0" />
-                                        </StackPanel>
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="200" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Alternate Menu Combination" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}" XYFocusRight="{x:Bind KeyboardLayoutSelector}" VerticalAlignment="Center">Use LT+RT+LB+RB instead of Menu+View to show the menu</CheckBox>
-                                    </Grid>
-                                </StackPanel>
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Experimental Keyboard" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox IsChecked="{x:Bind State.EnableKeyboard,Mode=TwoWay}" 
+                                                  Name="KeyboardEnable" 
+                                                  FontSize="12"
+                                                  XYFocusRight="{x:Bind KeyboardLayoutSelector}">Enabled</CheckBox>
+                                        <ComboBox XYFocusLeft="{x:Bind KeyboardEnable}" 
+                                                  x:Name="KeyboardLayoutSelector" 
+                                                  SelectionChanged="LayoutSelector_SelectionChanged" 
+                                                  HorizontalAlignment="Stretch" />
+                                        <TextBlock Text="Layout" 
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center" 
+                                                   Margin="8,0,0,0" />
+                                    </StackPanel>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Alternate Menu Combination" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" 
+                                              IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}" 
+                                              XYFocusRight="{x:Bind KeyboardLayoutSelector}" 
+                                              FontSize="12"
+                                              VerticalAlignment="Center">
+                                        Use LT+RT+LB+RB instead of Menu+View to show the menu
+                                    </CheckBox>
+                                </Grid>
                             </Border>
                         </StackPanel>
                     </Grid>

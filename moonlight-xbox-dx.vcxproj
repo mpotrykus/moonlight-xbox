@@ -437,26 +437,42 @@
     <ClInclude Include="Streaming\moonlight_xbox_dxMain.h" />
     <ClInclude Include="Utils.hpp" />
     <ClInclude Include="UI\Backgrounds\BackgroundRegistry.h" />
-    <ClInclude Include="UI\Backgrounds\ParticleBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\ParticleBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\BackgroundSettingsHelpers.h" />
+    <ClInclude Include="UI\Backgrounds\Particles\ParticleBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\Particles\ParticleBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\SpheresBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\SpheresBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml.h">
+      <DependentUpon>UI\Backgrounds\Particles\ParticleSettingsControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\StreaksBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\StreaksBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\Spheres\SpheresBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\Spheres\SpheresBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\SwipeRevealBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml.h">
+      <DependentUpon>UI\Backgrounds\Spheres\SpheresSettingsControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\GlobeGridBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\Streaks\StreaksBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\Streaks\StreaksBackground.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\OrbsBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\OrbsBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml.h">
+      <DependentUpon>UI\Backgrounds\Streaks\StreaksSettingsControl.xaml</DependentUpon>
     </ClInclude>
-    <ClInclude Include="UI\Backgrounds\BlobsBackground.xaml.h">
-      <DependentUpon>UI\Backgrounds\BlobsBackground.xaml</DependentUpon>
+    <ClInclude Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Orbs\OrbsBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\Orbs\OrbsBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml.h">
+      <DependentUpon>UI\Backgrounds\Orbs\OrbsSettingsControl.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Blobs\BlobsBackground.xaml.h">
+      <DependentUpon>UI\Backgrounds\Blobs\BlobsBackground.xaml</DependentUpon>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml.h">
+      <DependentUpon>UI\Backgrounds\Blobs\BlobsSettingsControl.xaml</DependentUpon>
     </ClInclude>
     <ClInclude Include="UI\Backgrounds\DynamicBackgroundHost.xaml.h">
       <DependentUpon>UI\Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
@@ -573,26 +589,41 @@
     <ClCompile Include="UI\Pages\MoonlightWelcome.xaml.cpp">
       <DependentUpon>UI\Pages\MoonlightWelcome.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\ParticleBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\ParticleBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Particles\ParticleBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Particles\ParticleBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\SpheresBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\SpheresBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Particles\ParticleSettingsControl.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\StreaksBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\StreaksBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Spheres\SpheresBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Spheres\SpheresBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\SwipeRevealBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\SwipeRevealBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Spheres\SpheresSettingsControl.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\GlobeGridBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\GlobeGridBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Streaks\StreaksBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Streaks\StreaksBackground.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\OrbsBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\OrbsBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Streaks\StreaksSettingsControl.xaml</DependentUpon>
     </ClCompile>
-    <ClCompile Include="UI\Backgrounds\BlobsBackground.xaml.cpp">
-      <DependentUpon>UI\Backgrounds\BlobsBackground.xaml</DependentUpon>
+    <ClCompile Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Orbs\OrbsBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Orbs\OrbsBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Orbs\OrbsSettingsControl.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Blobs\BlobsBackground.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Blobs\BlobsBackground.xaml</DependentUpon>
+    </ClCompile>
+    <ClCompile Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml.cpp">
+      <DependentUpon>UI\Backgrounds\Blobs\BlobsSettingsControl.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="UI\Backgrounds\DynamicBackgroundHost.xaml.cpp">
       <DependentUpon>UI\Backgrounds\DynamicBackgroundHost.xaml</DependentUpon>
@@ -785,13 +816,18 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="UI\Backgrounds\ParticleBackground.xaml" />
-    <Page Include="UI\Backgrounds\SpheresBackground.xaml" />
-    <Page Include="UI\Backgrounds\StreaksBackground.xaml" />
-    <Page Include="UI\Backgrounds\SwipeRevealBackground.xaml" />
-    <Page Include="UI\Backgrounds\GlobeGridBackground.xaml" />
-    <Page Include="UI\Backgrounds\OrbsBackground.xaml" />
-    <Page Include="UI\Backgrounds\BlobsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Particles\ParticleBackground.xaml" />
+    <Page Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Spheres\SpheresBackground.xaml" />
+    <Page Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Streaks\StreaksBackground.xaml" />
+    <Page Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml" />
+    <Page Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml" />
+    <Page Include="UI\Backgrounds\Orbs\OrbsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Blobs\BlobsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml" />
     <Page Include="UI\Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="UI\Controls\AspectRatioBox.xaml" />
     <Page Include="UI\Controls\SwatchPicker.xaml" />

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "UI\Backgrounds\BlobsBackground.xaml.h"
+#include "UI\Backgrounds\Blobs\BlobsBackground.xaml.h"
 #include <cmath>
 
 using namespace moonlight_xbox_dx;

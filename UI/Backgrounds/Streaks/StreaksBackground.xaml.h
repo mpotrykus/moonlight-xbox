@@ -1,5 +1,5 @@
 #pragma once
-#include "UI\Backgrounds\StreaksBackground.g.h"
+#include "UI\Backgrounds\Streaks\StreaksBackground.g.h"
 #include <vector>
 #include <random>
 

@@ -105,6 +105,7 @@ AppPage::AppPage() {
         m_appsgird_selection_token.Value = m_appsgird_itemclick_token.Value = 0;
         m_appsgird_righttapped_token.Value = 0;
         m_appsgird_loaded_token.Value = m_appsgird_ccc_token.Value = 0;
+        m_searchbox_gettingfocus_token.Value = 0;
     } catch(...) {}
 
     // Page lifecycle
@@ -152,6 +153,32 @@ AppPage::AppPage() {
             m_layoutUpdated_token = this->AppsGrid->LayoutUpdated +=
                 ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^ s, Platform::Object^ e) {
                     auto that = weakThis.Resolve<AppPage>(); if (that) try { that->AppsGrid_LayoutUpdated(s, nullptr); } catch(...) {}
+                });
+        }
+    } catch(...) {}
+
+    // GettingFocus fires synchronously inside the XY-nav pipeline, before focus
+    // moves.  Cancel unexpected arrivals; allow only when m_searchIsOpen is true
+    // (Y button / DPad-Down return path) or the nav direction is Up (DPad-Up from
+    // the list/grid first row intentionally moving up to the search bar).
+    try {
+        if (this->SearchBox != nullptr) {
+            auto weakThis = WeakReference(this);
+            m_searchbox_gettingfocus_token = this->SearchBox->GettingFocus +=
+                ref new Windows::Foundation::TypedEventHandler<
+                    Windows::UI::Xaml::UIElement^,
+                    Windows::UI::Xaml::Input::GettingFocusEventArgs^>(
+                [weakThis](Windows::UI::Xaml::UIElement^, Windows::UI::Xaml::Input::GettingFocusEventArgs^ args) {
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr) return;
+                    try {
+                        if (that->m_searchIsOpen) return;  // intentionally open — allow any direction
+                        if (args->Direction == FocusNavigationDirection::Up) {
+                            that->m_searchIsOpen = true;   // DPad-Up intent — mark open and allow
+                            return;
+                        }
+                        args->Cancel = true;  // block all other accidental directions (Left, Right, None…)
+                    } catch(...) {}
                 });
         }
     } catch(...) {}
@@ -576,6 +603,7 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
 
 void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
     try { Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested -= m_back_cookie; } catch(...) {}
+    try { if (this->SearchBox != nullptr) this->SearchBox->GettingFocus -= m_searchbox_gettingfocus_token; } catch(...) {}
     continueAppFetch.store(false);
     try { PollingIndicator->Visibility = Windows::UI::Xaml::Visibility::Collapsed; } catch(...) {}
 
@@ -641,10 +669,26 @@ void AppPage::OnGamepadKeyDown(CoreWindow^, KeyEventArgs^ args) {
             this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
                 ref new DispatchedHandler([weakThis]() {
                     auto that = weakThis.Resolve<AppPage>();
-				                           if (that) try {
-						                           that->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-					                           } catch (...) {
-					                           }
+                    if (that == nullptr) return;
+                    try {
+                        bool searchHasFocus = that->SearchBox != nullptr &&
+                            that->SearchBox->FocusState != Windows::UI::Xaml::FocusState::Unfocused;
+                        if (searchHasFocus) {
+                            // Y pressed while search is focused → return to list
+                            that->m_searchIsOpen = false;
+                            if (that->AppsGrid != nullptr && that->AppsGrid->SelectedItem != nullptr) {
+                                auto c = dynamic_cast<ListViewItem^>(
+                                    that->AppsGrid->ContainerFromItem(that->AppsGrid->SelectedItem));
+                                if (c != nullptr) c->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                                else that->AppsGrid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                            } else if (that->AppsGrid != nullptr) {
+                                that->AppsGrid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                            }
+                        } else {
+                            that->m_searchIsOpen = true;
+                            that->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                        }
+                    } catch (...) {}
                 }));
             args->Handled = true;
         }
@@ -672,10 +716,57 @@ void AppPage::OnGamepadKeyDown(CoreWindow^, KeyEventArgs^ args) {
             args->Handled = true;
         }
 
-        // DPad and thumbstick navigation are both handled natively by the ListView's
-        // XY focus system — same code path as arrow keys on PC. Adding a custom handler
-        // here too causes a double-skip because CoreWindow::KeyDown Handled=true does
-        // not suppress gamepad XY focus navigation.
+        // DPad-Up from the list → SearchBox; DPad-Down from SearchBox → back to list.
+        // Grid mode: GettingFocus on SearchBox handles this entirely (Direction==Up is
+        // allowed, all other directions are cancelled).  List mode needs a RunAsync
+        // fallback for items where XY nav may not spatially reach SearchBox.
+        if (key == VirtualKey::GamepadDPadUp) {
+            bool searchHasFocus = this->SearchBox != nullptr &&
+                this->SearchBox->FocusState != Windows::UI::Xaml::FocusState::Unfocused;
+            if (!searchHasFocus && !m_isGridLayout) {
+                m_searchIsOpen = true;
+                auto weakThis = WeakReference(this);
+                this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+                    ref new DispatchedHandler([weakThis]() {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) return;
+                        try {
+                            if (that->SearchBox != nullptr &&
+                                that->SearchBox->FocusState == Windows::UI::Xaml::FocusState::Unfocused)
+                                that->SearchBox->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                        } catch(...) {}
+                    }));
+            }
+        }
+
+        if (key == VirtualKey::GamepadDPadDown) {
+            bool searchHasFocus = this->SearchBox != nullptr &&
+                this->SearchBox->FocusState != Windows::UI::Xaml::FocusState::Unfocused;
+            if (searchHasFocus) {
+                m_searchIsOpen = false;
+                auto weakThis = WeakReference(this);
+                this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+                    ref new DispatchedHandler([weakThis]() {
+                        auto that = weakThis.Resolve<AppPage>();
+                        if (that == nullptr) return;
+                        try {
+                            if (that->AppsGrid != nullptr && that->AppsGrid->SelectedItem != nullptr) {
+                                auto c = dynamic_cast<ListViewItem^>(
+                                    that->AppsGrid->ContainerFromItem(that->AppsGrid->SelectedItem));
+                                if (c != nullptr) c->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                                else that->AppsGrid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                            } else if (that->AppsGrid != nullptr) {
+                                that->AppsGrid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+                            }
+                        } catch(...) {}
+                    }));
+                args->Handled = true;
+            }
+        }
+
+        // DPad and thumbstick navigation within the list are handled natively by the
+        // ListView's XY focus system. Adding handlers here too causes a double-skip
+        // because CoreWindow::KeyDown Handled=true does not suppress XY focus navigation.
 
     } catch(...) {}
 }

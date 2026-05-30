@@ -1,13 +1,13 @@
 #include "pch.h"
 #include "UI\Backgrounds\DynamicBackgroundHost.xaml.h"
 #include "UI\Backgrounds\BackgroundRegistry.h"
-#include "UI\Backgrounds\ParticleBackground.xaml.h"
-#include "UI\Backgrounds\SpheresBackground.xaml.h"
-#include "UI\Backgrounds\StreaksBackground.xaml.h"
-#include "UI\Backgrounds\BlobsBackground.xaml.h"
-#include "UI\Backgrounds\SwipeRevealBackground.xaml.h"
-#include "UI\Backgrounds\GlobeGridBackground.xaml.h"
-#include "UI\Backgrounds\OrbsBackground.xaml.h"
+#include "UI\Backgrounds\Particles\ParticleBackground.xaml.h"
+#include "UI\Backgrounds\Spheres\SpheresBackground.xaml.h"
+#include "UI\Backgrounds\Streaks\StreaksBackground.xaml.h"
+#include "UI\Backgrounds\Blobs\BlobsBackground.xaml.h"
+#include "UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.h"
+#include "UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml.h"
+#include "UI\Backgrounds\Orbs\OrbsBackground.xaml.h"
 
 using namespace moonlight_xbox_dx;
 

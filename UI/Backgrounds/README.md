@@ -3,6 +3,19 @@
 This directory contains all animated backgrounds for the moonlight-xbox app. Each background is an
 independent C++/CX XAML UserControl that plugs into `DynamicBackgroundHost`.
 
+Each background lives in its own subfolder:
+
+```
+UI\Backgrounds\
+  Particles\       ParticleBackground + ParticleSettingsControl
+  Streaks\         StreaksBackground  + StreaksSettingsControl
+  Spheres\         SpheresBackground  + SpheresSettingsControl
+  Blobs\           BlobsBackground    + BlobsSettingsControl
+  Orbs\            OrbsBackground     + OrbsSettingsControl
+  SwipeReveal\     SwipeRevealBackground
+  GlobeGrid\       GlobeGridBackground
+```
+
 ---
 
 ## Architecture
@@ -32,6 +45,14 @@ void ReloadOptions();              // apply updated LocalSettings without recrea
 void SetHosts(IVector<MoonlightHost^>^ hosts);  // only if background renders app art
 ```
 
+### Per-background settings controls
+
+Backgrounds that expose user-configurable settings (colors, presets, shape, etc.) each own a
+companion **settings UserControl** in the same subfolder — e.g. `Orbs\OrbsSettingsControl.xaml`.
+`HostSettingsPage` instantiates the right one dynamically via `UpdateBackgroundSettingsContent(key)`
+and places it in a `ContentControl`. No changes to `HostSettingsPage` are needed when adding a new
+background with settings.
+
 ---
 
 ## Adding a New Background — Step-by-Step
@@ -48,12 +69,12 @@ Open `BackgroundRegistry.h` and add one entry to the `kBackgrounds` array:
 
 ---
 
-### 2. Create the three source files
+### 2. Create a subfolder and the three source files
 
 ```
-UI\Backgrounds\FooBackground.xaml
-UI\Backgrounds\FooBackground.xaml.h
-UI\Backgrounds\FooBackground.xaml.cpp
+UI\Backgrounds\Foo\FooBackground.xaml
+UI\Backgrounds\Foo\FooBackground.xaml.h
+UI\Backgrounds\Foo\FooBackground.xaml.cpp
 ```
 
 See the [canonical templates](#canonical-templates) below.
@@ -65,7 +86,7 @@ See the [canonical templates](#canonical-templates) below.
 Add the `#include` at the top:
 
 ```cpp
-#include "UI\Backgrounds\FooBackground.xaml.h"
+#include "UI\Backgrounds\Foo\FooBackground.xaml.h"
 ```
 
 Add one branch to each of the three static functions:
@@ -89,16 +110,16 @@ Add three XML entries (copy the pattern from any existing background):
 
 ```xml
 <!-- in the ClInclude ItemGroup -->
-<ClInclude Include="UI\Backgrounds\FooBackground.xaml.h" />
+<ClInclude Include="UI\Backgrounds\Foo\FooBackground.xaml.h">
+  <DependentUpon>UI\Backgrounds\Foo\FooBackground.xaml</DependentUpon>
+</ClInclude>
 
 <!-- in the Page ItemGroup -->
-<Page Include="UI\Backgrounds\FooBackground.xaml">
-  <SubType>Designer</SubType>
-</Page>
+<Page Include="UI\Backgrounds\Foo\FooBackground.xaml" />
 
 <!-- in the ClCompile ItemGroup -->
-<ClCompile Include="UI\Backgrounds\FooBackground.xaml.cpp">
-  <DependentUpon>FooBackground.xaml</DependentUpon>
+<ClCompile Include="UI\Backgrounds\Foo\FooBackground.xaml.cpp">
+  <DependentUpon>UI\Backgrounds\Foo\FooBackground.xaml</DependentUpon>
 </ClCompile>
 ```
 
@@ -106,18 +127,10 @@ Add three XML entries (copy the pattern from any existing background):
 
 ### 5. Register in moonlight-xbox-dx.vcxproj.filters
 
+Only the `Page` item needs an explicit entry (the `.h` and `.cpp` are pulled in via `DependentUpon`):
+
 ```xml
-<ClInclude Include="UI\Backgrounds\FooBackground.xaml.h">
-  <Filter>Header Files</Filter>
-</ClInclude>
-
-<Page Include="UI\Backgrounds\FooBackground.xaml">
-  <Filter>Resource Files</Filter>
-</Page>
-
-<ClCompile Include="UI\Backgrounds\FooBackground.xaml.cpp">
-  <Filter>Source Files</Filter>
-</ClCompile>
+<Page Include="UI\Backgrounds\Foo\FooBackground.xaml" />
 ```
 
 ---
@@ -141,9 +154,9 @@ void SetHosts(Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts);
 
 ### 7. (Optional) Custom options — only if your background exposes user-configurable settings
 
-If users can adjust settings from `HostSettingsPage` (colors, speed, density, etc.), expose a
-public reload method on the class and add a branch in the appropriate host dispatch function in
-`DynamicBackgroundHost.xaml.cpp`.
+If users can adjust settings (colors, speed, density, presets, etc.), create a companion
+**settings UserControl** in the same subfolder. `HostSettingsPage` picks it up automatically —
+no edits to `HostSettingsPage` are required.
 
 See [Adding Custom Options](#adding-custom-options) for the full pattern.
 
@@ -174,7 +187,7 @@ See [Adding Custom Options](#adding-custom-options) for the full pattern.
 
 ```cpp
 #pragma once
-#include "UI\Backgrounds\FooBackground.g.h"
+#include "UI\Backgrounds\Foo\FooBackground.g.h"
 #include <vector>
 #include <random>
 
@@ -211,7 +224,7 @@ private:
 
 ```cpp
 #include "pch.h"
-#include "UI\Backgrounds\FooBackground.xaml.h"
+#include "UI\Backgrounds\Foo\FooBackground.xaml.h"
 #include <cmath>
 
 using namespace moonlight_xbox_dx;
@@ -316,7 +329,7 @@ float val = dist(m_rng);
 ColorHelper::FromArgb(alpha, r, g, b);  // all uint8_t; A, R, G, B order
 ```
 
-### Color helpers (copy from ParticleBackground.xaml.cpp if needed)
+### Color helpers (copy from Particles\ParticleBackground.xaml.cpp if needed)
 
 ```cpp
 // Linear interpolate two Colors
@@ -343,80 +356,141 @@ int n = 4;
 
 ## Adding Custom Options
 
-Backgrounds can expose user-configurable settings (colors, speed, density, presets, etc.) that are
-saved to `LocalSettings` and surfaced in `HostSettingsPage`.
+Backgrounds with user-configurable settings (colors, speed, density, presets, etc.) expose them
+via a companion **settings UserControl** that lives in the same subfolder:
 
-### 1. Persist settings in LocalSettings
-
-Choose a consistent key prefix based on your background's registry key (e.g. `"mykey.speed"`,
-`"mykey.scheme"`, `"mykey.custom.0"`). Read and write via:
-
-```cpp
-auto localSettings = ApplicationData::Current->LocalSettings->Values;
-
-// write
-localSettings->Insert("mykey.speed", dynamic_cast<Object^>(speed));
-
-// read with default
-float speed = 1.0f;
-if (localSettings->HasKey("mykey.speed"))
-    speed = static_cast<float>(safe_cast<double>(localSettings->Lookup("mykey.speed")));
+```
+UI\Backgrounds\Foo\FooSettingsControl.xaml
+UI\Backgrounds\Foo\FooSettingsControl.xaml.h
+UI\Backgrounds\Foo\FooSettingsControl.xaml.cpp
 ```
 
-For color values, store as `RRGGBB` hex strings and parse on load.
-
-### 2. Add a reload method to the background class
-
-Expose a public method that reads current `LocalSettings` values and applies them **without
-recreating the canvas**:
+`HostSettingsPage` calls `UpdateBackgroundSettingsContent(key)` whenever the background selection
+changes. That function instantiates the right settings control and places it in a `ContentControl`
+— **you do not touch `HostSettingsPage` at all**. Just register the new control in
+`UpdateBackgroundSettingsContent` (in `HostSettingsPage.xaml.cpp`):
 
 ```cpp
-// .h
-void ReloadOptions();
-
-// .cpp
-void FooBackground::ReloadOptions()
-{
-    LoadOptions();          // re-read LocalSettings into member fields
-    ApplyOptionsInPlace();  // update existing canvas elements / timer interval / etc.
+} else if (key->Equals(L"mykey")) {
+    auto c = ref new FooSettingsControl();
+    c->Initialize(BackgroundHost);
+    ctrl = c;
 }
 ```
 
-Call `LoadOptions()` at the top of `InitItems()` as well so a cold start picks up saved settings.
+And add the corresponding `#include` at the top of `HostSettingsPage.xaml.cpp` and
+`HostSettingsPage.xaml.h`.
 
-### 3. Wire into DynamicBackgroundHost.xaml.cpp
+### Settings control structure
 
-Add a branch in the appropriate dispatch function. For settings that don't require a full
-background swap, add to `ReloadBackgroundColors()` (or introduce a new parallel function if your
-options go beyond colors):
+**FooSettingsControl.xaml** — A `UserControl` with a scheme `ComboBox`, a collapsed `CustomPanel`
+with `SwatchPicker` rows, and a Reset button. See `OrbsSettingsControl.xaml` for a minimal 2-color
+example and `BlobsSettingsControl.xaml` for a 4-color example.
+
+**FooSettingsControl.xaml.h**
 
 ```cpp
-if (auto f = dynamic_cast<FooBackground^>(el)) { f->ReloadOptions(); return; }
+#pragma once
+#include "UI\Backgrounds\Foo\FooSettingsControl.g.h"
+#include "UI\Backgrounds\DynamicBackgroundHost.xaml.h"
+#include "UI\Controls\SwatchPicker.xaml.h"
+
+namespace moonlight_xbox_dx {
+
+public ref class FooSettingsControl sealed {
+public:
+    FooSettingsControl();
+    void Initialize(DynamicBackgroundHost^ host);
+private:
+    DynamicBackgroundHost^ m_host = nullptr;
+    bool m_initialized = false;
+    void SchemeSelector_SelectionChanged(Platform::Object^, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^);
+    void Color0_ColorChanged(Platform::Object^, Windows::UI::Color, bool);
+    void ResetButton_Click(Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^);
+    void UpdateCustomPanelVisibility();
+};
+
+}
 ```
+
+**FooSettingsControl.xaml.cpp**
+
+```cpp
+#include "pch.h"
+#include "FooSettingsControl.xaml.h"
+#include "UI\Backgrounds\BackgroundSettingsHelpers.h"
+
+using namespace moonlight_xbox_dx;
+using namespace Platform;
+using namespace Windows::UI::Xaml;
+using namespace Windows::UI::Xaml::Controls;
+
+// Scheme palette arrays — must be non-const (C++/CX restriction)
+static Windows::UI::Color kDefaultScheme[] = { {255, 30,160,255}, {255, 0, 8, 20} };
+// ... additional schemes ...
+
+static const wchar_t* kCustomKeys[] = { L"mykey.custom.0", L"mykey.custom.1" };
+
+FooSettingsControl::FooSettingsControl() { InitializeComponent(); }
+
+void FooSettingsControl::Initialize(DynamicBackgroundHost^ host)
+{
+    m_host = host;
+    auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+
+    // Populate scheme ComboBox, restore saved index
+    // Set up SwatchPicker swatches and call SelectColor(savedColor, false)
+    // Wire ColorChanged events
+
+    m_initialized = true;
+}
+
+void FooSettingsControl::SchemeSelector_SelectionChanged(Platform::Object^, SelectionChangedEventArgs^)
+{
+    if (!m_initialized) return;
+    // Save scheme key to LocalSettings, update pickers, call UpdateCustomPanelVisibility()
+    try { if (m_host) m_host->ReloadBackgroundColors(); } catch (...) {}
+}
+
+void FooSettingsControl::Color0_ColorChanged(Platform::Object^, Windows::UI::Color color, bool)
+{
+    auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    ls->Insert(ref new Platform::String(kCustomKeys[0]), BgColorToHex(color));
+    try { if (m_host) m_host->ReloadBackgroundColors(); } catch (...) {}
+}
+
+void FooSettingsControl::ResetButton_Click(Platform::Object^, RoutedEventArgs^)
+{
+    auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    ls->Remove("mykey.scheme");
+    for (int i = 0; i < 2; ++i) ls->Remove(ref new Platform::String(kCustomKeys[i]));
+    SchemeSelector->SelectedIndex = 0;
+    // Reset pickers to default scheme colors
+    try { if (m_host) m_host->ReloadBackgroundColors(); } catch (...) {}
+}
+```
+
+### Init guard pattern
+
+Gate every `SelectionChanged` / `ColorChanged` handler with `if (!m_initialized) return;` to
+prevent spurious LocalSettings writes while controls are being programmatically initialized.
+
+### Color hex helpers
+
+Use the shared utilities from `BackgroundSettingsHelpers.h` (already included above):
+
+```cpp
+Platform::String^ BgColorToHex(Windows::UI::Color c);  // Color → "RRGGBB"
+Windows::UI::Color BgHexToColor(Platform::String^ s, Windows::UI::Color fallback);
+```
+
+### Reloading colors in the background
+
+When a setting changes, call `m_host->ReloadBackgroundColors()`. This dispatches to the active
+background's `ReloadOptions()` (or equivalent) without recreating the canvas.
 
 > **Important:** Never call `Refresh()` to apply option changes. `Refresh()` is a no-op when the
 > background key is unchanged. Always go through the dedicated reload path.
-
-### 4. Add UI to HostSettingsPage
-
-All per-background options live **inside the existing BACKGROUND Border group** in
-`HostSettingsPage.xaml` — not in a separate section:
-
-- Add a `StackPanel x:Name="FooOptionsPanel" Visibility="Collapsed"` after the background ComboBox row.
-- Show/hide it with a helper `UpdateFooOptionsPanelVisibility()` that checks whether the current background key equals `"mykey"`. Call this helper from `OnNavigatedTo` and from `BackgroundSelector_SelectionChanged`.
-- Include a Reset button that writes the default values back to `LocalSettings` and calls `ReloadBackgroundColors()`.
-
-### 5. Init guard pattern (HostSettingsPage.xaml.cpp)
-
-Use a `bool m_fooInitialized = false` flag. Set it `true` at the end of your init function.
-Gate every `SelectionChanged` / `ValueChanged` handler with:
-
-```cpp
-if (!m_fooInitialized) return;
-```
-
-This prevents spurious saves when controls have their `SelectedIndex` or value set
-programmatically during page initialization.
 
 ---
 
@@ -426,8 +500,20 @@ programmatically during page initialization.
 |---|---|
 | `UI\Backgrounds\BackgroundRegistry.h` | New `{ L"key", L"Display Name" }` entry |
 | `UI\Backgrounds\DynamicBackgroundHost.xaml.cpp` | `#include` + branches in `TryStartAnimations`, `TryStopAnimations`, `CreateBackground` |
-| `UI\Backgrounds\FooBackground.xaml` | New file |
-| `UI\Backgrounds\FooBackground.xaml.h` | New file |
-| `UI\Backgrounds\FooBackground.xaml.cpp` | New file |
-| `moonlight-xbox-dx.vcxproj` | `ClInclude` + `Page` + `ClCompile` entries |
-| `moonlight-xbox-dx.vcxproj.filters` | `ClInclude` + `Page` + `ClCompile` entries |
+| `UI\Backgrounds\Foo\FooBackground.xaml` | New file |
+| `UI\Backgrounds\Foo\FooBackground.xaml.h` | New file |
+| `UI\Backgrounds\Foo\FooBackground.xaml.cpp` | New file |
+| `moonlight-xbox-dx.vcxproj` | `ClInclude` + `Page` + `ClCompile` entries (subfolder paths) |
+| `moonlight-xbox-dx.vcxproj.filters` | `Page` entry (subfolder path) |
+
+## Additional Files for Backgrounds with Custom Settings
+
+| File | What to add |
+|---|---|
+| `UI\Backgrounds\Foo\FooSettingsControl.xaml` | New file |
+| `UI\Backgrounds\Foo\FooSettingsControl.xaml.h` | New file |
+| `UI\Backgrounds\Foo\FooSettingsControl.xaml.cpp` | New file |
+| `UI\Pages\HostSettingsPage.xaml.h` | `#include` for `FooSettingsControl.xaml.h` |
+| `UI\Pages\HostSettingsPage.xaml.cpp` | `#include` + new `else if` branch in `UpdateBackgroundSettingsContent()` |
+| `moonlight-xbox-dx.vcxproj` | `ClInclude` + `Page` + `ClCompile` entries for the settings control |
+| `moonlight-xbox-dx.vcxproj.filters` | `Page` entry for the settings control |

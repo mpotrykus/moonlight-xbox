@@ -100,9 +100,12 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         Windows::Foundation::EventRegistrationToken m_appsgird_righttapped_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_loaded_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_ccc_token;
+        Windows::Foundation::EventRegistrationToken m_searchbox_gettingfocus_token;
+        bool m_searchIsOpen = false;
 
         bool m_pendingToggleCentering = false;
         void DoGridCentering();
+        unsigned int m_appTextAnimVersion = 0;
 
         concurrency::task<Windows::Storage::Streams::IRandomAccessStream^> ApplyBlur(MoonlightApp^ app, float blurDip, float padDip = 0.0f);
 

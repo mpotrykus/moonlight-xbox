@@ -61,5 +61,6 @@ namespace moonlight_xbox_dx
 		void testConnectionButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void UpdateAllMoonPhases(bool animated, int attempts = 0);
 		LunarPhaseControl^ FindLunarControl(Windows::UI::Xaml::DependencyObject^ root);
+		unsigned int m_hostTextAnimVersion = 0;
 	};
 }

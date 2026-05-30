@@ -21,30 +21,29 @@
         <GridView.ItemContainerStyle>
             <Style TargetType="GridViewItem">
                 <Setter Property="Padding" Value="0" />
-                <Setter Property="Margin" Value="3" />
+                <Setter Property="Margin" Value="2" />
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="MinHeight" Value="0" />
             </Style>
         </GridView.ItemContainerStyle>
         <GridView.ItemTemplate>
             <DataTemplate>
-                <Grid Width="48" Height="48">
+                <Grid Width="36" Height="36">
                     <!-- Color fill -->
-                    <Rectangle RadiusX="8" RadiusY="8" Margin="2">
+                    <Rectangle RadiusX="6" RadiusY="6" Margin="2">
                         <Rectangle.Fill>
                             <SolidColorBrush Color="{Binding DisplayColor}" />
                         </Rectangle.Fill>
                     </Rectangle>
                     <!-- Selected: white outline ring -->
                     <Rectangle RadiusX="10" RadiusY="10"
-                               Stroke="White" StrokeThickness="2.5"
+                               Stroke="White" StrokeThickness="1.5"
                                Visibility="{Binding CheckVisibility, Mode=OneWay}"
                                Fill="Transparent"
                                Margin="0" />
                     <!-- Selected: checkmark -->
                     <TextBlock Text="&#xE73E;"
                                FontFamily="Segoe Fluent Icons"
-                               FontSize="16"
                                Visibility="{Binding CheckVisibility, Mode=OneWay}"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
@@ -52,20 +51,20 @@
                     <!-- System accent star badge (bottom-right) -->
                     <TextBlock Text="&#xE734;"
                                FontFamily="Segoe Fluent Icons"
-                               FontSize="10"
                                Visibility="{Binding SystemIndicatorVisibility}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Bottom"
                                Foreground="White"
+                               FontSize="10"
                                Margin="0,0,5,5" />
                     <!-- Custom color pencil badge (bottom-right) -->
                     <TextBlock Text="&#xE70F;"
                                FontFamily="Segoe Fluent Icons"
-                               FontSize="10"
                                Visibility="{Binding CustomIndicatorVisibility}"
                                HorizontalAlignment="Right"
                                VerticalAlignment="Bottom"
                                Foreground="White"
+                               FontSize="10"
                                Margin="0,0,5,5" />
                 </Grid>
             </DataTemplate>

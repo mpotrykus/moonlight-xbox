@@ -1,5 +1,5 @@
 #pragma once
-#include "UI\Backgrounds\SwipeRevealBackground.g.h"
+#include "UI\Backgrounds\SwipeReveal\SwipeRevealBackground.g.h"
 #include "State\MoonlightHost.h"
 #include <vector>
 

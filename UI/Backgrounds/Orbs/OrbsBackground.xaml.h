@@ -1,5 +1,5 @@
 #pragma once
-#include "UI\Backgrounds\OrbsBackground.g.h"
+#include "UI\Backgrounds\Orbs\OrbsBackground.g.h"
 #include <vector>
 
 namespace moonlight_xbox_dx {

@@ -33,9 +33,9 @@
                 </Button.Content>
             </Button>
 
-            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
-                <TextBlock Text="{x:Bind Host.ComputerName}" Style="{StaticResource PageTitleStyle}" />
-                <TextBlock Text="{x:Bind Host.LastHostname}" FontSize="12" Opacity="0.5" Margin="2,2,0,0" />
+            <StackPanel Grid.Column="1" Margin="20,6,0,0" VerticalAlignment="Center">
+                <TextBlock Text="{x:Bind Host.ComputerName}" FontSize="12" Style="{StaticResource PageTitleStyle}" />
+                <TextBlock Text="{x:Bind Host.LastHostname}" FontSize="10" Opacity="0.5" Margin="2,2,0,0" />
             </StackPanel>
 
             <Button Grid.Column="2" x:Name="GlobalSettingsOption" Style="{StaticResource SettingsButtonStyle}" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -58,120 +58,114 @@
                         <StackPanel x:Name="DisplayPanel" Visibility="Visible">
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="VIDEO QUALITY" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Resolution" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="ResolutionSelector" SelectionChanged="ResolutionSelector_SelectionChanged" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" ItemsSource="{x:Bind AvailableResolutions}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="160">
-                                            <ComboBox.ItemTemplate>
-                                                <DataTemplate x:DataType="local:ScreenResolution">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Text="{x:Bind Width}" />
-                                                        <TextBlock Text="x" />
-                                                        <TextBlock Text="{x:Bind Height}" />
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ComboBox.ItemTemplate>
-                                        </ComboBox>
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="FPS" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="120" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Bitrate" VerticalAlignment="Center" />
-                                        <Slider Grid.Column="1" Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Video Codec" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="160" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Resolution" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Height="30" x:Name="ResolutionSelector"
+                                              SelectionChanged="ResolutionSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" ItemsSource="{x:Bind AvailableResolutions}"
+                                              VerticalAlignment="Center" HorizontalAlignment="Left"
+                                              MinWidth="180">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="local:ScreenResolution">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{x:Bind Width}" />
+                                                    <TextBlock Text="x" />
+                                                    <TextBlock Text="{x:Bind Height}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="FPS" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" Grid.Row="1" Height="30" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="2" Text="Bitrate" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="2"  Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" />
+                                    
+                                    <TextBlock Grid.Column="0" Grid.Row="3" Text="Video Codec" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" Grid.Row="3" Height="30" Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                </Grid>
                             </Border>
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="OPTIONS" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Enable HDR" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Optimize host resolution" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" Name="EnableSOPSCheckbox" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}" VerticalAlignment="Center" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Enable HDR" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="0" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" />
+                                        
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Optimize host resolution" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" Name="EnableSOPSCheckbox" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}" VerticalAlignment="Center" />
+                                </Grid>
                             </Border>
-                            <TextBlock Name="HDR4KNote" Visibility="Collapsed" Margin="4,4,0,0" FontSize="12" Opacity="0.5">HDR requires Xbox system resolution set to 4K.</TextBlock>
+                            <TextBlock Name="HDR4KNote" Visibility="Collapsed" Margin="4,4,0,0" Opacity="0.5">HDR requires Xbox system resolution set to 4K.</TextBlock>
                         </StackPanel>
 
                         <!-- Audio -->
 
                         <StackPanel x:Name="AudioPanel" Visibility="Collapsed" Padding="0,0,16,0">
+                            
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="AUDIO" />
+                            
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Audio Configuration" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Play Audio on Host PC" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}" VerticalAlignment="Center" />
-                                    </Grid>
-                                </StackPanel>
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                        
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Column="0" Grid.Row="0" Text="Audio Configuration" VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Height="30" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+
+                                    <TextBlock Grid.Column="0" Grid.Row="1" Text="Play Audio on Host PC" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    
+                                </Grid>
                             </Border>
                         </StackPanel>
 
                         <!-- Stream -->
 
                         <StackPanel x:Name="StreamPanel" Visibility="Collapsed">
+                            
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="STARTUP" />
+                            
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="160" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
+                                        
                                         <TextBlock Grid.Column="0" Text="Autostart" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                        <ComboBox Grid.Column="1" Height="30" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -179,22 +173,22 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="PERFORMANCE" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
+                                    <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="160" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Show performance stats" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" x:Name="EnableStatsCheckbox" IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" VerticalAlignment="Center" />
-                                    </Grid>
-                                    <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Show performance graphs" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" x:Name="EnableGraphsCheckbox" IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}" IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>        
+                                            <RowDefinition/>        
+                                        </Grid.RowDefinitions>
+                                        
+                                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Show performance stats" VerticalAlignment="Center" />
+                                        <CheckBox Grid.Column="1" Grid.Row="0" x:Name="EnableStatsCheckbox" IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        
+                                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Show performance graphs" VerticalAlignment="Center" />
+                                        <CheckBox Grid.Column="1" Grid.Row="1" x:Name="EnableGraphsCheckbox" IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}" IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" VerticalAlignment="Center" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -206,9 +200,9 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="HOST DETAILS" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid RowSpacing="8" ColumnSpacing="24" Padding="0,20">
+                                    <Grid RowSpacing="{StaticResource SettingsRowSpacing}" >
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="160" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
 
@@ -220,20 +214,20 @@
                                             <RowDefinition/>        
                                         </Grid.RowDefinitions>
 
-                                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Computer Name" VerticalAlignment="Center" Opacity="0.5" FontSize="13" />
-                                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind Host.ComputerName}" VerticalAlignment="Center" FontSize="14" />
+                                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Computer Name" VerticalAlignment="Center" Opacity="0.5" />
+                                        <TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind Host.ComputerName}" VerticalAlignment="Center" />
 
-                                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Hostname" VerticalAlignment="Center" Opacity="0.5" FontSize="13" />
-                                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center" FontSize="14" />
+                                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Hostname" VerticalAlignment="Center" Opacity="0.5" />
+                                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{x:Bind Host.LastHostname}" VerticalAlignment="Center" />
 
-                                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Server Address" VerticalAlignment="Center" Opacity="0.5" FontSize="13" />
-                                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Host.ServerAddress}" VerticalAlignment="Center" FontSize="14" />
+                                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Server Address" VerticalAlignment="Center" Opacity="0.5" />
+                                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Host.ServerAddress}" VerticalAlignment="Center" />
 
-                                        <TextBlock Grid.Column="0" Grid.Row="3" Text="MAC Address" VerticalAlignment="Center" Opacity="0.5" FontSize="13" />
-                                        <TextBlock Grid.Column="1" Grid.Row="3" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" FontSize="14" />
+                                        <TextBlock Grid.Column="0" Grid.Row="3" Text="MAC Address" VerticalAlignment="Center" Opacity="0.5" />
+                                        <TextBlock Grid.Column="1" Grid.Row="3" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" />
 
-                                        <TextBlock Grid.Column="0" Grid.Row="4" Text="Instance ID" VerticalAlignment="Center" Opacity="0.5" FontSize="13" />
-                                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" FontSize="14" />
+                                        <TextBlock Grid.Column="0" Grid.Row="4" Text="Instance ID" VerticalAlignment="Center" Opacity="0.5" />
+                                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -242,397 +236,109 @@
                         <!-- Controls -->
 
                         <StackPanel x:Name="ControlsPanel" Visibility="Collapsed">
-                            <ScrollViewer HorizontalAlignment="Stretch" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,8,0,0">
-                                <StackPanel>
-                                    <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="USEFUL SHORTCUTS" Margin="4,4,0,6" />
-                                    <Border Style="{StaticResource SettingsGroupStyle}">
-                                        <Grid Padding="0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="48" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xEDE3; &#xEECA;</TextBlock>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">In-stream menu</TextBlock>
-                                        </Grid>
-                                    </Border>
+                                    
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="USEFUL SHORTCUTS" />
+                                    
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                            
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                            
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                            
+                                    <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xEDE3; &#xEECA;</TextBlock>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">In-stream menu</TextBlock>
+                                </Grid>
+                            </Border>
 
-                                    <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE MODE" />
-                                    <Border Style="{StaticResource SettingsGroupStyle}">
-                                        <Grid Padding="0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="48" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF093;</TextBlock>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Left click</TextBlock>
-                                            <TextBlock Grid.Row="1" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF096;</TextBlock>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Right click</TextBlock>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF095;</TextBlock>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Show Keyboard</TextBlock>
-                                            <TextBlock Grid.Row="3" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF094;</TextBlock>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Guide / Xbox button</TextBlock>
-                                        </Grid>
-                                    </Border>
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="MOUSE MODE" />
+                                    
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF093;</TextBlock>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">Left click</TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF096;</TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Right click</TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF095;</TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Show Keyboard</TextBlock>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF094;</TextBlock>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">Guide / Xbox button</TextBlock>
+                                </Grid>
+                            </Border>
 
-                                    <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD MODE" />
-                                    <Border Style="{StaticResource SettingsGroupStyle}">
-                                        <Grid Padding="0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="48" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF094;</TextBlock>
-                                            <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Close</TextBlock>
-                                            <TextBlock Grid.Row="1" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF10A;</TextBlock>
-                                            <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Left Click</TextBlock>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF10B;</TextBlock>
-                                            <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Right Click</TextBlock>
-                                            <TextBlock Grid.Row="3" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF109;</TextBlock>
-                                            <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Move / Drag</TextBlock>
-                                            <TextBlock Grid.Row="4" Grid.Column="0" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" Margin="0,12" Opacity="0.75">&#xF108;</TextBlock>
-                                            <TextBlock Grid.Row="4" Grid.Column="1" VerticalAlignment="Center" Margin="0,12">Press to Scroll</TextBlock>
-                                        </Grid>
-                                    </Border>
-                                </StackPanel>
-                            </ScrollViewer>
+                            <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="KEYBOARD MODE" />
+                                    
+                            <Border Style="{StaticResource SettingsGroupStyle}">
+                                <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="40" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF094;</TextBlock>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">Close</TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF10A;</TextBlock>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Left Click</TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF10B;</TextBlock>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Right Click</TextBlock>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF109;</TextBlock>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center">Move / Drag</TextBlock>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" FontFamily="Segoe Fluent Icons" VerticalAlignment="Center" Opacity="0.75">&#xF108;</TextBlock>
+                                    <TextBlock Grid.Row="4" Grid.Column="1" VerticalAlignment="Center">Press to Scroll</TextBlock>
+                                </Grid>
+                            </Border>
                         </StackPanel>
 
                         <!-- Personalization -->
 
                         <StackPanel x:Name="PersonalizationPanel" Visibility="Collapsed">
+                            
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="BACKGROUND" />
+                            
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
+                                <StackPanel Spacing="{StaticResource SettingsRowSpacing}">
+                                    <Grid RowSpacing="{StaticResource SettingsRowSpacing}">
+                                        
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="160" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
+                                        
                                         <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" x:Name="HostBackgroundSelector"
+                                        
+                                        <ComboBox Grid.Column="1" Height="30" x:Name="HostBackgroundSelector"
                                                   SelectionChanged="BackgroundSelector_SelectionChanged"
+                                                  DropDownOpened="ComboBox_DropDownOpened"
                                                   VerticalAlignment="Center"
                                                   HorizontalAlignment="Left"
                                                   MinWidth="180" />
                                     </Grid>
 
-                                    <!-- Particle color options: visible only when particles background is active -->
-                                    <StackPanel x:Name="ParticleColorsPanel" Visibility="Collapsed">
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="ParticleSchemeSelector"
-                                                      SelectionChanged="ParticleSchemeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <!-- Custom color pickers: shown only when scheme is "custom" -->
-                                        <StackPanel x:Name="ParticleCustomPanel" Visibility="Collapsed">
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Particle Color" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="ParticleColor0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Gradient Color" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="ParticleColor1" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" />
-                                            <Button Grid.Column="1" x:Name="ParticleResetButton"
-                                                    Style="{StaticResource SettingsButtonStyle}"
-                                                    Click="ParticleResetButton_Click">Reset to Default</Button>
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <!-- Streak color options: visible only when streaks background is active -->
-                                    <StackPanel x:Name="StreakColorsPanel" Visibility="Collapsed">
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="StreaksSchemeSelector"
-                                                      SelectionChanged="StreaksSchemeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <!-- Per-slot custom pickers: shown only when scheme is "custom" -->
-                                        <StackPanel x:Name="StreaksCustomPanel" Visibility="Collapsed">
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Color 1" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="StreaksColor0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Color 2" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="StreaksColor1" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Color 3" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="StreaksColor2" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Color 4" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="StreaksColor3" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Color 5" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="StreaksColor4" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" />
-                                            <Button Grid.Column="1" x:Name="StreaksResetButton"
-                                                    Style="{StaticResource SettingsButtonStyle}"
-                                                    Click="StreaksResetButton_Click">Reset to Default</Button>
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <!-- Orbs (Dancing Orbs) options: visible only when orbs background is active -->
-                                    <StackPanel x:Name="OrbsColorsPanel" Visibility="Collapsed">
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="OrbsSchemeSelector"
-                                                      SelectionChanged="OrbsSchemeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <!-- Per-slot custom pickers: shown only when scheme is "custom" -->
-                                        <StackPanel x:Name="OrbsCustomPanel" Visibility="Collapsed">
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Glow Color" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="OrbsColor0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="OrbsColor1" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" />
-                                            <Button Grid.Column="1" x:Name="OrbsResetButton"
-                                                    Style="{StaticResource SettingsButtonStyle}"
-                                                    Click="OrbsResetButton_Click">Reset to Default</Button>
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <!-- Spheres (Bouncing Bubbles) options: visible only when spheres background is active -->
-                                    <StackPanel x:Name="SpheresColorsPanel" Visibility="Collapsed">
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="SpheresSchemeSelector"
-                                                      SelectionChanged="SpheresSchemeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <!-- Custom color pickers: shown only when scheme is "custom" -->
-                                        <StackPanel x:Name="SpheresCustomPanel" Visibility="Collapsed">
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Shape Color" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="SpheresColor0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="SpheresColor1" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Shape" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="SpheresShapeSelector"
-                                                      SelectionChanged="SpheresShapeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" />
-                                            <Button Grid.Column="1" x:Name="SpheresResetButton"
-                                                    Style="{StaticResource SettingsButtonStyle}"
-                                                    Click="SpheresResetButton_Click">Reset to Default</Button>
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <!-- Blobs (Morphing Blobs) options: visible only when blobs background is active -->
-                                    <StackPanel x:Name="BlobsColorsPanel" Visibility="Collapsed">
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Color Scheme" VerticalAlignment="Center" />
-                                            <ComboBox Grid.Column="1" x:Name="BlobsSchemeSelector"
-                                                      SelectionChanged="BlobsSchemeSelector_SelectionChanged"
-                                                      VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
-                                        </Grid>
-
-                                        <!-- Per-slot custom pickers: shown only when scheme is "custom" -->
-                                        <StackPanel x:Name="BlobsCustomPanel" Visibility="Collapsed">
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Blob 1" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="BlobsColor0" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Blob 2" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="BlobsColor1" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Blob 3" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="BlobsColor2" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                            <Grid Padding="{StaticResource SettingsRowPadding}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="160" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Grid.Column="0" Text="Background" VerticalAlignment="Center" />
-                                                <local:SwatchPicker Grid.Column="1" x:Name="BlobsColor3" VerticalAlignment="Center" />
-                                            </Grid>
-                                        </StackPanel>
-
-                                        <Border Style="{StaticResource SettingsRowSeparatorStyle}" />
-                                        <Grid Padding="{StaticResource SettingsRowPadding}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="160" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" />
-                                            <Button Grid.Column="1" x:Name="BlobsResetButton"
-                                                    Style="{StaticResource SettingsButtonStyle}"
-                                                    Click="BlobsResetButton_Click">Reset to Default</Button>
-                                        </Grid>
-                                    </StackPanel>
+                                    <ContentControl x:Name="BackgroundSettingsContent"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Stretch"
+                                                Padding="0" />
 
                                 </StackPanel>
                             </Border>
@@ -640,7 +346,7 @@
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="COLORS"/>
                             <Border Style="{StaticResource SettingsGroupStyle}">
                                 <StackPanel>
-                                    <Grid Padding="{StaticResource SettingsRowPadding}">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="160" />
                                             <ColumnDefinition Width="*" />
@@ -648,8 +354,8 @@
                                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                             <TextBlock Text="Accent Color" />
                                             <TextBlock Text="&#x2605; = system accent"
-                                                       FontSize="11"
                                                        Opacity="0.6"
+                                                       FontSize="10"
                                                        Margin="0,2,0,0" />
                                         </StackPanel>
                                         <local:SwatchPicker Grid.Column="1"
@@ -661,20 +367,15 @@
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="APP IMAGES"/>
                             <Border Style="{StaticResource SettingsGroupStyle}">
-                                <Grid Padding="{StaticResource SettingsRowPadding}">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                        <TextBlock Text="Image Cache" />
-                                        <TextBlock Text="Re-downloads artwork from host"
-                                                   FontSize="11"
-                                                   Opacity="0.6"
-                                                   Margin="0,2,0,0" />
-                                    </StackPanel>
-                                    <Button Grid.Column="1"
-                                            x:Name="ClearAppImageCacheButton"
+                                    <TextBlock Grid.Column="0" 
+                                               VerticalAlignment="Center" 
+                                               Text="Image Cache" />
+                                    <Button Grid.Column="1" Height="35" x:Name="ClearAppImageCacheButton"
                                             Style="{StaticResource SettingsButtonStyle}"
                                             Click="ClearAppImageCacheButton_Click"
                                             VerticalAlignment="Center"
@@ -682,6 +383,7 @@
                                             Content="Clear App Image Cache" />
                                 </Grid>
                             </Border>
+                            <TextBlock Margin="4,4,0,0" Opacity="0.5">* This will redownload images from host</TextBlock>
                         </StackPanel>
 
                     </Grid>
@@ -692,6 +394,7 @@
                 <local:TabsLayout.TabsContent>
                     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -715,9 +418,10 @@
                         <Button Grid.Row="3" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="PersonalizationPanel" x:Name="PersonalizationTab" Content="Personalization" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind ControlsTab}"
                                 XYFocusRight="{x:Bind HostBackgroundSelector}" />
-                        <Button Grid.Row="4" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
+                        <Border Grid.Row="4" Grid.Column="0" BorderThickness="1" BorderBrush="White" Height="1" Margin="14,12" Opacity=".25" />
+                        <Button Grid.Row="5" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind DetailsTab}"/>
-                        <Button Grid.Row="5" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
+                        <Button Grid.Row="6" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
                                 XYFocusDown="{x:Bind DisplayTab}"/>
                     </Grid>
                 </local:TabsLayout.TabsContent>

@@ -1508,13 +1508,18 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Page Include="UI\Backgrounds\ParticleBackground.xaml" />
-    <Page Include="UI\Backgrounds\SpheresBackground.xaml" />
-    <Page Include="UI\Backgrounds\StreaksBackground.xaml" />
-    <Page Include="UI\Backgrounds\SwipeRevealBackground.xaml" />
-    <Page Include="UI\Backgrounds\GlobeGridBackground.xaml" />
-    <Page Include="UI\Backgrounds\OrbsBackground.xaml" />
-    <Page Include="UI\Backgrounds\BlobsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Particles\ParticleBackground.xaml" />
+    <Page Include="UI\Backgrounds\Particles\ParticleSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Spheres\SpheresBackground.xaml" />
+    <Page Include="UI\Backgrounds\Spheres\SpheresSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Streaks\StreaksBackground.xaml" />
+    <Page Include="UI\Backgrounds\Streaks\StreaksSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml" />
+    <Page Include="UI\Backgrounds\GlobeGrid\GlobeGridBackground.xaml" />
+    <Page Include="UI\Backgrounds\Orbs\OrbsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Orbs\OrbsSettingsControl.xaml" />
+    <Page Include="UI\Backgrounds\Blobs\BlobsBackground.xaml" />
+    <Page Include="UI\Backgrounds\Blobs\BlobsSettingsControl.xaml" />
     <Page Include="UI\Backgrounds\DynamicBackgroundHost.xaml" />
     <Page Include="UI\Pages\AppPage\AppPage.xaml" />
     <Page Include="UI\Pages\HostSelectorPage.xaml" />

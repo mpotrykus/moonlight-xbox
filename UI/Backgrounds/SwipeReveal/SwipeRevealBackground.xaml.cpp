@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "UI\Backgrounds\SwipeRevealBackground.xaml.h"
+#include "UI\Backgrounds\SwipeReveal\SwipeRevealBackground.xaml.h"
 #include <cmath>
 #include <algorithm>
 #include <random>
