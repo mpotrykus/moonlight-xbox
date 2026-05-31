@@ -779,6 +779,7 @@ void moonlight_xbox_dxMain::SetMenuVisible(bool value) {
 void moonlight_xbox_dxMain::Disconnect() {
 	moonlightClient->StopStreaming();
 	m_sceneRenderer->Stop();
+	moonlightClient->SetDisplayHDR(false, SS_HDR_METADATA{});
 }
 
 void moonlight_xbox_dxMain::CloseApp() {

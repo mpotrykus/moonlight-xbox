@@ -17,6 +17,7 @@
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "Utils.hpp"
 #include "UI\Utilities\XamlHelpers.h"
+#include "UI\Utilities\ToastService.h"
 #include <gamingdeviceinformation.h>
 #include <cmath> // sqrtf, lround
 using namespace Windows::UI::Core;
@@ -479,6 +480,7 @@ void HostSettingsPage::ClearAppImageCacheButton_Click(Platform::Object^, Windows
             auto that = weakThis.Resolve<HostSettingsPage>();
             if (that != nullptr) {
                 try { that->ClearAppImageCacheButton->IsEnabled = true; } catch (...) {}
+                ShowToast(L"App image cache cleared");
             }
         });
     });

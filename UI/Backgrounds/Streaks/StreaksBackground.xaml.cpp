@@ -50,7 +50,6 @@ StreaksBackground::StreaksBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
-    this->Opacity = 0.0;
     this->Loaded += ref new RoutedEventHandler(this, &StreaksBackground::OnLoaded);
     StreakCanvas->Background = ref new SolidColorBrush(ColorHelper::FromArgb(255, 3, 3, 15));
 
@@ -252,6 +251,7 @@ void StreaksBackground::OnTick(Object^ sender, Object^ args)
 
 void StreaksBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
 {
+    StreakCanvas->Opacity = 0.0;
     auto anim = ref new DoubleAnimation();
     anim->From = 0.0;
     anim->To   = 1.0;
@@ -259,7 +259,7 @@ void StreaksBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
     ts.Duration = 5000000LL; // 500ms in 100ns units
     anim->Duration = Windows::UI::Xaml::Duration(ts);
     auto sb = ref new Storyboard();
-    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTarget(anim, StreakCanvas);
     Storyboard::SetTargetProperty(anim, "Opacity");
     sb->Children->Append(anim);
     sb->Begin();

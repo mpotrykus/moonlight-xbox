@@ -29,11 +29,6 @@
                                     Background="{TemplateBinding Background}"
                                     CornerRadius="6"/>
 
-                            <Border x:Name="FocusLayer"
-                                    Background="#1AFFFFFF"
-                                    CornerRadius="6"
-                                    Opacity="0"/>
-
                             <TextBlock
                                 Text="{TemplateBinding Content}"
                                 HorizontalAlignment="Left"
@@ -41,29 +36,6 @@
                                 VerticalAlignment="Center"
                                 Margin="16,10"
                                 Foreground="{TemplateBinding Foreground}" />
-
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="FocusStates">
-                                    <VisualState x:Name="Focused">
-                                        <VisualState.Storyboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="FocusLayer"
-                                                                 Storyboard.TargetProperty="Opacity"
-                                                                 To="1" Duration="0:0:0.15"/>
-                                            </Storyboard>
-                                        </VisualState.Storyboard>
-                                    </VisualState>
-                                    <VisualState x:Name="Unfocused">
-                                        <VisualState.Storyboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="FocusLayer"
-                                                                 Storyboard.TargetProperty="Opacity"
-                                                                 To="0" Duration="0:0:0.1"/>
-                                            </Storyboard>
-                                        </VisualState.Storyboard>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
@@ -83,7 +55,20 @@
 
         <!-- Left: vertical tab headers (scroll when overflow) -->
         <ScrollViewer Grid.Column="0" Padding="0,4,0,16" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-            <ContentControl x:Name="TabsPresenter" Content="{Binding TabsContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" />
+            <Grid x:Name="TabsGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <!-- Sliding selection indicator (behind buttons) -->
+                <Border x:Name="SelectionIndicator"
+                        CornerRadius="6"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Stretch"
+                        Opacity="0"
+                        IsHitTestVisible="False">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="SelectionTransform"/>
+                    </Border.RenderTransform>
+                </Border>
+                <ContentControl x:Name="TabsPresenter" Content="{Binding TabsContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Width="Auto" />
+            </Grid>
         </ScrollViewer>
 
         <!-- Right: main content area (scroll when overflow) -->

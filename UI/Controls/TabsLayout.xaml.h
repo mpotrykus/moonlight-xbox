@@ -41,10 +41,17 @@ namespace moonlight_xbox_dx
         void OnTabButtonClick(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnTabButtonGotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 
+        void AnimateSelectionToButton(Windows::UI::Xaml::Controls::Button^ btn, bool animate);
+        void AnimateForeground(Windows::UI::Xaml::Controls::Button^ btn, bool selected);
+
         Windows::Foundation::Collections::IVector<Windows::UI::Xaml::Controls::Button^>^ m_tabButtons;
         Windows::Foundation::Collections::IVector<long long>^ m_clickTokens;
         Windows::Foundation::Collections::IVector<long long>^ m_focusTokens;
         Windows::UI::Xaml::Controls::Button^ m_selectedButton;
+        Windows::UI::Xaml::Media::Animation::Storyboard^ m_slideStoryboard;
+        Windows::UI::Xaml::Media::Animation::Storyboard^ m_fadeStoryboard;
+        bool m_selectionIndicatorReady;
+        double m_indicatorY;
 
         // Static DependencyProperty backing fields (private to satisfy C++/CX rules)
         static Windows::UI::Xaml::DependencyProperty^ TargetPanelNameProperty;

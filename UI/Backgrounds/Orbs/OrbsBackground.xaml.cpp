@@ -66,7 +66,6 @@ static void OrbPos(const OrbState& o, float& outX, float& outY)
 OrbsBackground::OrbsBackground()
 {
     InitializeComponent();
-    this->Opacity = 0.0;
     this->Loaded += ref new RoutedEventHandler(this, &OrbsBackground::OnLoaded);
     m_palette[0] = kOrbsDefaultGlow;
     m_palette[1] = kOrbsDefaultBg;
@@ -350,8 +349,9 @@ void OrbsBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
     TimeSpan ts;
     ts.Duration = 5000000LL;
     anim->Duration = Windows::UI::Xaml::Duration(ts);
+    OrbCanvas->Opacity = 0.0;
     auto sb = ref new Storyboard();
-    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTarget(anim, OrbCanvas);
     Storyboard::SetTargetProperty(anim, "Opacity");
     sb->Children->Append(anim);
     sb->Begin();

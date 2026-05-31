@@ -81,7 +81,6 @@ BlobsBackground::BlobsBackground()
 {
     m_rng = std::mt19937(std::random_device{}());
     InitializeComponent();
-    this->Opacity = 0.0;
     this->Loaded += ref new RoutedEventHandler(this, &BlobsBackground::OnLoaded);
 
     BlobCanvas->Background = ref new SolidColorBrush(ColorHelper::FromArgb(255, 8, 0, 16));
@@ -228,8 +227,9 @@ void BlobsBackground::OnLoaded(Object^ sender, RoutedEventArgs^ e)
     TimeSpan ts;
     ts.Duration = 5000000LL; // 500ms in 100ns units
     anim->Duration = Windows::UI::Xaml::Duration(ts);
+    BlobCanvas->Opacity = 0.0;
     auto sb = ref new Storyboard();
-    Storyboard::SetTarget(anim, this);
+    Storyboard::SetTarget(anim, BlobCanvas);
     Storyboard::SetTargetProperty(anim, "Opacity");
     sb->Children->Append(anim);
     sb->Begin();
