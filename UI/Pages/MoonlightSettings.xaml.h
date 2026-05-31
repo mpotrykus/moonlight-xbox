@@ -21,6 +21,7 @@ namespace moonlight_xbox_dx
 	private:
 		ApplicationState^ state;
 		Windows::Foundation::EventRegistrationToken m_back_cookie;
+		bool m_marginSliderFocused = false;
 	public:
 		MoonlightSettings();
 		property ApplicationState^ State {
@@ -37,5 +38,8 @@ namespace moonlight_xbox_dx
 		void LayoutSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnMarginSliderChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e);
+		void OnMarginSliderGotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void OnMarginSliderLostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	};
 }

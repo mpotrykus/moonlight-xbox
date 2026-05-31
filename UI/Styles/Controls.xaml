@@ -606,6 +606,261 @@
 
     <Style TargetType="ComboBoxItem" BasedOn="{StaticResource BaseComboBoxItemStyle}"/>
 
+    <!-- CheckBox -->
+    <Style x:Key="BaseCheckBoxStyle" TargetType="CheckBox">
+        <Setter Property="Background" Value="#1AFFFFFF"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+        <Setter Property="FontFamily" Value="Bahnschrift"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="UseSystemFocusVisuals" Value="False"/>
+        <Setter Property="FocusVisualPrimaryThickness" Value="0"/>
+        <Setter Property="FocusVisualSecondaryThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid x:Name="RootGrid" Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0" Width="20" Height="20"
+                              VerticalAlignment="Center" Margin="0,0,8,0">
+                            <Border x:Name="NormalBorder"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="4"/>
+                            <Border x:Name="HoverLayer"
+                                    Background="#22FFFFFF"
+                                    CornerRadius="4"
+                                    Opacity="0"/>
+                            <Border x:Name="CheckedLayer"
+                                    Background="{ThemeResource SystemAccentColor}"
+                                    CornerRadius="4"
+                                    Opacity="0"/>
+                            <Border x:Name="FocusBorder"
+                                    BorderBrush="White"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Opacity="0"/>
+                            <FontIcon x:Name="CheckGlyph"
+                                      Glyph="&#xE73E;"
+                                      FontSize="11"
+                                      Foreground="White"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Opacity="0"/>
+                            <Rectangle x:Name="IndeterminateGlyph"
+                                       Width="8" Height="2"
+                                       Fill="White"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Opacity="0"/>
+                        </Grid>
+
+                        <ContentPresenter x:Name="ContentPresenter"
+                                          Grid.Column="1"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          VerticalAlignment="Center"
+                                          Foreground="{TemplateBinding Foreground}"/>
+
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="HoverLayer.Opacity" Value="1"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="NormalBorder.Background" Value="#0AFFFFFF"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootGrid.Opacity" Value="0.4"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Unchecked"/>
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="CheckedLayer.Opacity" Value="1"/>
+                                        <Setter Target="CheckGlyph.Opacity" Value="1"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Indeterminate">
+                                    <VisualState.Setters>
+                                        <Setter Target="CheckedLayer.Opacity" Value="0.6"/>
+                                        <Setter Target="IndeterminateGlyph.Opacity" Value="1"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+
+                            <VisualStateGroup x:Name="FocusStates">
+                                <VisualState x:Name="Focused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Unfocused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="PointerFocused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="CheckBox" BasedOn="{StaticResource BaseCheckBoxStyle}"/>
+
+    <!-- Slider -->
+    <Style x:Key="BaseSliderStyle" TargetType="Slider">
+        <Setter Property="Background" Value="#33FFFFFF"/>
+        <Setter Property="Foreground" Value="{ThemeResource SystemAccentColor}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="UseSystemFocusVisuals" Value="False"/>
+        <Setter Property="FocusVisualPrimaryThickness" Value="0"/>
+        <Setter Property="FocusVisualSecondaryThickness" Value="0"/>
+        <Setter Property="IsFocusEngagementEnabled" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Grid x:Name="LayoutRoot">
+                        <Grid x:Name="SliderContainer" Padding="0,4">
+                            <Border x:Name="FocusBorder"
+                                    Background="#1AFFFFFF"
+                                    CornerRadius="6"
+                                    Margin="-6,-4"
+                                    Opacity="0"/>
+
+                            <Grid x:Name="HorizontalTemplate" MinHeight="28">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto" MinWidth="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Rectangle x:Name="HorizontalTrackRect"
+                                           Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                           Height="2" RadiusX="1" RadiusY="1"
+                                           VerticalAlignment="Center"
+                                           Fill="{TemplateBinding Background}"/>
+
+                                <Rectangle x:Name="HorizontalDecreaseRect"
+                                           Grid.Row="1" Grid.Column="0"
+                                           Height="2" RadiusX="1" RadiusY="1"
+                                           VerticalAlignment="Center"
+                                           Fill="{TemplateBinding Foreground}"/>
+
+                                <Thumb x:Name="HorizontalThumb"
+                                       Grid.Row="1" Grid.Column="1"
+                                       DataContext="{TemplateBinding Value}"
+                                       VerticalAlignment="Center"
+                                       AutomationProperties.AccessibilityView="Raw">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Ellipse Width="10" Height="10" Fill="White"/>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Grid>
+                        </Grid>
+
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="Pressed"/>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="LayoutRoot.Opacity" Value="0.4"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+
+                            <VisualStateGroup x:Name="FocusStates">
+                                <VisualState x:Name="Focused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Unfocused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="0" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="PointerFocused">
+                                    <VisualState.Storyboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="FocusBorder"
+                                                             Storyboard.TargetProperty="Opacity"
+                                                             To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </VisualState.Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+
+                            <VisualStateGroup x:Name="FocusEngagementStates">
+                                <VisualState x:Name="FocusDisengaged"/>
+                                <VisualState x:Name="FocusEngagedWithoutScroll">
+                                    <VisualState.Setters>
+                                        <Setter Target="FocusBorder.Background" Value="#33FFFFFF"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="FocusEngaged">
+                                    <VisualState.Setters>
+                                        <Setter Target="FocusBorder.Background" Value="#33FFFFFF"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Slider" BasedOn="{StaticResource BaseSliderStyle}"/>
+
     <!-- Settings page layout resources — change these to scale both settings pages -->
     <x:Double x:Key="SettingsPanelMaxWidth">800</x:Double>
     <x:Double x:Key="SettingsPanelMaxHeight">360</x:Double>
@@ -617,7 +872,7 @@
 
     <Style x:Key="PageTitleStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Bahnschrift"/>
-        <Setter Property="FontSize" Value="18"/>
+        <Setter Property="FontSize" Value="16"/>
         <Setter Property="CharacterSpacing" Value="100"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>

@@ -123,6 +123,27 @@ void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Ro
 {
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightSettings::OnBackRequested);
+	ScreenMarginPreviewBorder->Margin = state->ScreenMargin;
+}
+
+void MoonlightSettings::OnMarginSliderChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e)
+{
+	ScreenMarginPreviewBorder->Margin = state->ScreenMargin;
+}
+
+void MoonlightSettings::OnMarginSliderGotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	m_marginSliderFocused = true;
+	ShowMarginPreview->Begin();
+}
+
+void MoonlightSettings::OnMarginSliderLostFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
+{
+	m_marginSliderFocused = false;
+	this->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Low,
+		ref new Windows::UI::Core::DispatchedHandler([this]() {
+			if (!m_marginSliderFocused) HideMarginPreview->Begin();
+		}));
 }
 
 

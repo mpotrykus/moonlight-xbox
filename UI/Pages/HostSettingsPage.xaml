@@ -14,7 +14,7 @@
                                      VerticalAlignment="Stretch"
                                      IsHitTestVisible="False" />
 
-        <Grid Padding="8,16,8,8">
+        <Grid Padding="24,20,24,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
