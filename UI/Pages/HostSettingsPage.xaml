@@ -14,6 +14,16 @@
                                      VerticalAlignment="Stretch"
                                      IsHitTestVisible="False" />
 
+        <Button x:Name="backButton" Click="backButton_Click" BorderThickness="0" Background="Transparent"
+                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" IsTabStop="False" Padding="8">
+            <Viewbox Height="16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <TextBlock Foreground="{ThemeResource ButtonForegroundColor}" Text="Back"/>
+                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xF094;" Foreground="{ThemeResource ButtonForegroundColor}"/>
+                </StackPanel>
+            </Viewbox>
+        </Button>
+
         <Grid Padding="24,20,24,8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -22,23 +32,16 @@
 
         <Grid Grid.Row="0" Margin="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Name="backButton" Style="{StaticResource SettingsButtonStyle}" Click="backButton_Click" XYFocusDown="{x:Bind DisplayTab}">
-                <Button.Content>
-                    <SymbolIcon Symbol="Back" />
-                </Button.Content>
-            </Button>
-
-            <StackPanel Grid.Column="1" Margin="20,6,0,0" VerticalAlignment="Center">
+            <StackPanel Grid.Column="0" Margin="0,6,0,0" VerticalAlignment="Center">
                 <TextBlock Text="{x:Bind Host.ComputerName}" FontSize="12" Style="{StaticResource PageTitleStyle}" />
                 <TextBlock Text="{x:Bind Host.LastHostname}" FontSize="10" Opacity="0.5" Margin="2,2,0,0" />
             </StackPanel>
 
-            <Button Grid.Column="2" x:Name="GlobalSettingsOption" Style="{StaticResource SettingsButtonStyle}" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
+            <Button Grid.Column="1" x:Name="GlobalSettingsOption" Style="{StaticResource SettingsButtonStyle}" Click="GlobalSettingsOption_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
                     XYFocusDown="{x:Bind DisplayTab}">
                 Open Moonlight Settings
             </Button>
@@ -75,7 +78,7 @@
                                     <ComboBox Grid.Column="1" Grid.Row="0" Height="30" x:Name="ResolutionSelector"
                                               SelectionChanged="ResolutionSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedIndex="{x:Bind CurrentResolutionIndex,Mode=TwoWay}" ItemsSource="{x:Bind AvailableResolutions}"
                                               VerticalAlignment="Center" HorizontalAlignment="Left"
-                                              MinWidth="180">
+                                              MinWidth="180" XYFocusLeft="{x:Bind DisplayTab}">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="local:ScreenResolution">
                                                 <StackPanel Orientation="Horizontal">
@@ -88,13 +91,13 @@
                                     </ComboBox>
                                         
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="FPS" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Column="1" Grid.Row="1" Height="30" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                    <ComboBox Grid.Column="1" Grid.Row="1" Height="30" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind DisplayTab}" />
                                         
                                     <TextBlock Grid.Column="0" Grid.Row="2" Text="Bitrate" VerticalAlignment="Center" />
-                                    <Slider Grid.Column="1" Grid.Row="2"  Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" />
+                                    <Slider Grid.Column="1" Grid.Row="2"  Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
                                     
                                     <TextBlock Grid.Column="0" Grid.Row="3" Text="Video Codec" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Column="1" Grid.Row="3" Height="30" Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                    <ComboBox Grid.Column="1" Grid.Row="3" Height="30" Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind DisplayTab}" />
                                 </Grid>
                             </Border>
 
@@ -112,10 +115,10 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Column="0" Grid.Row="0" Text="Enable HDR" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Column="1" Grid.Row="0" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="0" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
                                         
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="Optimize host resolution" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Column="1" Grid.Row="1" Name="EnableSOPSCheckbox" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" Name="EnableSOPSCheckbox" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
                                 </Grid>
                             </Border>
                             <TextBlock Name="HDR4KNote" Visibility="Collapsed" Margin="4,4,0,0" Opacity="0.5">HDR requires Xbox system resolution set to 4K.</TextBlock>
@@ -141,10 +144,10 @@
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Column="0" Grid.Row="0" Text="Audio Configuration" VerticalAlignment="Center" />
-                                    <ComboBox Grid.Column="1" Grid.Row="0" Height="30" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                    <ComboBox Grid.Column="1" Grid.Row="0" Height="30" x:Name="AudioConfigs" ItemsSource="{x:Bind AvailableAudioConfigs}" SelectedItem="{x:Bind Host.AudioConfig,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind AudioTab}" />
 
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="Play Audio on Host PC" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="1" IsChecked="{x:Bind Host.PlayAudioOnPC, Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind AudioTab}" />
                                     
                                 </Grid>
                             </Border>
@@ -165,7 +168,7 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <TextBlock Grid.Column="0" Text="Autostart" VerticalAlignment="Center" />
-                                        <ComboBox Grid.Column="1" Height="30" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" />
+                                        <ComboBox Grid.Column="1" Height="30" SelectedIndex="{x:Bind CurrentAppIndex,Mode=TwoWay}" Name="AutoStartSelector" SelectionChanged="AutoStartSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind StreamTab}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -185,10 +188,10 @@
                                         </Grid.RowDefinitions>
                                         
                                         <TextBlock Grid.Column="0" Grid.Row="0" Text="Show performance stats" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" Grid.Row="0" x:Name="EnableStatsCheckbox" IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        <CheckBox Grid.Column="1" Grid.Row="0" x:Name="EnableStatsCheckbox" IsChecked="{x:Bind Host.EnableStats, Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind StreamTab}" />
                                         
                                         <TextBlock Grid.Column="0" Grid.Row="1" Text="Show performance graphs" VerticalAlignment="Center" />
-                                        <CheckBox Grid.Column="1" Grid.Row="1" x:Name="EnableGraphsCheckbox" IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}" IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" VerticalAlignment="Center" />
+                                        <CheckBox Grid.Column="1" Grid.Row="1" x:Name="EnableGraphsCheckbox" IsEnabled="{x:Bind Host.EnableStats, Mode=OneWay}" IsChecked="{x:Bind Host.EnableGraphs, Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind StreamTab}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -332,7 +335,8 @@
                                                   DropDownOpened="ComboBox_DropDownOpened"
                                                   VerticalAlignment="Center"
                                                   HorizontalAlignment="Left"
-                                                  MinWidth="180" />
+                                                  MinWidth="180"
+                                                  XYFocusLeft="{x:Bind PersonalizationTab}" />
                                     </Grid>
 
                                     <ContentControl x:Name="BackgroundSettingsContent"
@@ -360,7 +364,8 @@
                                         </StackPanel>
                                         <local:SwatchPicker Grid.Column="1"
                                                             x:Name="AccentColorPicker"
-                                                            VerticalAlignment="Center" />
+                                                            VerticalAlignment="Center"
+                                                            XYFocusLeft="{x:Bind PersonalizationTab}" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -380,7 +385,8 @@
                                             Click="ClearAppImageCacheButton_Click"
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Left"
-                                            Content="Clear App Image Cache" />
+                                            Content="Clear App Image Cache"
+                                            XYFocusLeft="{x:Bind PersonalizationTab}" />
                                 </Grid>
                             </Border>
                             <TextBlock Margin="4,4,0,0" Opacity="0.5">* This will redownload images from host</TextBlock>
@@ -420,9 +426,11 @@
                                 XYFocusRight="{x:Bind HostBackgroundSelector}" />
                         <Border Grid.Row="4" Grid.Column="0" BorderThickness="1" BorderBrush="White" Height="1" Margin="14,12" Opacity=".25" />
                         <Button Grid.Row="5" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="ControlsPanel" x:Name="ControlsTab" Content="Controls" HorizontalAlignment="Stretch"
-                                XYFocusDown="{x:Bind DetailsTab}"/>
+                                XYFocusDown="{x:Bind DetailsTab}"
+                                XYFocusRight="{x:Bind rightTabs.ContentScrollViewer}" />
                         <Button Grid.Row="6" Grid.Column="0" Style="{StaticResource TabButtonStyle}" local:TabsLayout.TargetPanelName="DetailsPanel" x:Name="DetailsTab" Content="Details" HorizontalAlignment="Stretch"
-                                XYFocusDown="{x:Bind DisplayTab}"/>
+                                XYFocusDown="{x:Bind DisplayTab}"
+                                XYFocusRight="{x:Bind rightTabs.ContentScrollViewer}" />
                     </Grid>
                 </local:TabsLayout.TabsContent>
                 </local:TabsLayout>

@@ -61,7 +61,7 @@ App::App()
 		ref new Windows::Foundation::EventHandler<Platform::Object^>([](Platform::Object^ s, Platform::Object^ e) {
 			try {
 				if (s_rootFrame != nullptr) {
-					s_rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+					s_rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid), nullptr, ref new Windows::UI::Xaml::Media::Animation::EntranceNavigationTransitionInfo());
 				}
 			} catch(...) {}
 		})
@@ -97,7 +97,7 @@ void App::OnLaunched(Windows::ApplicationModel::Activation::LaunchActivatedEvent
 
 	if (s_rootFrame->Content == nullptr)
 	{
-		s_rootFrame->Navigate(TypeName(HostSelectorPage::typeid), e->Arguments);
+		s_rootFrame->Navigate(TypeName(HostSelectorPage::typeid), e->Arguments, ref new Windows::UI::Xaml::Media::Animation::SuppressNavigationTransitionInfo());
 	}
 
 	if (m_menuPage == nullptr)

@@ -24,6 +24,10 @@ namespace moonlight_xbox_dx
             void set(Windows::UI::Color value);
         }
 
+        property Windows::UI::Xaml::Controls::ScrollViewer^ ContentScrollViewer {
+            Windows::UI::Xaml::Controls::ScrollViewer^ get() { return ContentSV; }
+        }
+
         // Attached property to associate a tab button with a panel name
         static void SetTargetPanelName(Windows::UI::Xaml::UIElement^ element, Platform::String^ value);
         static Platform::String^ GetTargetPanelName(Windows::UI::Xaml::UIElement^ element);
@@ -40,6 +44,7 @@ namespace moonlight_xbox_dx
         void SelectTabByName(Platform::String^ panelName);
         void OnTabButtonClick(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnTabButtonGotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void OnContentScrollViewerKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
 
         void AnimateSelectionToButton(Windows::UI::Xaml::Controls::Button^ btn, bool animate);
         void AnimateForeground(Windows::UI::Xaml::Controls::Button^ btn, bool selected);

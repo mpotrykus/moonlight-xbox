@@ -400,6 +400,14 @@ void TabsLayout::OnTabButtonGotFocus(Platform::Object^ sender, Windows::UI::Xaml
     OnTabButtonClick(sender, e);
 }
 
+void TabsLayout::OnContentScrollViewerKeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e)
+{
+    if (e->Key == Windows::System::VirtualKey::Left && m_selectedButton != nullptr) {
+        m_selectedButton->Focus(Windows::UI::Xaml::FocusState::Keyboard);
+        e->Handled = true;
+    }
+}
+
 void TabsLayout::SelectTabByName(Platform::String^ panelName)
 {
     if (panelName == nullptr) return;

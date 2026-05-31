@@ -271,7 +271,9 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
                                             if (that2 == nullptr) return;
                                             that2->Dispatcher->RunAsync(CoreDispatcherPriority::Normal, ref new DispatchedHandler([that2]() {
                                                 try {
-                                                    that2->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+                                                    auto slideBack = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+                                                    slideBack->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromLeft;
+                                                    that2->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid), nullptr, slideBack);
                                                 } catch (const std::exception &e) {
                                                     Utils::Logf("[AppPage] Failed to navigate to HostSelectorPage after disconnect. Exception: %s\n", e.what());
                                                 } catch (...) {
@@ -976,7 +978,7 @@ void AppPage::Connect(int appId) {
     if (config->enableHDR) host->VideoCodec = "HEVC (H.265)";
     config->backgroundImage = (this->currentApp != nullptr) ? this->currentApp->BlurredImage : nullptr;
     config->appName         = (this->currentApp != nullptr) ? this->currentApp->Name : nullptr;
-    this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config);
+    this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(StreamPage::typeid), config, ref new Windows::UI::Xaml::Media::Animation::DrillInNavigationTransitionInfo());
 }
 
 // ── AppPage::AppsGrid_RightTapped ────────────────────────────────────────────
@@ -1035,11 +1037,19 @@ void AppPage::AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::
             }),
             ref new RoutedEventHandler([weakThis](Platform::Object^, RoutedEventArgs^) {
                 auto that = weakThis.Resolve<AppPage>();
-                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid)); } catch (...) {}
+                if (that != nullptr) try {
+                    auto t = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+                    t->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+                    that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid), nullptr, t);
+                } catch (...) {}
             }),
 		    ref new RoutedEventHandler([weakThis](Platform::Object ^, RoutedEventArgs ^) {
 			    auto that = weakThis.Resolve<AppPage>();
-                if (that != nullptr) try { that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->Host); } catch (...) {}
+                if (that != nullptr) try {
+                    auto t = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+                    t->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+                    that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->Host, t);
+                } catch (...) {}
             }));
 
         create_task(dialog->ShowAsync());

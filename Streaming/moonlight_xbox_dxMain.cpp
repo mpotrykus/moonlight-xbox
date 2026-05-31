@@ -811,7 +811,9 @@ void moonlight_xbox_dxMain::ExitStreamPage() {
 
 		if (!reachedAppPage) {
 			try {
-				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid));
+				auto slideBack = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+				slideBack->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromLeft;
+				rootFrame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSelectorPage::typeid), nullptr, slideBack);
 			} catch (...) {
 				rootFrame->Content = nullptr;
 				Utils::Log("ExitStreamPage: Failed to return to HostSelectorPage\n");

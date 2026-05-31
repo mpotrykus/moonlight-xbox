@@ -72,7 +72,8 @@
         </ScrollViewer>
 
         <!-- Right: main content area (scroll when overflow) -->
-        <ScrollViewer Grid.Column="2" Padding="28,0,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <ScrollViewer x:Name="ContentSV" Grid.Column="2" Padding="28,0,8,0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      IsTabStop="True" KeyDown="OnContentScrollViewerKeyDown">
             <ContentControl x:Name="ContentPresenter" Content="{Binding LeftContent, ElementName=root}" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
         </ScrollViewer>
     </Grid>

@@ -11,6 +11,8 @@ extern "C" {
 #include <Utils.hpp>
 #include <atomic>
 #include <cmath>
+#include <string>
+#include <unordered_set>
 #include <gamingdeviceinformation.h>
 #include "Streaming\FFMpegDecoder.h"
 
@@ -514,6 +516,9 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 	CreateDirectory(folderString->Data(), NULL);
 	if (fetchAssets) {
 		Concurrency::create_task([folder, folderString, values, this]() {
+			std::unordered_set<int> currentIds;
+			for (auto a : values) currentIds.insert(a->Id);
+
 			for (auto a : values) {
 				auto imgPath = Platform::String::Concat(folderString, a->Id + ".png");
 				// https://stackoverflow.com/a/6218957
@@ -522,6 +527,30 @@ std::vector<MoonlightApp ^> MoonlightClient::GetApplications(bool fetchAssets) {
 					gs_appasset(&serverData, folder, a->Id);
 				}
 				a->ImagePath = imgPath;
+			}
+
+			// Delete images whose AppId is no longer in the list — AppId is a hash of
+			// the image, so a changed cover art produces a new AppId and orphans the old file.
+			std::wstring searchPath(folderString->Data());
+			searchPath += L"*.png";
+			WIN32_FIND_DATAW findData;
+			HANDLE hFind = FindFirstFileW(searchPath.c_str(), &findData);
+			if (hFind != INVALID_HANDLE_VALUE) {
+				do {
+					std::wstring fname(findData.cFileName);
+					if (fname.size() > 4 && fname.substr(fname.size() - 4) == L".png") {
+						std::wstring numStr = fname.substr(0, fname.size() - 4);
+						wchar_t* end = nullptr;
+						long id = wcstol(numStr.c_str(), &end, 10);
+						if (end != numStr.c_str() && *end == L'\0' && currentIds.find((int)id) == currentIds.end()) {
+							std::wstring base(folderString->Data());
+							DeleteFileW((base + fname).c_str());
+							DeleteFileW((base + L"blur\\" + numStr + L"_bg.png").c_str());
+							DeleteFileW((base + L"blur\\" + numStr + L"_glow.png").c_str());
+						}
+					}
+				} while (FindNextFileW(hFind, &findData));
+				FindClose(hFind);
 			}
 		});
 	}

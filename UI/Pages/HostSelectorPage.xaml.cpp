@@ -391,7 +391,9 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
             if (that == nullptr || that->currentHost == nullptr) return;
-            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->currentHost);
+            auto t = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+            t->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(HostSettingsPage::typeid), that->currentHost, t);
         }),
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
@@ -417,7 +419,9 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
             if (that == nullptr) return;
-            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+            auto t = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+            t->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+            that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid), nullptr, t);
         })
     );
 
@@ -485,12 +489,14 @@ void HostSelectorPage::HostsGrid_RightTapped(Platform::Object^ sender, Windows::
 
 void HostSelectorPage::SettingsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
-	bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid));
+	auto slideForward = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+	slideForward->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightSettings::typeid), nullptr, slideForward);
 }
 
 void HostSelectorPage::OnStateLoaded() {
 	if (GetApplicationState()->FirstTime) {
-		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid));
+		this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(MoonlightWelcome::typeid), nullptr, ref new Windows::UI::Xaml::Media::Animation::EntranceNavigationTransitionInfo());
 		return;
 	}
 
@@ -573,7 +579,9 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 	}
 	state->shouldAutoConnect = true;
 	continueFetch.store(false);
-		bool result = this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host);
+	auto slideForward = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+	slideForward->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host, slideForward);
 }
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
