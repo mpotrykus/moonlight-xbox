@@ -862,7 +862,7 @@
     <Style TargetType="Slider" BasedOn="{StaticResource BaseSliderStyle}"/>
 
     <!-- Settings page layout resources — change these to scale both settings pages -->
-    <x:Double x:Key="SettingsPanelMaxWidth">800</x:Double>
+    <x:Double x:Key="SettingsPanelMaxWidth">700</x:Double>
     <x:Double x:Key="SettingsPanelMaxHeight">360</x:Double>
     <x:Double x:Key="SettingsRowSpacing">16</x:Double>
     <Thickness x:Key="SettingsPanelMargin">40,28</Thickness>
@@ -894,7 +894,7 @@
     <Style x:Key="SettingsGroupStyle" TargetType="Border">
         <Setter Property="Background">
             <Setter.Value>
-                <SolidColorBrush Color="#55000000" />
+                <SolidColorBrush Color="#33000000" />
             </Setter.Value>
         </Setter>
         <Setter Property="CornerRadius" Value="10"/>

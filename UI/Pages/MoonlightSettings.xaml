@@ -58,7 +58,7 @@
         <Border Grid.Row="1" Margin="{StaticResource SettingsPanelMargin}" CornerRadius="16" MaxWidth="{StaticResource SettingsPanelMaxWidth}" MaxHeight="{StaticResource SettingsPanelMaxHeight}"
                 BorderBrush="#1EFFFFFF" BorderThickness="1">
             <Border.Background>
-                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0.04" TintLuminosityOpacity="0.13"/>
+                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0.04" TintLuminosityOpacity="0.07"/>
                 </Border.Background>
             <local:TabsLayout x:Name="tabsLayout" Margin="{StaticResource SettingsPanelInnerMargin}">
 
@@ -87,23 +87,7 @@
                         <!-- Screen -->
 
                         <StackPanel x:Name="ScreenPanel" Visibility="Visible">
-                            <Border Margin="0,0,0,16" HorizontalAlignment="Stretch" CornerRadius="8">
-                                <Border.Background>
-                                    <SolidColorBrush Color="{ThemeResource SystemListAccentMediumColor}"/>
-                                </Border.Background>
-                                <Grid VerticalAlignment="Center">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Margin="12,10,12,10" VerticalAlignment="Center">
-                                        <Run FontFamily="Segoe Fluent Icons" FontSize="28">&#xe946;</Run>
-                                    </TextBlock>
-                                    <TextBlock Grid.Column="1" Margin="4,10,12,10" VerticalAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="Wrap">
-                                        Looking to change Resolution, FPS or Bitrate? Use the settings button in the app grid to change the settings of your host.
-                                    </TextBlock>
-                                </Grid>
-                            </Border>
+
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="GENERAL" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
@@ -199,14 +183,30 @@
                                     </StackPanel>
                                         
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="Alternate Menu Combination" VerticalAlignment="Center" />
-                                    <CheckBox Grid.Column="1" Grid.Row="1"
-                                              IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}"
-                                              XYFocusLeft="{x:Bind InputTab}"
-                                              XYFocusRight="{x:Bind KeyboardLayoutSelector}"
-                                              FontSize="12"
-                                              VerticalAlignment="Center">
-                                        Use LT+RT+LB+RB instead of Menu+View to show the menu
-                                    </CheckBox>
+                                    <Grid Grid.Column="1" Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0"
+                                                  IsChecked="{x:Bind State.AlternateCombination,Mode=TwoWay}"
+                                                  XYFocusLeft="{x:Bind InputTab}"
+                                                  XYFocusRight="{x:Bind KeyboardLayoutSelector}"
+                                                  FontSize="12"
+                                                  VerticalAlignment="Center">
+                                        </CheckBox>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="WrapWholeWords">
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10A;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10B;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10C;</Run>
+                                            <Run>+</Run>
+                                            <Run FontFamily="Segoe Fluent Icons">&#xF10D;</Run>
+                                        </TextBlock>
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </StackPanel>

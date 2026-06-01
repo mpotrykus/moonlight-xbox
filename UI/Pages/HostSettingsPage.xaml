@@ -50,7 +50,7 @@
         <Border Grid.Row="1" Margin="{StaticResource SettingsPanelMargin}" CornerRadius="16" MaxWidth="{StaticResource SettingsPanelMaxWidth}" MaxHeight="{StaticResource SettingsPanelMaxHeight}"
                 BorderBrush="#1EFFFFFF" BorderThickness="1">
             <Border.Background>
-                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0.04" TintLuminosityOpacity="0.13"/>
+                    <AcrylicBrush TintColor="#FFFFFF" TintOpacity="0" TintLuminosityOpacity="0.07"/>
             </Border.Background>
                 <local:TabsLayout x:Name="rightTabs" Margin="{StaticResource SettingsPanelInnerMargin}">
                 <local:TabsLayout.LeftContent>
@@ -205,7 +205,7 @@
                                 <StackPanel>
                                     <Grid RowSpacing="{StaticResource SettingsRowSpacing}" >
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="125" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
 
@@ -230,7 +230,7 @@
                                         <TextBlock Grid.Column="1" Grid.Row="3" Text="{x:Bind Host.MacAddress}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Column="0" Grid.Row="4" Text="Instance ID" VerticalAlignment="Center" Opacity="0.5" />
-                                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Host.InstanceId}" VerticalAlignment="Center" TextWrapping="Wrap" />
                                     </Grid>
                                 </StackPanel>
                             </Border>

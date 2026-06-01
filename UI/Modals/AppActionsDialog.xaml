@@ -57,7 +57,7 @@
                            FontSize="20"
                            Foreground="White"
                            Padding="32,12,32,10"
-                           MaxWidth="335"
+                           MaxWidth="280"
                            TextWrapping="WrapWholeWords" />
             </Border>
 

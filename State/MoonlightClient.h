@@ -62,6 +62,7 @@ namespace moonlight_xbox_dx {
         char* connectionPin = NULL;
         char* hostname = NULL;
         int port = 0;
+        std::mutex m_connectMutex;
         bool useSoftwareEncoder = false;
         int activeGamepadMask = 0;
         bool m_isHDR;

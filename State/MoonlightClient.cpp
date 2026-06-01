@@ -10,6 +10,7 @@ extern "C" {
 #include <Streaming\AudioPlayer.h>
 #include <Utils.hpp>
 #include <atomic>
+#include <mutex>
 #include <cmath>
 #include <string>
 #include <unordered_set>
@@ -416,6 +417,7 @@ void connection_trigger_rumble(unsigned short controllerNumber, unsigned short l
 }
 
 int MoonlightClient::Connect(const char *hostname) {
+	std::lock_guard<std::mutex> lock(m_connectMutex);
 	if (this->hostname != NULL) {
 		free(this->hostname);
 		this->hostname = NULL;
