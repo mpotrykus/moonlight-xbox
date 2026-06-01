@@ -34,7 +34,7 @@
                                     <!-- base subtle acrylic -->
                                     <Rectangle x:Name="BackgroundBase" RadiusX="12" RadiusY="12">
                                         <Rectangle.Fill>
-                                            <AcrylicBrush BackgroundSource="Backdrop" TintColor="#000" TintOpacity="0.5" TintLuminosityOpacity="0.5" />
+                                            <AcrylicBrush BackgroundSource="Backdrop" TintColor="#000" TintOpacity="0" TintLuminosityOpacity="0.2" />
                                         </Rectangle.Fill>
                                     </Rectangle>
                                     <!-- accent acrylic overlay that becomes visible when enabled/active -->
