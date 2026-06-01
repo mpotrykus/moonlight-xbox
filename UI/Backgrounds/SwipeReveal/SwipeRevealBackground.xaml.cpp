@@ -32,7 +32,6 @@ static float EaseInOut(float t)
                     : 1.0f - powf(-2.0f * t + 2.0f, 3.0f) * 0.5f;
 }
 static const float kPi         = 3.14159265f;
-static const int   kNumSlices  = 14;     // horizontal strips used to fake the diagonal clip
 
 SwipeRevealBackground::SwipeRevealBackground()
 {
@@ -49,17 +48,21 @@ SwipeRevealBackground::SwipeRevealBackground()
     m_frontBrush->Stretch             = Stretch::UniformToFill;
     m_frontBrush->RelativeTransform   = m_frontPan;
 
-    // Create kNumSlices strip rectangles, each with its own RectangleGeometry clip.
-    // All share m_frontBrush so they render as one coherent image.
-    for (int i = 0; i < kNumSlices; ++i) {
-        auto clip = ref new RectangleGeometry();
-        m_sliceClips.push_back(clip);
+    // FrontGrid gets a rectangular clip that grows during the wipe, plus a SkewTransform so
+    // the clip's leading edge appears diagonal in screen space.  The Rectangle inside gets
+    // the inverse SkewTransform so the image content appears unskewed.
+    m_frontClipRect = ref new RectangleGeometry();
+    FrontGrid->Clip = m_frontClipRect;
 
-        auto rect = ref new Rectangle();
-        rect->Fill = m_frontBrush;
-        rect->Clip = clip;
-        FrontGrid->Children->Append(rect);
-    }
+    m_frontGridSkew = ref new SkewTransform();
+    FrontGrid->RenderTransform = m_frontGridSkew;
+
+    m_frontRectInvSkew = ref new SkewTransform();
+
+    auto frontRect = ref new Rectangle();
+    frontRect->Fill            = m_frontBrush;
+    frontRect->RenderTransform = m_frontRectInvSkew;
+    FrontGrid->Children->Append(frontRect);
 
     TimeSpan ts;
     ts.Duration = 16 * 10000LL;
@@ -91,18 +94,20 @@ void SwipeRevealBackground::Grid_SizeChanged(Object^ sender, SizeChangedEventArg
     m_canvasH     = static_cast<float>(e->NewSize.Height);
     m_initialized = (m_canvasW > 0 && m_canvasH > 0);
     if (m_initialized) {
-        GlassEdgeSkew->CenterY = m_canvasH * 0.5f;
+        GlassEdgeSkew->CenterY    = m_canvasH * 0.5f;
+        m_frontGridSkew->CenterY  = m_canvasH * 0.5f;
+        m_frontRectInvSkew->CenterY = m_canvasH * 0.5f;
+        // Keep the clip's height in sync with the canvas
+        auto r = m_frontClipRect->Rect;
+        m_frontClipRect->Rect = Rect(r.X, 0.0f, r.Width, m_canvasH);
         UpdateGlassEdgeSkew();
     }
 }
 
-// Zero every slice clip so FrontGrid is invisible during the HOLD phase.
-// UpdateDiagonalClip(0) would leak kSlantH/2 pixels on the leading side.
+// Collapse the clip to zero width so FrontGrid is invisible during HOLD.
 void SwipeRevealBackground::ZeroFrontClips()
 {
-    float sliceH = m_canvasH > 0 ? m_canvasH / static_cast<float>(kNumSlices) : 1.0f;
-    for (int i = 0; i < kNumSlices; ++i)
-        m_sliceClips[i]->Rect = Rect(0.0f, i * sliceH, 0.0f, sliceH);
+    m_frontClipRect->Rect = Rect(0.0f, 0.0f, 0.0f, m_canvasH > 0.0f ? m_canvasH : 1.0f);
 }
 
 void SwipeRevealBackground::UpdateGlassEdgeSkew()
@@ -110,7 +115,10 @@ void SwipeRevealBackground::UpdateGlassEdgeSkew()
     if (m_canvasH <= 0) return;
     // "/" lean for L→R (AngleX negative), "\" lean for R→L (AngleX positive)
     float angle = atanf(kSlantH / m_canvasH) * 180.0f / kPi;
-    GlassEdgeSkew->AngleX = (m_wipeDir > 0) ? -angle : angle;
+    float gridAngle = (m_wipeDir > 0) ? -angle : angle;
+    GlassEdgeSkew->AngleX    =  gridAngle;
+    m_frontGridSkew->AngleX  =  gridAngle;
+    m_frontRectInvSkew->AngleX = -gridAngle;
 }
 
 void SwipeRevealBackground::ShuffleAndApply(Platform::Collections::Vector<MoonlightApp^>^ collected)
@@ -280,28 +288,27 @@ void SwipeRevealBackground::AdvancePan(float& px, float& py, float vx, float vy,
     xf->TranslateY = py;
 }
 
-// Update the RectangleGeometry clip for each horizontal slice to produce a diagonal edge.
-// For "/" (L→R): top strips are most revealed. For "/" (R→L): top strips are also most revealed
-// from the right side, so the same formula applies in both directions.
+// Grow the rectangular clip on the skewed FrontGrid.
+// FrontGrid's SkewTransform(CenterY=canvasH/2) turns the clip's wipe-side edge into the
+// "/" or "\" diagonal seen on screen. The opposite edge must be extended by kSlantH/2 so
+// that after the skew it lands at (or beyond) the canvas boundary — without this, the
+// skew would leave a triangular gap where the back image bleeds through.
 void SwipeRevealBackground::UpdateDiagonalClip(float swept)
 {
-    float sliceH = m_canvasH / static_cast<float>(kNumSlices);
-
-    for (int i = 0; i < kNumSlices; ++i) {
-        float sliceY = i * sliceH;
-        // Top strip (i=0) gets +kSlantH/2 offset; bottom strip gets -kSlantH/2
-        float offset = kSlantH * (0.5f - i * 1.0f / kNumSlices);
-
-        if (m_wipeDir > 0) {
-            // L→R: clip from x=0, width grows left-to-right per strip
-            float w = std::max(0.0f, std::min(swept + offset, m_canvasW));
-            m_sliceClips[i]->Rect = Rect(0.0f, sliceY, w, sliceH);
-        } else {
-            // R→L: clip from x=edge, extends to canvasW
-            float x = std::max(0.0f, std::min(m_canvasW - swept - offset, m_canvasW));
-            float w = std::max(0.0f, m_canvasW - x);
-            m_sliceClips[i]->Rect = Rect(x, sliceY, w, sliceH);
-        }
+    if (m_wipeDir > 0) {
+        // L→R: right edge = diagonal wipe front; extend left past x=0 to cover the gap
+        float clipW = swept + kSlantH * 0.5f;
+        if (clipW <= 0.0f)
+            m_frontClipRect->Rect = Rect(0.0f, 0.0f, 0.0f, m_canvasH);
+        else
+            m_frontClipRect->Rect = Rect(-kSlantH * 0.5f, 0.0f, clipW, m_canvasH);
+    } else {
+        // R→L: left edge = diagonal wipe front; extend right past canvasW to cover the gap
+        float clipW = swept + kSlantH * 0.5f;
+        if (clipW <= 0.0f)
+            m_frontClipRect->Rect = Rect(m_canvasW, 0.0f, 0.0f, m_canvasH);
+        else
+            m_frontClipRect->Rect = Rect(m_canvasW - swept, 0.0f, clipW, m_canvasH);
     }
 }
 

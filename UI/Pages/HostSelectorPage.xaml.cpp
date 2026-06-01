@@ -17,6 +17,7 @@
 #include "State\MDNSHandler.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
 #include "UI\Modals\AlertDialog.xaml.h"
+#include "UI\Modals\ConfirmDialog.xaml.h"
 #include "UI\Modals\HostActionsDialog.xaml.h"
 #include "UI\Modals\TestConnectionResultDialog.xaml.h"
 #include <string>
@@ -408,13 +409,29 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();
             if (that == nullptr || that->currentHost == nullptr) return;
-            int removedIdx = that->HostsGrid->SelectedIndex;
-            that->State->RemoveHost(that->currentHost);
-            that->currentHost = nullptr;
-            int newSize = (int)that->State->SavedHosts->Size;
-            if (newSize > 0) {
-                that->HostsGrid->SelectedIndex = removedIdx < newSize ? removedIdx : newSize - 1;
-            }
+            auto confirmDialog = ref new ConfirmDialog();
+            Platform::String^ hostName = that->currentHost->ComputerName;
+            Platform::String^ message = "Remove '" + hostName + "' from your saved hosts?";
+            confirmDialog->Configure(
+                "Remove Host",
+		        message,
+		        L"\xE74D",
+                "Remove",
+                "Cancel",
+                ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
+                    auto that = weakThis.Resolve<HostSelectorPage>();
+                    if (that == nullptr || that->currentHost == nullptr) return;
+                    int removedIdx = that->HostsGrid->SelectedIndex;
+                    that->State->RemoveHost(that->currentHost);
+                    that->currentHost = nullptr;
+                    int newSize = (int)that->State->SavedHosts->Size;
+                    if (newSize > 0) {
+                        that->HostsGrid->SelectedIndex = removedIdx < newSize ? removedIdx : newSize - 1;
+                    }
+                })
+            );
+            try { confirmDialog->XamlRoot = that->XamlRoot; } catch (...) {}
+            concurrency::create_task(confirmDialog->ShowAsync());
         }),
         ref new Windows::UI::Xaml::RoutedEventHandler([weakThis](Platform::Object^, Windows::UI::Xaml::RoutedEventArgs^) {
             auto that = weakThis.Resolve<HostSelectorPage>();

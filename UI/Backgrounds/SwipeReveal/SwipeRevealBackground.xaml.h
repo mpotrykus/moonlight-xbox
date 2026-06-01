@@ -17,10 +17,15 @@ private:
     Windows::Foundation::Collections::IVector<MoonlightHost^>^  m_hosts;
     Platform::Collections::Vector<MoonlightApp^>^                m_apps;
 
-    // Front layer: N slices sharing one ImageBrush; each has its own RectangleGeometry clip
+    // Front layer: Rectangle inside a skewed FrontGrid.
+    // FrontGrid has a RectangleGeometry clip (grows during wipe) + a SkewTransform so the
+    // rectangular clip appears as a diagonal edge. The Rectangle has an inverse SkewTransform
+    // that cancels the distortion so the image looks normal.
     Windows::UI::Xaml::Media::ImageBrush^                        m_frontBrush;
     Windows::UI::Xaml::Media::CompositeTransform^                m_frontPan;
-    std::vector<Windows::UI::Xaml::Media::RectangleGeometry^>    m_sliceClips;
+    Windows::UI::Xaml::Media::RectangleGeometry^                 m_frontClipRect;
+    Windows::UI::Xaml::Media::SkewTransform^                     m_frontGridSkew;
+    Windows::UI::Xaml::Media::SkewTransform^                     m_frontRectInvSkew;
 
     float m_canvasW        = 0.0f;
     float m_canvasH        = 0.0f;
