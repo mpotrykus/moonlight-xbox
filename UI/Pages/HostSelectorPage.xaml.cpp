@@ -223,6 +223,26 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 			}
 		} catch (...) {}
 
+		// Subscribe to LayoutUpdated so we update moon phases after the layout pass
+		// that creates containers — more reliable than fixed-count Normal-priority retries,
+		// which can all fire before the first layout pass on cold launch when SavedHosts
+		// is populated from a background thread after the page is first shown.
+		if (m_hostsGrid_ccc_token.Value == 0) {
+			Platform::WeakReference weakThis(this);
+			m_hostsGrid_ccc_token = grid->LayoutUpdated +=
+				ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
+					auto that = weakThis.Resolve<HostSelectorPage>();
+					if (that == nullptr) return;
+					if (that->HostsGrid == nullptr ||
+						that->HostsGrid->Items == nullptr ||
+						that->HostsGrid->Items->Size == 0) return;
+					// Unregister before calling so a stray re-fire can't double-run.
+					try { that->HostsGrid->LayoutUpdated -= that->m_hostsGrid_ccc_token; } catch(...) {}
+					that->m_hostsGrid_ccc_token.Value = 0;
+					that->UpdateAllMoonPhases(false, 0);
+				});
+		}
+
 		EnsureCenteringPadding(3);
 		CenterSelectedHost(4, true);
 		UpdateAllMoonPhases(false, 4);
@@ -687,6 +707,13 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs ^ e) {
 	try {
 		if (BackgroundHost != nullptr) BackgroundHost->StopAnimations();
+	} catch (...) {}
+
+	try {
+		if (m_hostsGrid_ccc_token.Value != 0 && HostsGrid != nullptr) {
+			HostsGrid->LayoutUpdated -= m_hostsGrid_ccc_token;
+			m_hostsGrid_ccc_token.Value = 0;
+		}
 	} catch (...) {}
 
 	m_isNavigatedAway.store(true);

@@ -370,14 +370,14 @@ void AppPage::AppsGrid_ContainerContentChanging(
             int idx = (int)lv->IndexFromContainer(container);
             isSelected = (idx >= 0 && idx == (int)lv->SelectedIndex);
         }
+        // Drive SelectionStates explicitly — XAML only calls GoToState("Normal") which
+        // now lands in the empty CommonStates and never reaches SelectionStates.
         if (isSelected) {
-            auto item = dynamic_cast<MoonlightApp^>(args->Item);
-            if (item != nullptr) {
-                if (item->BlurredImage == nullptr)
-                    try { BlurAppImage(item); } catch(...) {}
-                else
-                    try { FadeInBlurIfSelected(item, item->BlurredImage); } catch(...) {}
-            }
+            try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true); } catch(...) {}
+        } else {
+            // Snap non-selected containers back instantly (handles recycled containers
+            // that were previously in "Selected" state).
+            try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Unselected", false); } catch(...) {}
         }
     } catch(...) {}
 }
@@ -414,6 +414,13 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
     if (prevItem != nullptr) {
         try { prevContainer = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(prevItem)); } catch(...) {}
     }
+
+    // Drive SelectionStates on both containers — XAML's GoToState("Normal") targets
+    // the empty CommonStates and never reaches SelectionStates, so we must be explicit.
+    if (container != nullptr)
+        try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true); } catch(...) {}
+    if (prevContainer != nullptr)
+        try { Windows::UI::Xaml::VisualStateManager::GoToState(prevContainer, "Unselected", true); } catch(...) {}
 
     // Blur
     try {
@@ -645,6 +652,8 @@ concurrency::task<IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app, fl
 void AppPage::BlurAppImage(MoonlightApp^ selApp) {
     try {
         if (selApp->BlurredImage != nullptr) return;
+        if (m_blurInProgressIds.count(selApp->Id)) return; // async already running
+        m_blurInProgressIds.insert(selApp->Id);
         bool isGrid = this->m_isGridLayout;
         Platform::WeakReference weakThis(this);
 
@@ -705,6 +714,7 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
                                     thatCont->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
                                         ref new DispatchedHandler([thatCont, selApp, imgCapture]() {
                                         try {
+                                            thatCont->m_blurInProgressIds.erase(selApp->Id);
                                             selApp->BlurredImage = imgCapture;
                                             Utils::Logf("[AppPage] BlurAppImage: assigned BlurredImage for app id=%d\n", selApp->Id);
                                             try { thatCont->FadeInBlurIfSelected(selApp, imgCapture); } catch(...) {}
@@ -759,7 +769,9 @@ void AppPage::FadeInBlurIfSelected(MoonlightApp^ app, BitmapImage^ img) {
         try {
             if (this->AppsGrid == nullptr) return;
             auto selApp = dynamic_cast<MoonlightApp^>(this->AppsGrid->SelectedItem);
-            if (selApp == nullptr || selApp != app) return;
+            // Compare by app ID, not pointer — ApplyAppFilter's SetAt replaces object
+            // references even when the app hasn't changed, breaking pointer equality.
+            if (selApp == nullptr || app == nullptr || selApp->Id != app->Id) return;
         } catch(...) { return; }
 
         try {

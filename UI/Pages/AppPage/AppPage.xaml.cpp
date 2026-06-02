@@ -646,6 +646,18 @@ void AppPage::OnFirstRender(Object^, Object^) {
         AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
         AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
     } catch(...) {}
+    // Re-apply Selected state after first rendered frame. Phase 1's GoToState fires
+    // during the layout pass; XAML's pointer-state reset (GoToState "Normal") may fire
+    // as part of layout attachment and land after Phase 1. OnFirstRender fires after
+    // the completed frame, so this call is guaranteed to be the last one on first load.
+    try {
+        if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
+            auto container = dynamic_cast<Windows::UI::Xaml::Controls::ListViewItem^>(
+                this->AppsGrid->ContainerFromIndex(this->AppsGrid->SelectedIndex));
+            if (container != nullptr)
+                Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true);
+        }
+    } catch(...) {}
 }
 
 // ── AppPage::OnBackRequested ──────────────────────────────────────────────────

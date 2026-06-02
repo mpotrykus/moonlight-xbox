@@ -8,6 +8,7 @@
 #include "UI\Utilities\XamlHelpers.h"
 #include <atomic>
 #include <ppltasks.h>
+#include <unordered_set>
 
 namespace moonlight_xbox_dx
 {
@@ -102,6 +103,7 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         Windows::Foundation::EventRegistrationToken m_appsgird_ccc_token;
         Windows::Foundation::EventRegistrationToken m_searchbox_gettingfocus_token;
         bool m_searchIsOpen = false;
+        std::unordered_set<int> m_blurInProgressIds;
 
         bool m_pendingToggleCentering = false;
         void DoGridCentering();

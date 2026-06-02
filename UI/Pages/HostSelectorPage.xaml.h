@@ -62,5 +62,6 @@ namespace moonlight_xbox_dx
 		void UpdateAllMoonPhases(bool animated, int attempts = 0);
 		LunarPhaseControl^ FindLunarControl(Windows::UI::Xaml::DependencyObject^ root);
 		unsigned int m_hostTextAnimVersion = 0;
+		Windows::Foundation::EventRegistrationToken m_hostsGrid_ccc_token;
 	};
 }
