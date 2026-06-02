@@ -579,7 +579,9 @@ void moonlight_xbox_dxMain::ProcessInput() {
 					                                   }));
 					keyboardMode = true;
 				} else {
-					CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+					m_streamPage->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([this]() {
+						CoreInputView::GetForCurrentView()->TryShow(CoreInputViewKind::Keyboard);
+					}));
 				}
 			}
 			// Scroll

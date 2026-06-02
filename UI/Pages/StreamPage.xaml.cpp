@@ -243,6 +243,15 @@ void StreamPage::SetMouseMode(bool enabled)
     if (this->MouseModeText != nullptr) {
         this->MouseModeText->Text = this->MouseMode ? ref new Platform::String(L"Mouse On") : ref new Platform::String(L"Mouse Off");
     }
+    // Without a focused XAML Button, the Xbox OS does not route the native system keyboard's
+    // input through CoreWindow.KeyDown. Briefly expose StreamMenuGrid so FirstMenuButton can
+    // accept programmatic focus, then collapse it again. All three operations happen
+    // synchronously in one UI frame so there is no visible flash.
+    if (enabled) {
+        this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        this->FirstMenuButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+        this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+    }
 }
 
 void StreamPage::showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
@@ -367,6 +376,7 @@ void StreamPage::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::C
 	if (e->VirtualKey >= Windows::System::VirtualKey::GamepadA && e->VirtualKey <= Windows::System::VirtualKey::GamepadRightThumbstickLeft) {
 		return;
 	}
+	if (!m_main) return;
 	char modifiers = 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control) == (CoreVirtualKeyStates::Down) ? MODIFIER_CTRL : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
@@ -386,8 +396,8 @@ void StreamPage::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Cor
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu) == (CoreVirtualKeyStates::Down) ? MODIFIER_ALT : 0;
 	modifiers |= CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Shift) == (CoreVirtualKeyStates::Down) ? MODIFIER_SHIFT : 0;
 	this->m_main->OnKeyUp((unsigned short) e->VirtualKey, modifiers);
-
 }
+
 
 void StreamPage::disconnectAndCloseButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	Windows::UI::Core::CoreWindow::GetForCurrentThread()->KeyDown -= keyDownHandler;
