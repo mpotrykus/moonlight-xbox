@@ -569,6 +569,7 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
 void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
     if (m_selectedApp != nullptr) { try { m_selectedApp->IsSelected = false; } catch(...) {} }
     m_selectedApp = nullptr;
+    m_pendingCentering = false;
     try { Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested -= m_back_cookie; } catch(...) {}
     try { if (this->SearchBox != nullptr) this->SearchBox->GettingFocus -= m_searchbox_gettingfocus_token; } catch(...) {}
     continueAppFetch.store(false);
@@ -878,6 +879,7 @@ void AppPage::backButton_Click(Platform::Object^, RoutedEventArgs^) {
 
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
     if (m_pendingToggleCentering) m_pendingToggleCentering = false;
+    if (m_pendingCentering) CenterSelectedItem(4, false);
 }
 
 // ── AppPage::AppsGrid_ItemClick ───────────────────────────────────────────────

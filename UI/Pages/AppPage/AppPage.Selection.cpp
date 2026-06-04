@@ -118,7 +118,13 @@ static concurrency::task<IRandomAccessStream^> OpenBlurCacheStreamAsync(Platform
 
 void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     auto queueRetry = [this, attempts, immediate]() {
-        if (attempts <= 0 || this->Dispatcher == nullptr) return;
+        if (this->Dispatcher == nullptr) return;
+        if (attempts <= 0) {
+            // Dispatcher retries exhausted — hand off to LayoutUpdated so we retry
+            // after the next layout pass instead of burning more message-queue slots.
+            m_pendingCentering = true;
+            return;
+        }
         auto weakThis = WeakReference(this);
         try {
             this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
@@ -206,6 +212,7 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     double target = itemCenter - (viewport * 0.5);
     target = std::max(0.0, std::min(target, std::max(0.0, scrollable)));
 
+    m_pendingCentering = false; // layout is valid; centering is proceeding
     if (std::fabs(target - current) < 0.5) return;
 
     if (immediate) {

@@ -106,6 +106,7 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         std::unordered_set<int> m_blurInProgressIds;
 
         bool m_pendingToggleCentering = false;
+        bool m_pendingCentering = false;
         void DoGridCentering();
         unsigned int m_appTextAnimVersion = 0;
 
