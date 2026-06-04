@@ -213,6 +213,21 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
     target = std::max(0.0, std::min(target, std::max(0.0, scrollable)));
 
     m_pendingCentering = false; // layout is valid; centering is proceeding
+
+    // On first navigation to this page the selected container won't have keyboard
+    // focus because it was selected programmatically. Set it here exactly once,
+    // at the point where we know the container is realized and measured, so that
+    // gamepad A fires ItemClick immediately without requiring manual navigation.
+    if (!m_initialFocusApplied) {
+        m_initialFocusApplied = true;
+        try {
+            if (container != nullptr)
+                container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+            else
+                lv->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+        } catch(...) {}
+    }
+
     if (std::fabs(target - current) < 0.5) return;
 
     if (immediate) {

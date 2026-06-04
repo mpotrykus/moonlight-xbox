@@ -231,13 +231,21 @@ void AppPage::OnNavigatedTo(NavigationEventArgs^ e) {
     MoonlightHost^ mhost = dynamic_cast<MoonlightHost^>(e->Parameter);
     if (mhost == nullptr) return;
     host = mhost;
-    host->UpdateHostInfo(true);
-    host->UpdateApps();
 
     // Start background polling for app running state and connectivity
     continueAppFetch.store(true);
-    wasConnected.store(host->Connected);
+    wasConnected.store(true); // HostSelectorPage verified connectivity before navigating here
     FadeInPollingIndicator();
+
+    // Load the app list in background to avoid blocking the UI thread.
+    {
+        Platform::WeakReference weakThis(this);
+        create_task([weakThis]() {
+            auto that = weakThis.Resolve<AppPage>();
+            if (that == nullptr || !that->continueAppFetch.load()) return;
+            that->host->UpdateApps();
+        });
+    }
 
     {
         Platform::WeakReference weakThis(this);
@@ -570,6 +578,7 @@ void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
     if (m_selectedApp != nullptr) { try { m_selectedApp->IsSelected = false; } catch(...) {} }
     m_selectedApp = nullptr;
     m_pendingCentering = false;
+    m_initialFocusApplied = false;
     try { Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested -= m_back_cookie; } catch(...) {}
     try { if (this->SearchBox != nullptr) this->SearchBox->GettingFocus -= m_searchbox_gettingfocus_token; } catch(...) {}
     continueAppFetch.store(false);

@@ -616,9 +616,56 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 	}
 	state->shouldAutoConnect = true;
 	continueFetch.store(false);
-	auto slideForward = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
-	slideForward->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
-	this->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host, slideForward);
+
+	// Re-verify connectivity with a quick TCP check before navigating — faster than a full
+	// UpdateHostInfo handshake, so the dialog appears in ~1 s instead of the full GFE timeout.
+	Platform::WeakReference weakThis(this);
+	std::string hostOnly = Utils::PlatformStringToStdString(host->LastHostname);
+	auto colonPos = hostOnly.find(':');
+	if (colonPos != std::string::npos) hostOnly = hostOnly.substr(0, colonPos);
+
+	Concurrency::create_task([weakThis, host, hostOnly]() {
+		bool reachable = false;
+		WSADATA wsaData;
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0) {
+			struct addrinfo hints = {}, *res = nullptr;
+			hints.ai_family   = AF_UNSPEC;
+			hints.ai_socktype = SOCK_STREAM;
+			hints.ai_protocol = IPPROTO_TCP;
+			if (getaddrinfo(hostOnly.c_str(), "47989", &hints, &res) == 0) {
+				SOCKET s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+				if (s != INVALID_SOCKET) {
+					u_long mode = 1;
+					ioctlsocket(s, FIONBIO, &mode);
+					connect(s, res->ai_addr, (int)res->ai_addrlen);
+					fd_set writeSet; FD_ZERO(&writeSet); FD_SET(s, &writeSet);
+					timeval tv; tv.tv_sec = 1; tv.tv_usec = 0;
+					reachable = (select(0, NULL, &writeSet, NULL, &tv) > 0 && FD_ISSET(s, &writeSet));
+					closesocket(s);
+				}
+				freeaddrinfo(res);
+			}
+			WSACleanup();
+		}
+
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
+			Windows::UI::Core::CoreDispatcherPriority::High,
+			ref new Windows::UI::Core::DispatchedHandler([weakThis, host, reachable]() {
+				auto that = weakThis.Resolve<HostSelectorPage>();
+				if (that == nullptr) return;
+				if (!reachable) {
+					that->continueFetch.store(true);
+					auto dialog = ref new ::moonlight_xbox_dx::AlertDialog();
+					dialog->Configure(L"Host Offline", L"The host is not reachable. It may have gone offline.");
+					try { dialog->XamlRoot = that->XamlRoot; } catch (...) {}
+					concurrency::create_task(dialog->ShowAsync());
+					return;
+				}
+				auto slideForward = ref new Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionInfo();
+				slideForward->Effect = Windows::UI::Xaml::Media::Animation::SlideNavigationTransitionEffect::FromRight;
+				that->Frame->Navigate(Windows::UI::Xaml::Interop::TypeName(AppPage::typeid), host, slideForward);
+			}));
+	});
 }
 
 void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -762,12 +809,12 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 			host->WolPolling = true;
 			concurrency::create_task(concurrency::create_async([host]() {
 				int consecutiveSuccess = 0;
-				for (int i = 0; i < 60; ++i) {
+				for (int i = 0; i < 240; ++i) {
 					try {
 						host->UpdateHostInfo(false);
 						if (host->Connected) {
 							consecutiveSuccess++;
-							if (consecutiveSuccess >= 3) {
+							if (consecutiveSuccess >= 2) {
 								host->WolPolling = false;
 								break;
 							}
@@ -777,7 +824,7 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 					} catch (...) {
 						consecutiveSuccess = 0;
 					}
-					Sleep(1000);
+					Sleep(250);
 				}
 			})).then([host](concurrency::task<void> t) {
 				try {
