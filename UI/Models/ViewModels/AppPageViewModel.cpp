@@ -28,6 +28,7 @@ void AppPageViewModel::OnPropertyChanged(Platform::String^ propertyName)
 void AppPageViewModel::SetPageBackgroundBorder(Border^ border)
 {
     this->pageBackgroundBorder = border;
+    this->currentBackgroundImage = nullptr; // reset so the first transition always fires
 }
 
 void AppPageViewModel::SetBackgroundTransitionSettings(double durationMs, double overlayOpacity)
@@ -44,6 +45,8 @@ void AppPageViewModel::SetBackgroundTransitionSettings(double durationMs, double
 void AppPageViewModel::TransitionToBlurredImage(BitmapImage^ newImage)
 {
     if (newImage == nullptr || this->pageBackgroundBorder == nullptr) return;
+    if (newImage == this->currentBackgroundImage) return;
+    this->currentBackgroundImage = newImage;
 
     try {
         auto durationTicks = (long long)std::llround(this->backgroundTransitionDurationMs * 10000.0);
@@ -69,7 +72,7 @@ void AppPageViewModel::TransitionToBlurredImage(BitmapImage^ newImage)
 
                 auto localTicks = (long long)std::llround(that->backgroundTransitionDurationMs * 10000.0);
                 if (localTicks <= 0) localTicks = 2500000LL;
-                
+
                 // Update the background image source after fade-out completes
                 try {
                     auto brush = dynamic_cast<ImageBrush^>(that->pageBackgroundBorder->Background);
@@ -78,8 +81,6 @@ void AppPageViewModel::TransitionToBlurredImage(BitmapImage^ newImage)
                     }
                 } catch(...) {}
                 
-                // Update the property
-                that->currentBackgroundImage = newImage;
                 that->OnPropertyChanged("CurrentBackgroundImage");
                 
                 // Create and start fade-in animation

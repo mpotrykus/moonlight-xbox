@@ -682,24 +682,21 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
                             if (thatInner == nullptr || selApp == nullptr) return;
                             auto img = ref new BitmapImage();
                             create_task(img->SetSourceAsync(stream))
-                                .then([weakThis, selApp, img, stream]() {
+                                .then([weakThis, selApp, img]() {
                                 try {
-                                    Utils::Logf("[AppPage] BlurAppImage: background SetSourceAsync completed for app id=%d\n", selApp->Id);
                                     auto thatCont = weakThis.Resolve<AppPage>();
                                     if (thatCont == nullptr) return;
-
-                                    BitmapImage^ imgCapture = img;
-                                    thatCont->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                                        ref new DispatchedHandler([thatCont, selApp, imgCapture]() {
-                                        try {
-                                            thatCont->m_blurInProgressIds.erase(selApp->Id);
-                                            selApp->BlurredImage = imgCapture;
-                                            Utils::Logf("[AppPage] BlurAppImage: assigned BlurredImage for app id=%d\n", selApp->Id);
-                                            try { thatCont->FadeInBlurIfSelected(selApp, imgCapture); } catch(...) {}
-                                        } catch(...) {}
-                                    }));
+                                    thatCont->m_blurInProgressIds.erase(selApp->Id);
+                                    selApp->BlurredImage = img;
+                                    // Mirror to the live binding target if SetAt swapped the reference.
+                                    if (thatCont->m_selectedApp != nullptr &&
+                                        thatCont->m_selectedApp != selApp &&
+                                        thatCont->m_selectedApp->Id == selApp->Id)
+                                        thatCont->m_selectedApp->BlurredImage = img;
+                                    Utils::Logf("[AppPage] BlurAppImage: assigned BlurredImage for app id=%d\n", selApp->Id);
+                                    try { thatCont->FadeInBlurIfSelected(selApp, img); } catch(...) {}
                                 } catch(...) {}
-                            }, concurrency::task_continuation_context::use_arbitrary());
+                            }, concurrency::task_continuation_context::use_current());
                         } catch(...) {}
                     }));
                 } catch(...) {}
@@ -724,10 +721,16 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
                                 if (thatInner == nullptr || selApp == nullptr) return;
                                 auto img = ref new BitmapImage();
                                 create_task(img->SetSourceAsync(stream))
-                                    .then([selApp, img]() {
+                                    .then([selApp, img, weakThis]() {
                                     try {
                                         Utils::Logf("[AppPage] BlurAppImage: assigned GlowImage for app id=%d\n", selApp->Id);
                                         selApp->GlowImage = img;
+                                        // Mirror to the live binding target if SetAt swapped the reference.
+                                        auto thatGlow = weakThis.Resolve<AppPage>();
+                                        if (thatGlow != nullptr && thatGlow->m_selectedApp != nullptr &&
+                                            thatGlow->m_selectedApp != selApp &&
+                                            thatGlow->m_selectedApp->Id == selApp->Id)
+                                            thatGlow->m_selectedApp->GlowImage = img;
                                     } catch(...) {}
                                 }, concurrency::task_continuation_context::use_current());
                             } catch(...) {}
@@ -744,19 +747,27 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
 void AppPage::FadeInBlurIfSelected(MoonlightApp^ app, BitmapImage^ img) {
     try {
         if (app == nullptr || img == nullptr) return;
+
+        // Determine whether this app is the current selection. SelectedItem is the
+        // primary check, but it can be transiently null while ApplyAppFilter is
+        // clearing and repopulating the collection. m_selectedApp is the reliable
+        // fallback — it is set by ApplySelectionVisuals and is never cleared by
+        // collection churn.
+        bool isSelected = false;
         try {
-            if (this->AppsGrid == nullptr) return;
-            auto selApp = dynamic_cast<MoonlightApp^>(this->AppsGrid->SelectedItem);
-            // Compare by app ID, not pointer — ApplyAppFilter's SetAt replaces object
-            // references even when the app hasn't changed, breaking pointer equality.
-            if (selApp == nullptr || app == nullptr || selApp->Id != app->Id) return;
-        } catch(...) { return; }
+            if (this->AppsGrid != nullptr) {
+                auto selItem = dynamic_cast<MoonlightApp^>(this->AppsGrid->SelectedItem);
+                if (selItem != nullptr && selItem->Id == app->Id) isSelected = true;
+            }
+            if (!isSelected && m_selectedApp != nullptr && m_selectedApp->Id == app->Id)
+                isSelected = true;
+        } catch(...) {}
+
+        if (!isSelected) return;
 
         try {
             auto vm = this->ViewModel;
-            if (vm != nullptr) {
-                vm->TransitionToBlurredImage(img);
-            }
+            if (vm != nullptr) vm->TransitionToBlurredImage(img);
         } catch(...) {}
     } catch(...) {}
 }
