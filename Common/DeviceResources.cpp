@@ -192,11 +192,12 @@ void DX::DeviceResources::CreateDeviceResources()
 		context.As(&m_d3dContext)
 		);
 
-    try {
-        ::EffectsLibrary::Initialize(m_d3dDevice.Get(), m_d3dContext.Get());
-    } catch(...) {
-		Utils::Log("EffectsLibrary::Failed to initialize\n");
-    }
+    // EffectsLibrary is called from background threads (AppPage image blur) while
+    // the streaming renderer uses this context on its render thread.  Sharing the
+    // D3D11 immediate context across threads is not safe and causes debug-layer
+    // refcount corruption when AppPage reloads concurrently with m_main.reset().
+    // EffectsLibrary::EnsureDeviceInitialized() creates its own isolated device
+    // when m_device is null, so we simply omit the Initialize() call here.
 }
 
 // These resources need to be recreated every time the window size is changed.
@@ -391,6 +392,7 @@ void DX::DeviceResources::SetSwapChainPanel(SwapChainPanel^ panel)
 	// Setup Dear ImGui context
 	float dpi = currentDisplayInformation->LogicalDpi / 96.0f;
 	ImGui_Init(panelNative, dpi);
+
 }
 
 // This method is called in the event handler for the SizeChanged event.

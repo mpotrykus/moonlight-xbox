@@ -215,8 +215,11 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 }
 
 moonlight_xbox_dxMain::~moonlight_xbox_dxMain() {
-	// Deregister device notification
 	m_deviceResources->RegisterDeviceNotify(nullptr);
+	// Flush all pipeline bindings before member ComPtrs are released so the
+	// context holds no references to our resources during teardown.
+	m_deviceResources->GetD3DDeviceContext()->ClearState();
+	m_deviceResources->GetD3DDeviceContext()->Flush();
 }
 
 void moonlight_xbox_dxMain::CreateDeviceDependentResources() {

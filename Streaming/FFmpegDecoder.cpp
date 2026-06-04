@@ -188,6 +188,15 @@ namespace moonlight_xbox_dx {
 
 		Pacer::instance().deinit();
 
+		// FFmpeg's d3d11va_device_uninit calls Release() on BOTH device_context and
+		// video_context. On this Xbox D3D11 runtime, ID3D11VideoContext and
+		// ID3D11DeviceContext share the same underlying COM identity, so that is 2
+		// releases for only 1 AddRef — a net -1 on the context per streaming session.
+		// Compensate here so the context stays alive across sessions.
+		if (m_deviceResources) {
+			m_deviceResources->GetD3DDeviceContext()->AddRef();
+		}
+
 		Utils::Log("FFMpegDecoder::Cleanup\n");
 	}
 
