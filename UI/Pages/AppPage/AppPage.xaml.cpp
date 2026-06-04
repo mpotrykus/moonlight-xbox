@@ -101,7 +101,7 @@ AppPage::AppPage() {
     // Zero all event tokens
     try {
         m_apps_changed_token.Value = m_back_cookie.Value = m_keydown_cookie.Value = 0;
-        m_rendering_token.Value = m_layoutUpdated_token.Value = 0;
+        m_layoutUpdated_token.Value = 0;
         m_appsgird_selection_token.Value = m_appsgird_itemclick_token.Value = 0;
         m_appsgird_righttapped_token.Value = 0;
         m_appsgird_loaded_token.Value = m_appsgird_ccc_token.Value = 0;
@@ -404,7 +404,15 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
         try {
             for (unsigned int i = 0; i < vec->Size; ++i) {
                 auto a = vec->GetAt(i), b = newResults->GetAt(i);
-                if (a != b) vec->SetAt(i, b);
+                if (a != b) {
+                    b->IsSelected    = a->IsSelected;    // preserve binding state
+                    b->BlurredImage  = a->BlurredImage;  // carry over computed blur
+                    b->GlowImage     = a->GlowImage;     // carry over computed glow
+                    if (a->Image != nullptr) b->Image = a->Image; // avoid reloading
+                    if (m_selectedApp != nullptr && m_selectedApp->Id == a->Id)
+                        m_selectedApp = b; // keep m_selectedApp on the current binding target
+                    vec->SetAt(i, b);
+                }
             }
         } catch(...) {}
         return true;
@@ -433,46 +441,9 @@ bool AppPage::ApplyAppFilter(Platform::String^ filter) {
         }));
     } catch(...) {}
 
-    // Promote first result
-    try {
-        if (vec->Size > 0 && this->AppsGrid != nullptr) {
-            auto weakThis = WeakReference(this);
-            bool isGrid = this->m_isGridLayout;
-            auto svi = this->m_scrollViewer;
-            auto appsGrid = this->AppsGrid;
-            this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                ref new DispatchedHandler([weakThis, appsGrid, isGrid, svi]() {
-                try {
-                    auto that = weakThis.Resolve<AppPage>();
-                    if (that == nullptr || that->AppsGrid == nullptr) return;
-                    if (that->AppsGrid->Items == nullptr || that->AppsGrid->Items->Size == 0) return;
-
-                    auto firstItem = that->AppsGrid->Items->GetAt(0);
-                    if (firstItem == nullptr) return;
-                    that->AppsGrid->ScrollIntoView(firstItem);
-
-                    // Update SelectedApp text
-                    try {
-                        auto selApp = dynamic_cast<MoonlightApp^>(firstItem);
-                        if (selApp != nullptr && that->SelectedAppText != nullptr && that->SelectedAppBox != nullptr) {
-                            try { that->SelectedAppText->Text = selApp->Name != nullptr ? selApp->Name : ref new Platform::String(L""); }
-                            catch(...) { that->SelectedAppText->Text = selApp->Name; }
-							that->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
-							that->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
-                            that->SelectedAppText->Foreground  = ref new SolidColorBrush(Windows::UI::Colors::White);
-                            auto sb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(
-                                that->Resources->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard")));
-                            if (sb != nullptr) sb->Begin();
-                        }
-                    } catch(...) {}
-
-                    // Select and center the first item; CenterSelectedItem retries if container not yet realized.
-                    that->AppsGrid->SelectedIndex = 0;
-                    that->CenterSelectedItem(4, true);
-                } catch(...) {}
-            }));
-        }
-    } catch(...) {}
+    // Restore selection to first item if the collection change cleared it.
+    if (vec->Size > 0 && this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex < 0)
+        this->AppsGrid->SelectedIndex = 0;
     return false;
 }
 
@@ -579,14 +550,6 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
         }
     } catch(...) {}
 
-    try {
-        m_rendering_token = Windows::UI::Xaml::Media::CompositionTarget::Rendering +=
-            ref new EventHandler<Object^>([weakThis](Platform::Object^ s, Platform::Object^ args) {
-                auto that = weakThis.Resolve<AppPage>();
-                if (that) that->OnFirstRender(s, args);
-            });
-    } catch(...) {}
-
     // Initialize ViewModel with the page background border
     try {
         if (this->ViewModel != nullptr && this->PageBackgroundImage != nullptr) {
@@ -604,69 +567,38 @@ void AppPage::OnLoaded(Platform::Object^, RoutedEventArgs^) {
 // ── AppPage::OnUnloaded ───────────────────────────────────────────────────────
 
 void AppPage::OnUnloaded(Platform::Object^, RoutedEventArgs^) {
+    if (m_selectedApp != nullptr) { try { m_selectedApp->IsSelected = false; } catch(...) {} }
+    m_selectedApp = nullptr;
     try { Windows::UI::Core::SystemNavigationManager::GetForCurrentView()->BackRequested -= m_back_cookie; } catch(...) {}
     try { if (this->SearchBox != nullptr) this->SearchBox->GettingFocus -= m_searchbox_gettingfocus_token; } catch(...) {}
     continueAppFetch.store(false);
     try { PollingIndicator->Visibility = Windows::UI::Xaml::Visibility::Collapsed; } catch(...) {}
 
-    try {
-        auto window = CoreApplication::MainView->CoreWindow;
-        if (window != nullptr) try { window->KeyDown -= m_keydown_cookie; } catch(...) {}
-    } catch(...) {}
+    auto window = CoreApplication::MainView->CoreWindow;
+    if (window != nullptr) try { window->KeyDown -= m_keydown_cookie; } catch(...) {}
 
-    try {
-        if (this->host != nullptr && this->host->Apps != nullptr) {
-            auto obs = dynamic_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(this->host->Apps);
-            if (obs != nullptr) try { obs->VectorChanged -= m_apps_changed_token; } catch(...) {}
-        }
-    } catch(...) {}
+    if (this->host != nullptr && this->host->Apps != nullptr) {
+        auto obs = dynamic_cast<Windows::Foundation::Collections::IObservableVector<MoonlightApp^>^>(this->host->Apps);
+        if (obs != nullptr) try { obs->VectorChanged -= m_apps_changed_token; } catch(...) {}
+    }
 
-    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= m_rendering_token; } catch(...) {}
-
-    try { if (m_bgPanStoryboard != nullptr) { m_bgPanStoryboard->Stop(); m_bgPanStoryboard = nullptr; } } catch(...) {}
-
-    try {
-        if (this->AppsGrid != nullptr) {
-            try { this->AppsGrid->SelectionChanged -= m_appsgird_selection_token; } catch(...) {}
-            try { this->AppsGrid->ItemClick        -= m_appsgird_itemclick_token;  } catch(...) {}
-            try { this->AppsGrid->RightTapped      -= m_appsgird_righttapped_token; } catch(...) {}
-            try { this->AppsGrid->Loaded                   -= m_appsgird_loaded_token;   } catch(...) {}
-            try { this->AppsGrid->ContainerContentChanging -= m_appsgird_ccc_token;      } catch(...) {}
-            try { this->AppsGrid->LayoutUpdated            -= m_layoutUpdated_token;     } catch(...) {}
-        }
-    } catch(...) {}
+    if (m_bgPanStoryboard != nullptr) { m_bgPanStoryboard->Stop(); m_bgPanStoryboard = nullptr; }
+    if (this->AppsGrid != nullptr) {
+        try { this->AppsGrid->SelectionChanged         -= m_appsgird_selection_token;   } catch(...) {}
+        try { this->AppsGrid->ItemClick                -= m_appsgird_itemclick_token;   } catch(...) {}
+        try { this->AppsGrid->RightTapped              -= m_appsgird_righttapped_token; } catch(...) {}
+        try { this->AppsGrid->Loaded                   -= m_appsgird_loaded_token;      } catch(...) {}
+        try { this->AppsGrid->ContainerContentChanging -= m_appsgird_ccc_token;         } catch(...) {}
+        try { this->AppsGrid->LayoutUpdated            -= m_layoutUpdated_token;        } catch(...) {}
+    }
 }
 
-// ── AppPage::OnFirstRender ────────────────────────────────────────────────────
-
-void AppPage::OnFirstRender(Object^, Object^) {
-    Utils::Log("AppPage::OnFirstRender\n");
-    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= m_rendering_token; } catch(...) {}
-    try {
-        AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
-        AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-    } catch(...) {}
-    // Re-apply Selected state after first rendered frame. Phase 1's GoToState fires
-    // during the layout pass; XAML's pointer-state reset (GoToState "Normal") may fire
-    // as part of layout attachment and land after Phase 1. OnFirstRender fires after
-    // the completed frame, so this call is guaranteed to be the last one on first load.
-    try {
-        if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0) {
-            auto container = dynamic_cast<Windows::UI::Xaml::Controls::ListViewItem^>(
-                this->AppsGrid->ContainerFromIndex(this->AppsGrid->SelectedIndex));
-            if (container != nullptr)
-                Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true);
-        }
-    } catch(...) {}
-}
 
 // ── AppPage::OnBackRequested ──────────────────────────────────────────────────
 
 void AppPage::OnBackRequested(Platform::Object^, BackRequestedEventArgs^ args) {
-    try {
-        auto lm = this->GetLeftMenu();
-        if (lm != nullptr && lm->IsOpen) { lm->Close(); args->Handled = true; return; }
-    } catch(...) {}
+    auto lm = this->GetLeftMenu();
+    if (lm != nullptr && lm->IsOpen) { lm->Close(); args->Handled = true; return; }
 
     if (this->Frame->CanGoBack) { this->Frame->GoBack(); args->Handled = true; }
 }
@@ -791,11 +723,7 @@ void AppPage::SearchBox_TextChanged(Platform::Object^ sender, TextChangedEventAr
     try {
         auto tb = dynamic_cast<TextBox^>(sender);
         if (tb == nullptr) return;
-        bool collectionChanged = !ApplyAppFilter(tb->Text);
-        if (collectionChanged) {
-            this->AppsGrid->SelectedIndex = this->AppsGrid->SelectedIndex > -1 ? this->AppsGrid->SelectedIndex : 0;
-            this->AppsGrid_SelectionChanged(this->AppsGrid, nullptr);
-        }
+        ApplyAppFilter(tb->Text);
     } catch(...) {}
 }
 

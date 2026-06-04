@@ -78,6 +78,9 @@
                                     </Storyboard>
                                 </VisualState>
                                 <VisualState x:Name="Selected">
+                                    <VisualState.StateTriggers>
+                                        <StateTrigger IsActive="{Binding IsSelected}"/>
+                                    </VisualState.StateTriggers>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetName="AppImageBlurRect"
                                                          Storyboard.TargetProperty="Opacity"

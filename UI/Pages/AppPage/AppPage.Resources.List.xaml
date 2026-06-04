@@ -99,6 +99,9 @@
                                     </Storyboard>
                                 </VisualState>
                                 <VisualState x:Name="Selected">
+                                    <VisualState.StateTriggers>
+                                        <StateTrigger IsActive="{Binding IsSelected}"/>
+                                    </VisualState.StateTriggers>
                                     <VisualState.Setters>
                                         <Setter Target="AppVisualRoot.Margin" Value="{StaticResource ListItemSelectedMargin}"/>
                                     </VisualState.Setters>

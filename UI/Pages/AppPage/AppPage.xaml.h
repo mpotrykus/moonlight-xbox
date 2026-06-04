@@ -40,6 +40,7 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         std::atomic<bool> continueAppFetch{ false };
         std::atomic<bool> wasConnected{ false };
         unsigned int m_centeringAnimationVersion = 0;
+        MoonlightApp^ m_selectedApp = nullptr;
     protected:
         virtual void OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) override;
         void Connect(int app);
@@ -70,6 +71,7 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         void AppsGrid_LayoutUpdated(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
         void AppsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
+        void ApplySelectionVisuals(MoonlightApp^ app, bool animate);
         void AppsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
         void AppsGrid_ContainerContentChanging(Windows::UI::Xaml::Controls::ListViewBase^ sender, Windows::UI::Xaml::Controls::ContainerContentChangingEventArgs^ args);
         void closeAppButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
@@ -77,7 +79,6 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         void ExecuteCloseAndStart();
         void backButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
-        void OnFirstRender(Platform::Object^ sender, Platform::Object^ e);
         void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void UpdateItemHeights();
 
@@ -95,7 +96,6 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         Windows::Foundation::EventRegistrationToken m_keydown_cookie;
 
         Windows::Foundation::EventRegistrationToken m_layoutUpdated_token;
-        Windows::Foundation::EventRegistrationToken m_rendering_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_selection_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_itemclick_token;
         Windows::Foundation::EventRegistrationToken m_appsgird_righttapped_token;

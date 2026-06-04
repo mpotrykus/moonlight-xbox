@@ -325,8 +325,10 @@ void AppPage::UpdateItemHeights() {
 // ── AppPage::AppsGrid_ContainerContentChanging ───────────────────────────────
 // Fires for every container that enters or leaves the virtualization window.
 // Phase 0: DataTemplate may not be fully inflated yet — only register Phase 1.
-// Phase 1: visual tree is ready; set height, visual state, and selection visuals.
-// InRecycleQueue: container is leaving the viewport — reset to clean state.
+// Phase 1: recover page-level blur for the selected item if it was computed
+//          before this container was realized. Visual state is driven entirely
+//          by the StateTrigger on IsSelected — no GoToState needed here.
+// InRecycleQueue: container is leaving the viewport — reset margin to clean state.
 
 void AppPage::AppsGrid_ContainerContentChanging(
     Windows::UI::Xaml::Controls::ListViewBase^ sender,
@@ -346,7 +348,6 @@ void AppPage::AppsGrid_ContainerContentChanging(
     }
 
     // ── Phase 0: DataTemplate may not be inflated yet ────────────────────────
-    // Don't touch the visual tree here — just request Phase 1 where it's safe.
     if (args->Phase == 0) {
         Platform::WeakReference weakThis(this);
         args->RegisterUpdateCallback(
@@ -359,27 +360,79 @@ void AppPage::AppsGrid_ContainerContentChanging(
     }
 
     // ── Phase 1+: visual tree is fully inflated ───────────────────────────────
-    auto lv = dynamic_cast<ListView^>(sender);
-
-    // If this is the selected container, apply full selection visuals and blur.
-    // Relevant mainly in grid mode where keyboard nav can leave the selected
-    // row unrealized; in list mode the selected item is always on-screen.
+    // Recover the page-level blur for the selected item if blur completed before
+    // this container entered the viewport.
     try {
-        bool isSelected = false;
-        if (lv != nullptr && lv->SelectedIndex >= 0) {
-            int idx = (int)lv->IndexFromContainer(container);
-            isSelected = (idx >= 0 && idx == (int)lv->SelectedIndex);
-        }
-        // Drive SelectionStates explicitly — XAML only calls GoToState("Normal") which
-        // now lands in the empty CommonStates and never reaches SelectionStates.
-        if (isSelected) {
-            try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true); } catch(...) {}
+        auto app = dynamic_cast<MoonlightApp^>(args->Item);
+        if (app != nullptr && app->IsSelected && app->BlurredImage != nullptr)
+            FadeInBlurIfSelected(app, app->BlurredImage);
+    } catch(...) {}
+}
+
+// ── AppPage::ApplySelectionVisuals ────────────────────────────────────────────
+// Drives all selection-dependent side effects. Visual state on the item
+// containers is handled declaratively by the StateTrigger on IsSelected in
+// the item templates — no container lookup or GoToState call needed here.
+
+void AppPage::ApplySelectionVisuals(MoonlightApp^ app, bool animate) {
+    if (app == nullptr) return;
+
+    // Update IsSelected on the data objects. The StateTrigger in the item template
+    // binds to IsSelected and drives the visual state automatically, with no
+    // dependency on container realization timing.
+    MoonlightApp^ prev = m_selectedApp;
+    if (prev != nullptr && prev->Id != app->Id)
+        try { prev->IsSelected = false; } catch(...) {}
+    m_selectedApp = app;
+    try { app->IsSelected = true; } catch(...) {}
+
+    // Blur (page-level background, outside the item containers)
+    if (app->BlurredImage == nullptr) BlurAppImage(app);
+    else FadeInBlurIfSelected(app, app->BlurredImage);
+
+    // Text overlay
+    try {
+        if (this->SelectedAppText == nullptr || this->SelectedAppBox == nullptr) return;
+        Platform::String^ newText = app->Name != nullptr ? app->Name : ref new Platform::String(L"");
+        this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        this->SelectedAppText->Foreground = ref new SolidColorBrush(Windows::UI::Colors::White);
+
+        Windows::UI::Xaml::Media::Animation::Storyboard^ showSb = nullptr;
+        Windows::UI::Xaml::Media::Animation::Storyboard^ hideSb = nullptr;
+        try {
+            auto res = this->Resources;
+            if (res != nullptr) {
+                try { showSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard"))); } catch(...) {}
+                try { hideSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard"))); } catch(...) {}
+            }
+        } catch(...) {}
+
+        bool alreadyVisible = this->SelectedAppBox->Opacity > 0.01;
+        if (animate && prev != nullptr && alreadyVisible && hideSb != nullptr && showSb != nullptr) {
+            const unsigned int animVer = ++m_appTextAnimVersion;
+            auto weakThis = WeakReference(this);
+            auto capturedText = newText;
+            auto capturedShow = showSb;
+            auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
+            *token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+                [weakThis, capturedText, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
+                    try { hideSb->Completed -= *token; } catch(...) {}
+                    auto that = weakThis.Resolve<AppPage>();
+                    if (that == nullptr || that->m_appTextAnimVersion != animVer) return;
+                    try {
+                        if (that->SelectedAppText != nullptr) that->SelectedAppText->Text = capturedText;
+                        if (capturedShow != nullptr) capturedShow->Begin();
+                    } catch(...) {}
+                });
+            hideSb->Begin();
         } else {
-            // Snap non-selected containers back instantly (handles recycled containers
-            // that were previously in "Selected" state).
-            try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Unselected", false); } catch(...) {}
+            this->SelectedAppText->Text = newText;
+            if (showSb != nullptr) showSb->Begin();
         }
     } catch(...) {}
+
+    CenterSelectedItem(4, false);
 }
 
 // ── AppPage::AppsGrid_SelectionChanged ───────────────────────────────────────
@@ -387,93 +440,9 @@ void AppPage::AppsGrid_ContainerContentChanging(
 void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChangedEventArgs^ e) {
     auto lv = dynamic_cast<ListView^>(sender);
     if (lv == nullptr || lv->SelectedIndex < 0) return;
-    auto item = lv->SelectedItem;
-    if (item == nullptr) return;
-
-    Platform::Object^ prevItem = nullptr;
-    try {
-        if (e != nullptr && e->RemovedItems != nullptr && e->RemovedItems->Size > 0)
-            prevItem = e->RemovedItems->GetAt(0);
-    } catch(...) {}
-
-    // Realize container
-    auto findOrEnsureContainer = [&](Platform::Object^ it) -> ListViewItem^ {
-        if (it == nullptr) return nullptr;
-        ListViewItem^ c = nullptr;
-        try { c = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(it)); } catch(...) {}
-        if (c == nullptr) {
-            try { lv->ScrollIntoView(it); } catch(...) {}
-            try { c = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(it)); } catch(...) {}
-        }
-        return c;
-    };
-
-    ListViewItem^ container = findOrEnsureContainer(item);
-
-    ListViewItem^ prevContainer = nullptr;
-    if (prevItem != nullptr) {
-        try { prevContainer = dynamic_cast<ListViewItem^>(lv->ContainerFromItem(prevItem)); } catch(...) {}
-    }
-
-    // Drive SelectionStates on both containers — XAML's GoToState("Normal") targets
-    // the empty CommonStates and never reaches SelectionStates, so we must be explicit.
-    if (container != nullptr)
-        try { Windows::UI::Xaml::VisualStateManager::GoToState(container, "Selected", true); } catch(...) {}
-    if (prevContainer != nullptr)
-        try { Windows::UI::Xaml::VisualStateManager::GoToState(prevContainer, "Unselected", true); } catch(...) {}
-
-    // Blur
-    try {
-        auto selApp = dynamic_cast<MoonlightApp^>(item);
-        if (selApp != nullptr) {
-            if (selApp->BlurredImage == nullptr) BlurAppImage(selApp);
-            else FadeInBlurIfSelected(selApp, selApp->BlurredImage);
-        }
-    } catch(...) {}
-
-    // Update SelectedApp text overlay (fade out → update text → fade in on change)
-    try {
-        auto selApp = dynamic_cast<MoonlightApp^>(lv->SelectedItem);
-        auto res = this->Resources;
-        if (selApp != nullptr && this->SelectedAppText != nullptr && this->SelectedAppBox != nullptr) {
-            Platform::String^ newText = (selApp->Name != nullptr) ? selApp->Name : ref new Platform::String(L"");
-            this->SelectedAppBox->Visibility = Windows::UI::Xaml::Visibility::Visible;
-            this->SelectedAppText->Visibility = Windows::UI::Xaml::Visibility::Visible;
-            this->SelectedAppText->Foreground = ref new SolidColorBrush(Windows::UI::Colors::White);
-
-            Windows::UI::Xaml::Media::Animation::Storyboard^ showSb = nullptr;
-            Windows::UI::Xaml::Media::Animation::Storyboard^ hideSb = nullptr;
-            if (res != nullptr) {
-                try { showSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"ShowSelectedAppStoryboard"))); } catch(...) {}
-                try { hideSb = dynamic_cast<Windows::UI::Xaml::Media::Animation::Storyboard^>(res->Lookup(ref new Platform::String(L"HideSelectedAppStoryboard"))); } catch(...) {}
-            }
-
-            bool alreadyVisible = this->SelectedAppBox->Opacity > 0.01;
-            if (prevItem != nullptr && alreadyVisible && hideSb != nullptr && showSb != nullptr) {
-                const unsigned int animVer = ++m_appTextAnimVersion;
-                auto weakThis = WeakReference(this);
-                auto capturedText = newText;
-                auto capturedShow = showSb;
-                auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
-                *token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
-                    [weakThis, capturedText, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
-                        try { hideSb->Completed -= *token; } catch(...) {}
-                        auto that = weakThis.Resolve<AppPage>();
-                        if (that == nullptr || that->m_appTextAnimVersion != animVer) return;
-                        try {
-                            if (that->SelectedAppText != nullptr) that->SelectedAppText->Text = capturedText;
-                            if (capturedShow != nullptr) capturedShow->Begin();
-                        } catch(...) {}
-                    });
-                hideSb->Begin();
-            } else {
-                this->SelectedAppText->Text = newText;
-                if (showSb != nullptr) showSb->Begin();
-            }
-        }
-    } catch(...) {}
-
-    try { CenterSelectedItem(4, false); } catch(...) {}
+    auto app = dynamic_cast<MoonlightApp^>(lv->SelectedItem);
+    if (app == nullptr) return;
+    ApplySelectionVisuals(app, true);
 }
 
 // ── Local helper: capture a XAML element as a SoftwareBitmap ────────────────
@@ -692,6 +661,15 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
                 try {
                     if (stream == nullptr) {
                         Utils::Logf("[AppPage] BlurAppImage: background stream null for app id=%d\n", selApp->Id);
+                        // Erase so the next selection can retry rather than being blocked forever.
+                        auto thatErr = weakThis.Resolve<AppPage>();
+                        if (thatErr != nullptr) {
+                            thatErr->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+                                ref new DispatchedHandler([weakThis, selApp]() {
+                                    auto ui = weakThis.Resolve<AppPage>();
+                                    if (ui) ui->m_blurInProgressIds.erase(selApp->Id);
+                                }));
+                        }
                         return;
                     }
                     auto that = weakThis.Resolve<AppPage>();

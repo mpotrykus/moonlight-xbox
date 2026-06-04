@@ -11,6 +11,7 @@ namespace moonlight_xbox_dx {
         int id;
         bool currentlyRunning;
         bool isGridLayout = false;
+        bool isSelected = false;
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ image;
         // Backing image for the blurred version used as background behind the original image
         Windows::UI::Xaml::Media::Imaging::BitmapImage^ blurredImage;
@@ -86,6 +87,16 @@ namespace moonlight_xbox_dx {
                 if (this->isGridLayout == value) return;
                 this->isGridLayout = value;
                 OnPropertyChanged("IsGridLayout");
+            }
+        }
+
+        property bool IsSelected
+        {
+            bool get() { return this->isSelected; }
+            void set(bool value) {
+                if (this->isSelected == value) return;
+                this->isSelected = value;
+                OnPropertyChanged("IsSelected");
             }
         }
 
