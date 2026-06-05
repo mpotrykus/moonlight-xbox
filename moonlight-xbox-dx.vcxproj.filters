@@ -394,13 +394,7 @@
     <ClCompile Include="Streaming\FrameCadence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Blur.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\Pages\AppPage\AppPage.Actions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Models\ViewModels\AppPageViewModel.cpp">
@@ -410,6 +404,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="UI\Converters\BoolToVisibilityConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Utilities\ToastService.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -541,6 +538,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="UI\Converters\BoolToVisibilityConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Utilities\ToastService.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Backgrounds\BackgroundSettingsHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -711,11 +714,108 @@
     <Image Include="Assets\orbit_load2.gif" />
     <Image Include="Assets\orbit_load3.gif" />
     <Image Include="Assets\logo1.gif" />
+    <Image Include="Assets\logo1.png">
+      <Filter>Assets</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*" />
+    <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
+      <Filter>DLLs</Filter>
+    </CopyFileToFolders>
     <CopyFileToFolders Include="vcpkg_installed\x64-uwp\bin\*">
       <Filter>DLLs</Filter>
     </CopyFileToFolders>
@@ -1544,5 +1644,7 @@
     <Page Include="UI\Modals\AlertDialog.xaml" />
     <Page Include="UI\Modals\ConfirmDialog.xaml" />
     <Page Include="UI\Modals\StreamErrorDialog.xaml" />
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.List.xaml" />
+    <Page Include="UI\Pages\AppPage\AppPage.Resources.Grid.xaml" />
   </ItemGroup>
 </Project>

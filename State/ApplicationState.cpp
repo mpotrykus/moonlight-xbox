@@ -66,6 +66,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					else h->ComputerName = h->LastHostname;
 					this->SavedHosts->Append(h);
 				}
+				OnPropertyChanged("HostSelectionTitle");
 			}
 		});
 }
@@ -83,6 +84,7 @@ bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	}
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
 		SavedHosts->Append(host);
+		OnPropertyChanged("HostSelectionTitle");
 	}));
 	UpdateFile();
 	return true;
@@ -151,8 +153,26 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 	bool found = SavedHosts->IndexOf(host, &index);
 	if (!found) return;
 	SavedHosts->RemoveAt(index);
+	OnPropertyChanged("HostSelectionTitle");
 	UpdateFile();
 	Concurrency::create_task([host]() {
+		// Delete cached app artwork for this host
+		if (host->InstanceId != nullptr && !host->InstanceId->IsEmpty()) {
+			std::wstring dir = std::wstring(
+				Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data())
+				+ L"\\images\\" + host->InstanceId->Data() + L"\\";
+			std::wstring pattern = dir + L"*.png";
+			WIN32_FIND_DATA fd;
+			HANDLE h = FindFirstFile(pattern.c_str(), &fd);
+			if (h != INVALID_HANDLE_VALUE) {
+				do {
+					if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+						DeleteFile((dir + fd.cFileName).c_str());
+				} while (FindNextFile(h, &fd));
+				FindClose(h);
+			}
+			RemoveDirectory(dir.c_str());
+		}
 		try {
 			if (!host->Connected) {
 				host->Connect();

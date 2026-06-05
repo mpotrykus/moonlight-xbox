@@ -49,6 +49,13 @@ namespace moonlight_xbox_dx {
 				return this->hosts;
 			};
 		}
+		property Platform::String^ HostSelectionTitle
+		{
+			Platform::String^ get()
+			{
+				return (hosts != nullptr && hosts->Size > 0) ? "Select Host" : "Connect to a host to continue";
+			};
+		}
 		property int ScreenMarginWidth
 		{
 			int get()

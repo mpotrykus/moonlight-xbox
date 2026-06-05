@@ -17,6 +17,7 @@
 #include "State\MDNSHandler.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
 #include "UI\Modals\AlertDialog.xaml.h"
+#include "UI\Modals\PairDialog.xaml.h"
 #include "UI\Modals\ConfirmDialog.xaml.h"
 #include "UI\Modals\HostActionsDialog.xaml.h"
 #include "UI\Modals\TestConnectionResultDialog.xaml.h"
@@ -476,10 +477,10 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 	int status = client->Connect(ipAddressStr);
 	if (status != 0)return;
 	char* pin = client->GeneratePIN();
-	auto dialog = ref new ::moonlight_xbox_dx::AlertDialog();
-	wchar_t msg[4096];
-	swprintf(msg, 4096, L"We need to pair the host before continuing. Type %S on your host to continue", pin);
-	dialog->Configure("Pair Host", ref new Platform::String(msg), L"\xE72E");
+	auto dialog = ref new ::moonlight_xbox_dx::PairDialog();
+	wchar_t wpin[32];
+	mbstowcs_s(NULL, wpin, pin, 31);
+	dialog->Configure(ref new Platform::String(wpin));
 	try { dialog->XamlRoot = this->XamlRoot; } catch (...) {}
 	concurrency::create_task(dialog->ShowAsync());
 	Concurrency::create_task([dialog, host, client, pin]() {

@@ -85,7 +85,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" >Select Host</TextBlock>
+                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" Text="{x:Bind State.HostSelectionTitle, Mode=OneWay}" />
                 <ListView Grid.Row="1"
                           Margin="0,12"
                           IsRightTapEnabled="True"
