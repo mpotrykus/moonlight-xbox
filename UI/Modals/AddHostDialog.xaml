@@ -226,6 +226,20 @@
                 </StackPanel>
             </Border>
 
+            <Border x:Name="RecentHostsBorder" CornerRadius="12" Margin="0,0,0,12" Padding="16,12" Visibility="Collapsed">
+                <Border.Background>
+                    <SolidColorBrush Color="#99000000"/>
+                </Border.Background>
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Recent"
+                               FontFamily="Bahnschrift"
+                               FontSize="10"
+                               Foreground="#99FFFFFF"
+                               Margin="0,0,0,4"/>
+                    <StackPanel x:Name="RecentHostsPanel" Spacing="4"/>
+                </StackPanel>
+            </Border>
+
             <Grid ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*"/>

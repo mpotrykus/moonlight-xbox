@@ -207,19 +207,12 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 				grid->SelectedIndex = 0;
 			}
 			if (grid->Items != nullptr && grid->Items->Size > 0) {
-				Platform::WeakReference weakGrid(grid);
+				Platform::WeakReference weakThis(this);
 				this->Dispatcher->RunAsync(
 					Windows::UI::Core::CoreDispatcherPriority::Low,
-					ref new Windows::UI::Core::DispatchedHandler([weakGrid]() {
-						auto g = weakGrid.Resolve<ListViewBase>();
-						if (g == nullptr || g->Items == nullptr || g->Items->Size == 0) return;
-						int idx = g->SelectedIndex >= 0 ? g->SelectedIndex : 0;
-						auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(g->ContainerFromIndex(idx));
-						if (container != nullptr) {
-							container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-						} else {
-							g->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-						}
+					ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
+						auto that = weakThis.Resolve<HostSelectorPage>();
+						if (that != nullptr) that->FocusFirstHostItem(4);
 					}));
 			}
 		} catch (...) {}
@@ -241,6 +234,7 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 					try { that->HostsGrid->LayoutUpdated -= that->m_hostsGrid_ccc_token; } catch(...) {}
 					that->m_hostsGrid_ccc_token.Value = 0;
 					that->UpdateAllMoonPhases(false, 0);
+					that->FocusFirstHostItem(4);
 				});
 		}
 
@@ -278,8 +272,8 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 		auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
 		if (bgKey != nullptr && !bgKey->IsEmpty()) {
 			ls->Insert("background", bgKey);
-		} else if (m_globalBg != nullptr) {
-			ls->Insert("background", m_globalBg);
+		} else {
+			ls->Insert("background", DynamicBackgroundHost::DefaultKey);
 		}
 
 		if (BackgroundHost != nullptr) {
@@ -318,7 +312,11 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 			}
 
 			bool alreadyVisible = this->SelectedHostBanner->Opacity > 0.01;
-			if (alreadyVisible && hideSb != nullptr && showSb != nullptr) {
+			if (selectedHost == nullptr) {
+				// No valid selection — hide if visible, don't show again
+				if (alreadyVisible && hideSb != nullptr) hideSb->Begin();
+				this->SelectedHostText->Text = ref new Platform::String(L"");
+			} else if (alreadyVisible && hideSb != nullptr && showSb != nullptr) {
 				const unsigned int animVer = ++m_hostTextAnimVersion;
 				Platform::WeakReference weakThis(this);
 				auto capturedName = newName;
@@ -357,14 +355,24 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 			dialog->SetAddButtonEnabled(false);
 			Concurrency::create_task([that, dialog, hostname]() {
 				bool status = that->state->AddHost(hostname);
+				Platform::WeakReference weakPage(that);
 				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 					Windows::UI::Core::CoreDispatcherPriority::High,
-					ref new Windows::UI::Core::DispatchedHandler([dialog, status, hostname]() {
+					ref new Windows::UI::Core::DispatchedHandler([weakPage, dialog, status, hostname]() {
 						if (!status) {
 							dialog->ShowError("Failed to connect to " + hostname);
 							dialog->SetAddButtonEnabled(true);
 						} else {
 							try { dialog->Hide(); } catch (...) {}
+							auto page = weakPage.Resolve<HostSelectorPage>();
+							if (page != nullptr) {
+								try {
+									if (page->HostsGrid != nullptr && page->HostsGrid->SelectedIndex < 0 &&
+										page->HostsGrid->Items != nullptr && page->HostsGrid->Items->Size > 0) {
+										page->HostsGrid->SelectedIndex = 0;
+									}
+								} catch (...) {}
+							}
 						}
 					}));
 			});
@@ -372,6 +380,7 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 		nullptr
 	);
 
+	dialog->SetRecentHostnames(state->RecentHostnames);
 	try { dialog->XamlRoot = this->XamlRoot; } catch (...) {}
 	concurrency::create_task(dialog->ShowAsync());
 }
@@ -448,6 +457,9 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
                     int newSize = (int)that->State->SavedHosts->Size;
                     if (newSize > 0) {
                         that->HostsGrid->SelectedIndex = removedIdx < newSize ? removedIdx : newSize - 1;
+                    } else {
+                        if (that->BackgroundHost != nullptr)
+                            that->BackgroundHost->ResetBackground();
                     }
                 })
             );
@@ -560,17 +572,7 @@ void HostSelectorPage::OnStateLoaded() {
 				Windows::UI::Core::CoreDispatcherPriority::Low,
 				ref new Windows::UI::Core::DispatchedHandler([weakThis]() {
 					auto that = weakThis.Resolve<HostSelectorPage>();
-					if (that == nullptr) return;
-					auto grid = that->HostsGrid;
-					if (grid == nullptr || grid->Items == nullptr || grid->Items->Size == 0) return;
-					if (grid->SelectedIndex < 0) grid->SelectedIndex = 0;
-					int idx = grid->SelectedIndex >= 0 ? grid->SelectedIndex : 0;
-					auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(grid->ContainerFromIndex(idx));
-					if (container != nullptr) {
-						container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-					} else {
-						grid->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-					}
+					if (that != nullptr) that->FocusFirstHostItem(4);
 				}));
 		} catch (...) {}
 	}
@@ -673,12 +675,6 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->SetDesiredBoundsMode(Windows::UI::ViewManagement::ApplicationViewBoundsMode::UseCoreWindow);
 	continueFetch.store(true);
 	m_isNavigatedAway.store(false);
-
-	m_globalBg = nullptr;
-	{
-		auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
-		if (ls->HasKey("background")) m_globalBg = safe_cast<Platform::String^>(ls->Lookup("background"));
-	}
 
 	try {
 		if (BackgroundHost != nullptr) {
@@ -857,6 +853,31 @@ LunarPhaseControl^ HostSelectorPage::FindLunarControl(Windows::UI::Xaml::Depende
 		}
 	} catch (...) {}
 	return nullptr;
+}
+
+void HostSelectorPage::FocusFirstHostItem(int attempts)
+{
+	try {
+		auto grid = HostsGrid;
+		if (grid == nullptr || grid->Items == nullptr || grid->Items->Size == 0) return;
+		if (grid->SelectedIndex < 0) grid->SelectedIndex = 0;
+		int idx = grid->SelectedIndex >= 0 ? grid->SelectedIndex : 0;
+		auto container = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(grid->ContainerFromIndex(idx));
+		if (container != nullptr) {
+			container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+			return;
+		}
+		if (attempts <= 0 || Dispatcher == nullptr) return;
+		Platform::WeakReference weakThis(this);
+		try {
+			Dispatcher->RunAsync(
+				Windows::UI::Core::CoreDispatcherPriority::Normal,
+				ref new Windows::UI::Core::DispatchedHandler([weakThis, attempts]() {
+					auto that = weakThis.Resolve<HostSelectorPage>();
+					if (that != nullptr) that->FocusFirstHostItem(attempts - 1);
+				}));
+		} catch (...) {}
+	} catch (...) {}
 }
 
 void HostSelectorPage::UpdateAllMoonPhases(bool animated, int attempts)

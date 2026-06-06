@@ -85,8 +85,10 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" Text="{x:Bind State.HostSelectionTitle, Mode=OneWay}" />
+                <TextBlock Grid.Row="0" Margin="0,16" HorizontalAlignment="Stretch" TextAlignment="Center" Text="{x:Bind State.HostSelectionTitle, Mode=OneWay}"
+                           Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
                 <ListView Grid.Row="1"
+                          Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}"
                           Margin="0,12"
                           IsRightTapEnabled="True"
                           RightTapped="HostsGrid_RightTapped"
@@ -126,7 +128,8 @@
                         Padding="24,12"
                         CornerRadius="12"
                         Opacity="0"
-                        Background="#66000000">
+                        Background="#66000000"
+                        Visibility="{x:Bind State.ShowHostList, Mode=OneWay, Converter={StaticResource BoolToVis}}">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
                     <Grid Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,0,3">
                             <Ellipse Stroke="#777" StrokeThickness="1" Fill="Transparent"
@@ -146,6 +149,29 @@
                     </StackPanel>
                 </Border>
             </Grid>
+            <StackPanel Grid.Row="1"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Spacing="12"
+                        Visibility="{x:Bind State.ShowEmptyState, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                <Viewbox Width="260" Height="260" HorizontalAlignment="Center">
+                    <local:LunarPhaseControl IsDashed="True" ShowOrbit="False"/>
+                </Viewbox>
+                <TextBlock Text="No hosts added yet"
+                           FontFamily="Bahnschrift"
+                           FontSize="22"
+                           CharacterSpacing="300"
+                           Opacity="0.85"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,8,0,0"/>
+                <TextBlock Text="Press + below to add your first host"
+                           FontSize="13"
+                           Opacity="0.45"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"/>
+            </StackPanel>
+
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

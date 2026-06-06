@@ -4,6 +4,7 @@
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Input;
+using namespace Windows::Foundation::Collections;
 
 namespace moonlight_xbox_dx
 {
@@ -60,6 +61,40 @@ void AddHostDialog::ShowError(Platform::String^ message)
 void AddHostDialog::SetAddButtonEnabled(bool enabled)
 {
     try { if (AddButton != nullptr) AddButton->IsEnabled = enabled; } catch (...) {}
+}
+
+void AddHostDialog::SetRecentHostnames(IVector<Platform::String^>^ hostnames)
+{
+    try {
+        if (hostnames == nullptr || hostnames->Size == 0) return;
+        RecentHostsBorder->Visibility = Windows::UI::Xaml::Visibility::Visible;
+        for (unsigned int i = 0; i < hostnames->Size; i++) {
+            auto hostname = hostnames->GetAt(i);
+            auto btn = ref new Button();
+            btn->Content = hostname;
+            btn->FontFamily = ref new Windows::UI::Xaml::Media::FontFamily("Bahnschrift");
+            btn->FontSize = 12;
+            btn->Height = 36;
+            btn->HorizontalAlignment = Windows::UI::Xaml::HorizontalAlignment::Stretch;
+            btn->HorizontalContentAlignment = Windows::UI::Xaml::HorizontalAlignment::Left;
+            Windows::UI::Xaml::CornerRadius cr;
+            cr.TopLeft = cr.TopRight = cr.BottomRight = cr.BottomLeft = 8.0;
+            btn->CornerRadius = cr;
+            btn->Padding = Windows::UI::Xaml::Thickness{ 12, 0, 12, 0 };
+            Windows::UI::Color bgColor;
+            bgColor.A = 0x88; bgColor.R = 0; bgColor.G = 0; bgColor.B = 0;
+            btn->Background = ref new Windows::UI::Xaml::Media::SolidColorBrush(bgColor);
+            btn->Foreground = ref new Windows::UI::Xaml::Media::SolidColorBrush(Windows::UI::Colors::White);
+            btn->Click += ref new RoutedEventHandler([this, hostname](Platform::Object^ sender, RoutedEventArgs^ args) {
+                try {
+                    HostnameTextBox->Text = hostname;
+                    if (ErrorText != nullptr) ErrorText->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+                    if (m_onAdd != nullptr) m_onAdd->Invoke(sender, args);
+                } catch (...) {}
+            });
+            RecentHostsPanel->Children->Append(btn);
+        }
+    } catch (...) {}
 }
 
 } // namespace moonlight_xbox_dx

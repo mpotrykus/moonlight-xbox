@@ -8,9 +8,9 @@ namespace moonlight_xbox_dx {
     };
 
     static const BackgroundEntry kBackgrounds[] = {
+        { L"streaks",     L"Neon Streaks"       },
         { L"particles",   L"Floating Particles" },
         { L"spheres",     L"Bouncing Bubbles"   },
-        { L"streaks",     L"Neon Streaks"       },
         { L"blobs",       L"Morphing Blobs"     },
         { L"swipereveal", L"Swipe Reveal"       },
         { L"globegrid",   L"Globe Grid"         },

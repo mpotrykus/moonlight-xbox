@@ -195,9 +195,17 @@ void DynamicBackgroundHost::ReloadBackgroundColors()
     } catch (...) {}
 }
 
+void DynamicBackgroundHost::ApplyBackground(Platform::String^ key, Platform::String^ scheme)
+{
+    auto ls = Windows::Storage::ApplicationData::Current->LocalSettings->Values;
+    ls->Insert("background", key);
+    if (scheme != nullptr)
+        ls->Insert(key + ".scheme", scheme);
+    Refresh();
+    StartAnimations();
+}
+
 void DynamicBackgroundHost::ResetBackground()
 {
-    try {
-        (void)BackgroundPresenter->Content;
-    } catch (...) {}
+    ApplyBackground(DefaultKey, "neon");
 }

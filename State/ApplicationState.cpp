@@ -30,6 +30,11 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 				if (stateJson.contains("marginHeight"))this->ScreenMarginHeight = stateJson["marginHeight"];
 				if (stateJson.contains("mouseSensitivity"))this->MouseSensitivity = stateJson["mouseSensitivity"];
 				if (stateJson.contains("alternateCombination")) this->AlternateCombination = stateJson["alternateCombination"].get<bool>();
+				if (stateJson.contains("recentHostnames")) {
+					for (auto& rh : stateJson["recentHostnames"]) {
+						recentHostnames.push_back(rh.get<std::string>());
+					}
+				}
 				for (auto a : stateJson["hosts"]) {
 					MoonlightHost^ h = ref new MoonlightHost(Utils::StringFromStdString(a["hostname"].get<std::string>()));
 					if (a.contains("instance_id")) h->InstanceId = Utils::StringFromStdString(a["instance_id"].get<std::string>());
@@ -67,14 +72,32 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					this->SavedHosts->Append(h);
 				}
 				OnPropertyChanged("HostSelectionTitle");
+				OnPropertyChanged("HasSavedHosts");
+				OnPropertyChanged("HasNoSavedHosts");
 			}
+			m_isStateLoaded = true;
+			OnPropertyChanged("ShowHostList");
+			OnPropertyChanged("ShowEmptyState");
 		});
+}
+
+Windows::Foundation::Collections::IVector<Platform::String^>^ moonlight_xbox_dx::ApplicationState::RecentHostnames::get()
+{
+	auto result = ref new Platform::Collections::Vector<Platform::String^>();
+	for (auto& s : recentHostnames) {
+		result->Append(Utils::StringFromStdString(s));
+	}
+	return result;
 }
 
 bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	MoonlightHost^ host = ref new MoonlightHost(hostname);
 	host->UpdateHostInfo(false);
 	if (!host->Connected)return false;
+	std::string hostnameStd = Utils::PlatformStringToStdString(hostname);
+	recentHostnames.erase(std::remove(recentHostnames.begin(), recentHostnames.end(), hostnameStd), recentHostnames.end());
+	recentHostnames.insert(recentHostnames.begin(), hostnameStd);
+	if (recentHostnames.size() > 5) recentHostnames.resize(5);
 	for (auto h : SavedHosts) {
 		if (host->InstanceId == h->InstanceId) {
 			h->LastHostname = host->LastHostname;
@@ -85,6 +108,10 @@ bool moonlight_xbox_dx::ApplicationState::AddHost(Platform::String^ hostname) {
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this,host]() {
 		SavedHosts->Append(host);
 		OnPropertyChanged("HostSelectionTitle");
+		OnPropertyChanged("HasSavedHosts");
+		OnPropertyChanged("HasNoSavedHosts");
+		OnPropertyChanged("ShowHostList");
+		OnPropertyChanged("ShowEmptyState");
 	}));
 	UpdateFile();
 	return true;
@@ -105,6 +132,7 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 		stateJson["enableKeyboard"] = that->EnableKeyboard;
 		stateJson["keyboardLayout"] = Utils::PlatformStringToStdString(that->KeyboardLayout);
 		stateJson["alternateCombination"] = that->AlternateCombination;
+		stateJson["recentHostnames"] = that->recentHostnames;
 		for (auto host : that->SavedHosts) {
 			nlohmann::json hostJson;
 			hostJson["hostname"] = Utils::PlatformStringToStdString(host->LastHostname);
@@ -154,23 +182,32 @@ void moonlight_xbox_dx::ApplicationState::RemoveHost(MoonlightHost^ host) {
 	if (!found) return;
 	SavedHosts->RemoveAt(index);
 	OnPropertyChanged("HostSelectionTitle");
+	OnPropertyChanged("HasSavedHosts");
+	OnPropertyChanged("HasNoSavedHosts");
+	OnPropertyChanged("ShowHostList");
+	OnPropertyChanged("ShowEmptyState");
 	UpdateFile();
 	Concurrency::create_task([host]() {
-		// Delete cached app artwork for this host
+		// Delete cached app artwork and blur images for this host
 		if (host->InstanceId != nullptr && !host->InstanceId->IsEmpty()) {
 			std::wstring dir = std::wstring(
 				Windows::Storage::ApplicationData::Current->LocalFolder->Path->Data())
 				+ L"\\images\\" + host->InstanceId->Data() + L"\\";
-			std::wstring pattern = dir + L"*.png";
-			WIN32_FIND_DATA fd;
-			HANDLE h = FindFirstFile(pattern.c_str(), &fd);
-			if (h != INVALID_HANDLE_VALUE) {
-				do {
-					if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-						DeleteFile((dir + fd.cFileName).c_str());
-				} while (FindNextFile(h, &fd));
-				FindClose(h);
-			}
+			auto deleteAllInDir = [](const std::wstring& d) {
+				WIN32_FIND_DATA fd;
+				HANDLE h = FindFirstFile((d + L"*").c_str(), &fd);
+				if (h != INVALID_HANDLE_VALUE) {
+					do {
+						if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+							DeleteFile((d + fd.cFileName).c_str());
+					} while (FindNextFile(h, &fd));
+					FindClose(h);
+				}
+			};
+			std::wstring blurDir = dir + L"blur\\";
+			deleteAllInDir(blurDir);
+			RemoveDirectory(blurDir.c_str());
+			deleteAllInDir(dir);
 			RemoveDirectory(dir.c_str());
 		}
 		try {

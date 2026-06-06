@@ -7,9 +7,13 @@ namespace moonlight_xbox_dx {
 public ref class DynamicBackgroundHost sealed {
 public:
     DynamicBackgroundHost();
+    static property Platform::String^ DefaultKey {
+        Platform::String^ get() { return ref new Platform::String(L"streaks"); }
+    }
     void Refresh();
     void StartAnimations();
     void StopAnimations();
+    void ApplyBackground(Platform::String^ key, Platform::String^ scheme);
     void ResetBackground();
     void ReloadBackgroundColors();
     void SetHosts(Windows::Foundation::Collections::IVector<MoonlightHost^>^ hosts);

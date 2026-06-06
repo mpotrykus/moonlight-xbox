@@ -25,6 +25,7 @@ namespace moonlight_xbox_dx
 	private:
 		MoonlightHost^ host;
 		Platform::String^ m_savedGlobalBg;
+		bool m_initializingBg = false;
 		Windows::Foundation::Collections::IVector<ScreenResolution^>^ availableResolutions;
 		Windows::Foundation::Collections::IVector<int>^ availableFps;
 		Windows::Foundation::Collections::IVector<Platform::String^>^ availableAudioConfigs;

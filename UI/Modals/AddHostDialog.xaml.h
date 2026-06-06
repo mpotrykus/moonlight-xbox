@@ -15,6 +15,7 @@ namespace moonlight_xbox_dx
         Platform::String^ GetHostname();
         void ShowError(Platform::String^ message);
         void SetAddButtonEnabled(bool enabled);
+        void SetRecentHostnames(Windows::Foundation::Collections::IVector<Platform::String^>^ hostnames);
 
     private:
         Windows::UI::Xaml::RoutedEventHandler^ m_onAdd;

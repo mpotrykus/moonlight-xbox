@@ -115,6 +115,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 	AutoStartSelector->SelectedIndex = CurrentAppIndex;
 
 	// Populate background selector
+	m_initializingBg = true;
 	auto hostBgKey = host->Personalization->Background;
 	bool foundBg = false;
 	for (int i = 0; i < kBackgroundCount; ++i) {
@@ -128,6 +129,7 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 		}
 	}
 	if (!foundBg) HostBackgroundSelector->SelectedIndex = 0;
+	m_initializingBg = false;
 
 	{
 		auto selItem = dynamic_cast<ComboBoxItem^>(HostBackgroundSelector->SelectedItem);
@@ -259,7 +261,7 @@ void HostSettingsPage::ComboBox_DropDownOpened(Platform::Object^ sender, Platfor
 
 void HostSettingsPage::BackgroundSelector_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e)
 {
-	if (host == nullptr) return;
+	if (host == nullptr || m_initializingBg) return;
 	auto item = dynamic_cast<ComboBoxItem^>(HostBackgroundSelector->SelectedItem);
 	if (item == nullptr) return;
 	auto key = item->DataContext->ToString();
