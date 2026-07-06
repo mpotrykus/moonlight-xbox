@@ -367,6 +367,7 @@ void HostSettingsPage::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Rou
 			}
 		}
 	}
+	if (this->rightTabs != nullptr) rightTabs->FocusFirstTab();
 }
 
 // Tab activation is handled by TabsLayout (it hooks Click and GotFocus automatically)

@@ -16,14 +16,15 @@ using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Shapes;
 using namespace concurrency;
 
-static const int   kHoldTicks  = 240;    // 4 s at 60 fps
-static const int   kWipeTicks  = 100;    // ~1.7 s
-static const float kGlassWidth = 64.0f;
-static const float kPanMax     = 0.04f;  // ±4% in relative coords; within 1.1× scale buffer
-static const float kSlantH      = 180.0f; // horizontal span of diagonal over full screen height
+static const int   kHoldTicks        = 240;    // 4 s at 60 fps
+static const int   kWipeTicks        = 100;    // ~1.7 s
+static const float kGlassWidth       = 64.0f;
+static const float kPanMax           = 0.04f;  // ±4% in relative coords; within 1.1× scale buffer
+static const float kSlantH           = 180.0f; // horizontal span of diagonal over full screen height
 // Extra distance so the glass edge and diagonal clips are fully off-screen at wipe start/end
-static const float kWipeMargin  = kGlassWidth * 0.5f + kSlantH * 0.5f;
-static const int   kLoadRetry  = 500;
+static const float kWipeMargin       = kGlassWidth * 0.5f + kSlantH * 0.5f;
+static const int   kLoadRetry        = 500;
+static const int   kIntroBufferTicks = 30;     // ~500 ms at 60 fps; if first image appears after this, wipe in
 
 static float EaseInOut(float t)
 {
@@ -86,6 +87,7 @@ void SwipeRevealBackground::SetHosts(IVector<MoonlightHost^>^ hosts)
     m_apps       = nullptr;
     m_frontAppIdx = -1;
     m_backAppIdx  = -1;
+    m_introTick   = 0;
 }
 
 void SwipeRevealBackground::Grid_SizeChanged(Object^ sender, SizeChangedEventArgs^ e)
@@ -132,7 +134,10 @@ void SwipeRevealBackground::ShuffleAndApply(Platform::Collections::Vector<Moonli
     for (auto a : vec) shuffled->Append(a);
     m_apps       = shuffled;
     m_appsLoaded = true;
-    InitSlides();
+    if (m_introTick >= kIntroBufferTicks)
+        InitSlidesWithWipe();
+    else
+        InitSlides();
 }
 
 void SwipeRevealBackground::LoadAppsAsync()
@@ -339,6 +344,30 @@ void SwipeRevealBackground::InitSlides()
     UpdateGlassEdgeSkew();
 }
 
+void SwipeRevealBackground::InitSlidesWithWipe()
+{
+    // Apps arrived late — wipe the first image in from nothing instead of popping it.
+    m_frontAppIdx = FindNextAppWithImage(0);
+    if (m_frontAppIdx < 0) { InitSlides(); return; }
+
+    BackBrush->ImageSource   = nullptr;
+    m_backAppIdx             = -1;
+    m_frontBrush->ImageSource = m_apps->GetAt(m_frontAppIdx)->Image;
+
+    InitPanForLayer(m_backPanX,  m_backPanY,  m_backVX,  m_backVY);
+    InitPanForLayer(m_frontPanX, m_frontPanY, m_frontVX, m_frontVY);
+    BackPan->TranslateX      = m_backPanX;  BackPan->TranslateY  = m_backPanY;
+    m_frontPan->TranslateX   = m_frontPanX; m_frontPan->TranslateY = m_frontPanY;
+
+    m_wipeDir  = 1;
+    m_wipeTick = 0;
+    m_phase    = 1;  // skip hold; start wiping immediately
+    m_holdTick = 0;
+    GlassEdge->Opacity = 1.0;
+    ZeroFrontClips();
+    UpdateGlassEdgeSkew();
+}
+
 void SwipeRevealBackground::AdvanceSlide()
 {
     // Promote front to back — copy image and pan state to avoid a visible pop
@@ -371,6 +400,10 @@ void SwipeRevealBackground::OnTick(Object^ sender, Object^ args)
 {
     if (!m_initialized) return;
 
+    // Count every tick from the first initialized frame so we know how long
+    // the background has been visible — used to decide wipe-in vs. pop-in.
+    m_introTick++;
+
     if (!m_appsLoaded) {
         if (++m_loadRetryTick >= kLoadRetry) {
             m_loadRetryTick = 0;
@@ -382,7 +415,10 @@ void SwipeRevealBackground::OnTick(Object^ sender, Object^ args)
     if (m_frontAppIdx < 0) {
         if (++m_imageRetryTick >= 60) {
             m_imageRetryTick = 0;
-            InitSlides();
+            if (m_introTick >= kIntroBufferTicks)
+                InitSlidesWithWipe();
+            else
+                InitSlides();
         }
         return;
     }

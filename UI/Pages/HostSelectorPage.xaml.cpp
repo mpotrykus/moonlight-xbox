@@ -372,6 +372,19 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 										page->HostsGrid->SelectedIndex = 0;
 									}
 								} catch (...) {}
+								try {
+									if (page->HostsGrid != nullptr && page->m_hostsGrid_ccc_token.Value == 0) {
+										Platform::WeakReference weakPage2(page);
+										page->m_hostsGrid_ccc_token = page->HostsGrid->LayoutUpdated +=
+											ref new EventHandler<Platform::Object^>([weakPage2](Platform::Object^, Platform::Object^) {
+												auto p = weakPage2.Resolve<HostSelectorPage>();
+												if (p == nullptr) return;
+												try { p->HostsGrid->LayoutUpdated -= p->m_hostsGrid_ccc_token; } catch (...) {}
+												p->m_hostsGrid_ccc_token.Value = 0;
+												p->UpdateAllMoonPhases(false, 0);
+											});
+									}
+								} catch (...) {}
 							}
 						}
 					}));

@@ -38,6 +38,7 @@ private:
     int   m_wipeDir        = 1;     // +1=left-to-right, -1=right-to-left
     int   m_loadRetryTick  = 0;
     int   m_imageRetryTick = 0;
+    int   m_introTick      = 0;
     int   m_backAppIdx     = -1;
     int   m_frontAppIdx    = -1;
     int   m_panDirIdx      = 0;
@@ -53,6 +54,7 @@ private:
     void LoadFromNetworkAsync();
     void ShuffleAndApply(Platform::Collections::Vector<MoonlightApp^>^ apps);
     void InitSlides();
+    void InitSlidesWithWipe();
     void AdvanceSlide();
     int  FindNextAppWithImage(int startIdx);
     void InitPanForLayer(float& px, float& py, float& vx, float& vy);

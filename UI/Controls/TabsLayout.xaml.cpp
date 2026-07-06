@@ -137,6 +137,16 @@ void TabsLayout::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEve
     HookUpTabs();
 }
 
+void TabsLayout::FocusFirstTab()
+{
+    if (m_tabButtons != nullptr && m_tabButtons->Size > 0) {
+        auto first = m_tabButtons->GetAt(0);
+        if (first != nullptr) {
+            first->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+        }
+    }
+}
+
 void TabsLayout::OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)
 {
     UnhookTabs();

@@ -28,6 +28,8 @@ namespace moonlight_xbox_dx
             Windows::UI::Xaml::Controls::ScrollViewer^ get() { return ContentSV; }
         }
 
+        void FocusFirstTab();
+
         // Attached property to associate a tab button with a panel name
         static void SetTargetPanelName(Windows::UI::Xaml::UIElement^ element, Platform::String^ value);
         static Platform::String^ GetTargetPanelName(Windows::UI::Xaml::UIElement^ element);

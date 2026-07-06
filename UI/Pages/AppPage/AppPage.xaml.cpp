@@ -752,6 +752,10 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
         }
 
         if (this->AppsGrid != nullptr) {
+            // Capture selection BEFORE the panel change: Xbox XAML clears SelectedIndex
+            // when ItemsPanel is reassigned, and we need the value to restore afterward.
+            int savedIdx = this->AppsGrid->SelectedIndex;
+
             auto res = this->Resources;
             if (m_isGridLayout) {
                 if (res != nullptr) {
@@ -764,6 +768,16 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollModeProperty,   ScrollMode::Enabled);
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollBarVisibilityProperty, ScrollBarVisibility::Auto);
                 VisualStateManager::GoToState(this, "GridLayout", false);
+                // Clear list-mode edge padding immediately so the first UpdateLayout pass
+                // sees the full viewport width and the ItemsWrapGrid wraps correctly.
+                {
+                    auto padding = this->AppsGrid->Padding;
+                    if (std::fabs(padding.Left) > 0.5 || std::fabs(padding.Right) > 0.5) {
+                        padding.Left = 0.0;
+                        padding.Right = 0.0;
+                        this->AppsGrid->Padding = padding;
+                    }
+                }
             } else {
                 if (res != nullptr) {
                     auto panel = dynamic_cast<ItemsPanelTemplate^>(res->Lookup(ref new Platform::String(L"HorizontalItemsPanelTemplate")));
@@ -775,6 +789,43 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollModeProperty,   ScrollMode::Disabled);
                 this->AppsGrid->SetValue(ScrollViewer::VerticalScrollBarVisibilityProperty, ScrollBarVisibility::Disabled);
                 VisualStateManager::GoToState(this, "ListLayout", false);
+            }
+
+            // Xbox XAML clears SelectedIndex when ItemsPanel changes. Restore it
+            // synchronously so the dispatch chain below and LayoutUpdated centering
+            // both see a valid selection immediately.
+            if (savedIdx >= 0 && this->AppsGrid->SelectedIndex < 0
+                && this->AppsGrid->Items != nullptr
+                && savedIdx < (int)this->AppsGrid->Items->Size)
+                try { this->AppsGrid->SelectedIndex = savedIdx; } catch(...) {}
+
+            // For list mode: set the edge padding synchronously so item 0 is already
+            // centered in the very first rendered frame. The async dispatch chain does
+            // the full centering for other items and after Phase 1 template application,
+            // but this eliminates the visible "item at left edge" flash for item 0.
+            if (!m_isGridLayout && this->AppsGrid->SelectedItem != nullptr) {
+                try {
+                    this->AppsGrid->UpdateLayout();
+                    if (m_scrollViewer == nullptr) m_scrollViewer = FindScrollViewer(this->AppsGrid);
+                    if (m_scrollViewer != nullptr) {
+                        double vp = m_scrollViewer->ViewportWidth;
+                        if (vp > 0) {
+                            auto c0 = dynamic_cast<ListViewItem^>(
+                                this->AppsGrid->ContainerFromItem(this->AppsGrid->SelectedItem));
+                            if (c0 != nullptr && c0->ActualWidth > 0) {
+                                double desired = std::max(0.0, (vp - c0->ActualWidth) * 0.5);
+                                auto padding = this->AppsGrid->Padding;
+                                if (std::fabs(padding.Left - desired) > 0.5
+                                    || std::fabs(padding.Right - desired) > 0.5) {
+                                    padding.Left  = desired;
+                                    padding.Right = desired;
+                                    this->AppsGrid->Padding = padding;
+                                    this->AppsGrid->UpdateLayout();
+                                }
+                            }
+                        }
+                    }
+                } catch(...) {}
             }
 
             m_scrollViewer = nullptr;
@@ -793,9 +844,15 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
             if (this->AppsGrid->SelectedIndex >= 0) {
                 auto weakThis = WeakReference(this);
                 this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                    ref new DispatchedHandler([weakThis]() {
+                    ref new DispatchedHandler([weakThis, savedIdx]() {
                         auto that = weakThis.Resolve<AppPage>();
                         if (that == nullptr || that->AppsGrid == nullptr) return;
+                        // Restore selection as a fallback in case something between the
+                        // synchronous restore and this dispatch cleared it again.
+                        if (that->AppsGrid->SelectedIndex < 0
+                            && that->AppsGrid->Items != nullptr
+                            && savedIdx >= 0 && savedIdx < (int)that->AppsGrid->Items->Size)
+                            try { that->AppsGrid->SelectedIndex = savedIdx; } catch(...) {}
                         that->AppsGrid_SelectionChanged(that->AppsGrid, nullptr);
                         // Give the ListView interim focus while the inner dispatch runs;
                         // the inner dispatch focuses the selected container after centering.
@@ -849,8 +906,17 @@ void AppPage::LayoutToggleButton_Click(Platform::Object^ sender, RoutedEventArgs
                                             }
                                         }
                                     } catch(...) {}
-                                    if (isGrid ? that2->m_isGridLayout : !that2->m_isGridLayout)
+                                    if (isGrid ? that2->m_isGridLayout : !that2->m_isGridLayout) {
                                         try { that2->CenterSelectedItem(3, true); } catch(...) {}
+                                        // Phase 1 (new item template) may apply after CenterSelectedItem
+                                        // "succeeds" with Phase 0 container dimensions, changing ActualWidth
+                                        // without triggering re-centering. Re-arm the toggle flag so
+                                        // LayoutUpdated (which fires after the Phase 1 layout pass) sets
+                                        // m_pendingCentering and runs one final centering with correct dims.
+                                        // Using m_pendingToggleCentering (not m_pendingCentering) means the
+                                        // CenterSelectedItem retries above cannot clear it prematurely.
+                                        that2->m_pendingToggleCentering = true;
+                                    }
                                     // Focus the selected container so XY nav resumes from the
                                     // selected item instead of item 0. CenterSelectedItem with
                                     // immediate=true has already applied the scroll offset, so
@@ -887,8 +953,19 @@ void AppPage::backButton_Click(Platform::Object^, RoutedEventArgs^) {
 }
 
 void AppPage::AppsGrid_LayoutUpdated(Platform::Object^, RoutedEventArgs^) {
-    if (m_pendingToggleCentering) m_pendingToggleCentering = false;
-    if (m_pendingCentering) CenterSelectedItem(4, false);
+    if (m_pendingToggleCentering) {
+        m_pendingToggleCentering = false;
+        // Only arm centering if there is a valid selection; avoids an infinite
+        // LayoutUpdated spin when the panel change temporarily clears SelectedIndex.
+        if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0)
+            m_pendingCentering = true;
+    }
+    if (m_pendingCentering) {
+        if (this->AppsGrid != nullptr && this->AppsGrid->SelectedIndex >= 0)
+            CenterSelectedItem(4, false);
+        else
+            m_pendingCentering = false;
+    }
 }
 
 // ── AppPage::AppsGrid_ItemClick ───────────────────────────────────────────────

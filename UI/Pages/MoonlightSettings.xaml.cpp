@@ -6,6 +6,7 @@
 #include "pch.h"
 #include "UI\Pages\MoonlightSettings.xaml.h"
 #include "UI\Backgrounds\DynamicBackgroundHost.xaml.h"
+#include "UI\Controls\TabsLayout.xaml.h"
 #include "UI\Pages\MoonlightWelcome.xaml.h"
 #include "Utils.hpp"
 #include "Keyboard/KeyboardCommon.h"
@@ -126,6 +127,7 @@ void MoonlightSettings::OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::Ro
 	auto navigation = Windows::UI::Core::SystemNavigationManager::GetForCurrentView();
 	m_back_cookie = navigation->BackRequested += ref new EventHandler<BackRequestedEventArgs^>(this, &MoonlightSettings::OnBackRequested);
 	ScreenMarginPreviewBorder->Margin = state->ScreenMargin;
+	if (tabsLayout != nullptr) tabsLayout->FocusFirstTab();
 }
 
 void MoonlightSettings::OnMarginSliderChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::Primitives::RangeBaseValueChangedEventArgs^ e)
