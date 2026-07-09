@@ -7,8 +7,6 @@
 #include <cmath>
 #include <functional>
 #include <memory>
-#include <sstream>
-#include <vector>
 
 using namespace Platform;
 using namespace Windows::ApplicationModel::Core;
@@ -133,7 +131,9 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                     if (that == nullptr) return;
                     that->CenterSelectedItem(attempts - 1, immediate);
                 }));
-        } catch(...) {}
+        } catch(...) {
+            Utils::Logf("[AppPage] CenterSelectedItem: queueRetry RunAsync failed, retry chain broken\n");
+        }
     };
 
     auto lv = this->AppsGrid;
@@ -166,25 +166,16 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
 
     try {
         auto padding = lv->Padding;
-        if (!m_isGridLayout) {
-            double desiredEdgePadding = std::max(0.0, (viewport - container->ActualWidth) * 0.5);
-            if (std::fabs(padding.Left - desiredEdgePadding) > 0.5 || std::fabs(padding.Right - desiredEdgePadding) > 0.5) {
-                padding.Left = desiredEdgePadding;
-                padding.Right = desiredEdgePadding;
-                lv->Padding = padding;
-                try { lv->UpdateLayout(); } catch(...) {}
-                queueRetry();
-                return;
-            }
-        } else {
-            if (std::fabs(padding.Left) > 0.5 || std::fabs(padding.Right) > 0.5) {
-                padding.Left = 0.0;
-                padding.Right = 0.0;
-                lv->Padding = padding;
-                try { lv->UpdateLayout(); } catch(...) {}
-                queueRetry();
-                return;
-            }
+        double desiredEdgePadding = m_isGridLayout
+            ? 0.0
+            : std::max(0.0, (viewport - container->ActualWidth) * 0.5);
+        if (std::fabs(padding.Left - desiredEdgePadding) > 0.5 || std::fabs(padding.Right - desiredEdgePadding) > 0.5) {
+            padding.Left = desiredEdgePadding;
+            padding.Right = desiredEdgePadding;
+            lv->Padding = padding;
+            try { lv->UpdateLayout(); } catch(...) {}
+            queueRetry();
+            return;
         }
     } catch(...) {}
 
@@ -225,7 +216,9 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                 container->Focus(Windows::UI::Xaml::FocusState::Programmatic);
             else
                 lv->Focus(Windows::UI::Xaml::FocusState::Programmatic);
-        } catch(...) {}
+        } catch(...) {
+            Utils::Logf("[AppPage] CenterSelectedItem: initial Focus() failed\n");
+        }
     }
 
     if (std::fabs(target - current) < 0.5) return;
@@ -261,7 +254,8 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
             [weakThis, renderingToken, startTime, durationMs, start, delta, isGrid, version](Platform::Object^, Platform::Object^) {
                 auto that = weakThis.Resolve<AppPage>();
                 if (that == nullptr || that->m_scrollViewer == nullptr || that->m_centeringAnimationVersion != version) {
-                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; } catch(...) {}
+                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; }
+                    catch(...) { Utils::Logf("[AppPage] CenterSelectedItem: Rendering -= failed (stale-version path), handler leaked\n"); }
                     return;
                 }
 
@@ -277,7 +271,8 @@ void AppPage::CenterSelectedItem(int attempts, bool immediate) {
                 } catch(...) {}
 
                 if (t >= 1.0) {
-                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; } catch(...) {}
+                    try { Windows::UI::Xaml::Media::CompositionTarget::Rendering -= *renderingToken; }
+                    catch(...) { Utils::Logf("[AppPage] CenterSelectedItem: Rendering -= failed (completion path), handler leaked\n"); }
                 }
             });
 }
@@ -334,14 +329,15 @@ void AppPage::UpdateItemHeights() {
             if (found == nullptr) continue;
             auto fe = dynamic_cast<FrameworkElement^>(found);
             if (fe == nullptr) continue;
+            if (std::isnan(fe->Height)) continue;
 
-            if (!std::isnan(fe->Height)) {
-                fe->Height = std::nan("");
-                fe->InvalidateMeasure();
-                fe->UpdateLayout();
-            }
+            fe->Height = std::nan("");
+            fe->InvalidateMeasure();
+            fe->UpdateLayout();
         }
-    } catch(...) {}
+    } catch(...) {
+        Utils::Logf("[AppPage] UpdateItemHeights: failed, stale Height may cause clipped artwork\n");
+    }
 }
 
 // ── AppPage::AppsGrid_ContainerContentChanging ───────────────────────────────
@@ -365,7 +361,9 @@ void AppPage::AppsGrid_ContainerContentChanging(
             Windows::UI::Xaml::Thickness zero;
             zero.Left = zero.Top = zero.Right = zero.Bottom = 0.0;
             container->Margin = zero;
-        } catch(...) {}
+        } catch(...) {
+            Utils::Logf("[AppPage] AppsGrid_ContainerContentChanging: Margin reset failed on recycle, stale margin may persist into reuse\n");
+        }
         return;
     }
 
@@ -376,7 +374,9 @@ void AppPage::AppsGrid_ContainerContentChanging(
             ref new TypedEventHandler<ListViewBase^, ContainerContentChangingEventArgs^>(
                 [weakThis](ListViewBase^ s, ContainerContentChangingEventArgs^ a) {
                     auto that = weakThis.Resolve<AppPage>();
-                    if (that) try { that->AppsGrid_ContainerContentChanging(s, a); } catch(...) {}
+                    if (that == nullptr) return;
+                    try { that->AppsGrid_ContainerContentChanging(s, a); }
+                    catch(...) { Utils::Logf("[AppPage] AppsGrid_ContainerContentChanging: Phase1 recursive dispatch failed\n"); }
                 }));
         return;
     }
@@ -388,7 +388,9 @@ void AppPage::AppsGrid_ContainerContentChanging(
         auto app = dynamic_cast<MoonlightApp^>(args->Item);
         if (app != nullptr && app->IsSelected && app->BlurredImage != nullptr)
             FadeInBlurIfSelected(app, app->BlurredImage);
-    } catch(...) {}
+    } catch(...) {
+        Utils::Logf("[AppPage] AppsGrid_ContainerContentChanging: Phase1 blur recovery failed\n");
+    }
 }
 
 // ── AppPage::ApplySelectionVisuals ────────────────────────────────────────────
@@ -403,16 +405,18 @@ void AppPage::ApplySelectionVisuals(MoonlightApp^ app, bool animate) {
     // binds to IsSelected and drives the visual state automatically, with no
     // dependency on container realization timing.
     MoonlightApp^ prev = m_selectedApp;
-    if (prev != nullptr && prev->Id != app->Id)
-        try { prev->IsSelected = false; } catch(...) {}
+    if (prev != nullptr && prev->Id != app->Id) {
+        try { prev->IsSelected = false; }
+        catch(...) { Utils::Logf("[AppPage] ApplySelectionVisuals: prev->IsSelected=false failed for app id=%d, stale selected visual may persist\n", prev->Id); }
+    }
     m_selectedApp = app;
-    try { app->IsSelected = true; } catch(...) {}
+    try { app->IsSelected = true; }
+    catch(...) { Utils::Logf("[AppPage] ApplySelectionVisuals: app->IsSelected=true failed for app id=%d, selection visual desynced\n", app->Id); }
 
     // Blur (page-level background, outside the item containers)
     if (app->BlurredImage == nullptr) BlurAppImage(app);
     else FadeInBlurIfSelected(app, app->BlurredImage);
 
-    // Text overlay
     try {
         if (this->SelectedAppText == nullptr || this->SelectedAppBox == nullptr) return;
         Platform::String^ newText = app->Name != nullptr ? app->Name : ref new Platform::String(L"");
@@ -437,22 +441,28 @@ void AppPage::ApplySelectionVisuals(MoonlightApp^ app, bool animate) {
             auto capturedText = newText;
             auto capturedShow = showSb;
             auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
+            auto capturedAppId = app->Id;
             *token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
-                [weakThis, capturedText, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
-                    try { hideSb->Completed -= *token; } catch(...) {}
+                [weakThis, capturedText, hideSb, capturedShow, token, animVer, capturedAppId](Platform::Object^, Platform::Object^) mutable {
+                    try { hideSb->Completed -= *token; }
+                    catch(...) { Utils::Logf("[AppPage] ApplySelectionVisuals: hideSb->Completed -= failed, handler leaked\n"); }
                     auto that = weakThis.Resolve<AppPage>();
                     if (that == nullptr || that->m_appTextAnimVersion != animVer) return;
                     try {
                         if (that->SelectedAppText != nullptr) that->SelectedAppText->Text = capturedText;
                         if (capturedShow != nullptr) capturedShow->Begin();
-                    } catch(...) {}
+                    } catch(...) {
+                        Utils::Logf("[AppPage] ApplySelectionVisuals: post-hide text/show update failed for app id=%d\n", capturedAppId);
+                    }
                 });
             hideSb->Begin();
         } else {
             this->SelectedAppText->Text = newText;
             if (showSb != nullptr) showSb->Begin();
         }
-    } catch(...) {}
+    } catch(...) {
+        Utils::Logf("[AppPage] ApplySelectionVisuals: text overlay update failed for app id=%d\n", app->Id);
+    }
 
     CenterSelectedItem(4, false);
 }
@@ -467,60 +477,12 @@ void AppPage::AppsGrid_SelectionChanged(Platform::Object^ sender, SelectionChang
     ApplySelectionVisuals(app, true);
 }
 
-// ── Local helper: capture a XAML element as a SoftwareBitmap ────────────────
-
-static concurrency::task<SoftwareBitmap^> CaptureXamlElementAsync(FrameworkElement^ element) {
-    concurrency::task_completion_event<SoftwareBitmap^> tce;
-    if (element == nullptr) { tce.set(nullptr); return concurrency::create_task(tce); }
-
-    auto dispatched = ref new DispatchedHandler([element, tce]() mutable {
-        try {
-            try {
-                if (element->Visibility != Visibility::Visible) {
-                    Utils::Log("CaptureXamlElementAsync: skipping non-visible element\n");
-                    tce.set(nullptr); return;
-                }
-            } catch(...) {}
-
-            double aw = 0.0, ah = 0.0;
-            try { aw = element->ActualWidth;  } catch(...) {}
-            try { ah = element->ActualHeight; } catch(...) {}
-            if (aw <= 0.0 || ah <= 0.0) {
-                Utils::Log("CaptureXamlElementAsync: skipping zero-sized element\n");
-                tce.set(nullptr); return;
-            }
-
-            auto rtb = ref new RenderTargetBitmap();
-            create_task(rtb->RenderAsync(element)).then([rtb]() {
-                return create_task(rtb->GetPixelsAsync());
-            }).then([rtb, tce](concurrency::task<IBuffer^> prev) {
-                try {
-                    auto pixels = prev.get();
-                    if (pixels == nullptr) { tce.set(nullptr); return; }
-                    unsigned int w = rtb->PixelWidth, h = rtb->PixelHeight;
-                    if (w == 0 || h == 0) { tce.set(nullptr); return; }
-                    auto sb = SoftwareBitmap::CreateCopyFromBuffer(pixels,
-                        BitmapPixelFormat::Bgra8, w, h, BitmapAlphaMode::Premultiplied);
-                    tce.set(sb);
-                } catch(...) { tce.set(nullptr); }
-            });
-        } catch(...) { tce.set(nullptr); }
-    });
-
-    try {
-        CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
-            CoreDispatcherPriority::Normal, dispatched);
-    } catch(...) { tce.set(nullptr); }
-    return concurrency::create_task(tce);
-}
-
 // ── AppPage::ApplyBlur ────────────────────────────────────────────────────────
 
 concurrency::task<IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app, float blurDip, float padDip) {
     if (app == nullptr) return concurrency::task_from_result<IRandomAccessStream^>(nullptr);
 
-    Platform::String^ path = nullptr;
-    try { path = app->ImagePath; } catch(...) {}
+    Platform::String^ path = app->ImagePath;
 
     return concurrency::create_task(ImageHelpers::LoadSoftwareBitmapFromUriOrPathAsync(path))
         .then([this, app, blurDip, padDip](SoftwareBitmap^ softwareBitmap) -> concurrency::task<IRandomAccessStream^> {
@@ -577,65 +539,89 @@ concurrency::task<IRandomAccessStream^> AppPage::ApplyBlur(MoonlightApp^ app, fl
             }
         } catch(...) { ui_targetW = ui_targetH = 0; }
 
-        // Capture the image element for masking
-        FrameworkElement^ imageFe = dynamic_cast<FrameworkElement^>(this->FindName("AppImageRect"));
-        if (imageFe == nullptr && this->AppsGrid != nullptr) {
-            auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromItem(app));
-            if (container != nullptr) {
-                auto found = FindChildByName(container, ref new Platform::String(L"AppImageRect"));
-                if (found == nullptr) found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-                imageFe = dynamic_cast<FrameworkElement^>(found);
+        unsigned int targetW = ui_targetW != 0 ? ui_targetW : softwareBitmap->PixelWidth;
+        unsigned int targetH = ui_targetH != 0 ? ui_targetH : softwareBitmap->PixelHeight;
+
+        // Expand target dimensions by padDip on each side so the blurred image
+        // fills the blur rect (which is larger than the main image by BlurAmount)
+        unsigned int glowTargetW = targetW, glowTargetH = targetH;
+        if (padDip > 0.0f && targetW > 0 && targetH > 0) {
+            unsigned int padPx = (unsigned int)std::round((double)padDip * ui_dpi / 96.0);
+            if (padPx > 0) {
+                glowTargetW = targetW + 2 * padPx;
+                glowTargetH = targetH + 2 * padPx;
             }
         }
 
-        concurrency::task<SoftwareBitmap^> imageCaptureTask = imageFe != nullptr
-            ? CaptureXamlElementAsync(imageFe)
-            : concurrency::task_from_result<SoftwareBitmap^>(nullptr);
-
-        // Capture the mask element
-        SoftwareBitmap^ nullMask = nullptr;
-        FrameworkElement^ maskFe = dynamic_cast<FrameworkElement^>(this->FindName("AppImageBlurRect"));
-        if (maskFe == nullptr && this->AppsGrid != nullptr) {
-            auto container = dynamic_cast<ListViewItem^>(this->AppsGrid->ContainerFromItem(app));
-            if (container != nullptr) {
-                auto found = FindChildByName(container, ref new Platform::String(L"AppImageBlurRect"));
-                maskFe = dynamic_cast<FrameworkElement^>(found);
-            }
-        }
-        concurrency::task<SoftwareBitmap^> maskCaptureTask = maskFe != nullptr
-            ? CaptureXamlElementAsync(maskFe)
-            : concurrency::task_from_result<SoftwareBitmap^>(nullMask);
-
-        return imageCaptureTask.then([this, app, softwareBitmap, maskCaptureTask,
-                                      ui_targetW, ui_targetH, ui_dpi, blurDip, padDip]
-            (SoftwareBitmap^ capturedImage) mutable -> concurrency::task<IRandomAccessStream^>
-        {
-            return maskCaptureTask.then([this, app, softwareBitmap,
-                                         ui_targetW, ui_targetH, ui_dpi, blurDip, padDip, capturedImage]
-                (SoftwareBitmap^ maskFromXaml) mutable -> concurrency::task<IRandomAccessStream^>
-            {
-                unsigned int targetW = ui_targetW != 0 ? ui_targetW : softwareBitmap->PixelWidth;
-                unsigned int targetH = ui_targetH != 0 ? ui_targetH : softwareBitmap->PixelHeight;
-                unsigned int cornerRadiusPx = 0;
-                try { cornerRadiusPx = (unsigned int)std::round(8.0 * ui_dpi / 96.0); } catch(...) { cornerRadiusPx = 16; }
-
-                // Expand target dimensions by padDip on each side so the blurred image
-                // fills the blur rect (which is larger than the main image by BlurAmount)
-                unsigned int glowTargetW = targetW, glowTargetH = targetH;
-                if (padDip > 0.0f && targetW > 0 && targetH > 0) {
-                    unsigned int padPx = (unsigned int)std::round((double)padDip * ui_dpi / 96.0);
-                    if (padPx > 0) {
-                        glowTargetW = targetW + 2 * padPx;
-                        glowTargetH = targetH + 2 * padPx;
-                    }
-                }
-
-                try { ImageHelpers::AdjustSaturation(softwareBitmap, kBackgroundSaturation); } catch(...) {}
-                return ImageHelpers::CreateMaskedBlurredPngStreamAsync(
-                    softwareBitmap, maskFromXaml, glowTargetW, glowTargetH, ui_dpi, blurDip);
-            });
-        });
+        try { ImageHelpers::AdjustSaturation(softwareBitmap, kBackgroundSaturation); } catch(...) {}
+        return ImageHelpers::CreateMaskedBlurredPngStreamAsync(
+            softwareBitmap, glowTargetW, glowTargetH, ui_dpi, blurDip);
     });
+}
+
+// ── AppPage::HandleBlurStreamReady ───────────────────────────────────────────
+// Assigns a completed blur stream to selApp on the UI thread. isBackground selects
+// whether this sets BlurredImage (clearing m_blurInProgressIds and triggering the
+// page-level fade-in) or GlowImage (the per-item glow, no retry gate of its own —
+// BlurAppImage's BlurredImage-null check gates both, so a failure here leaves
+// GlowImage permanently unset for this app).
+
+void AppPage::HandleBlurStreamReady(MoonlightApp^ selApp, Platform::WeakReference weakThis,
+                                     IRandomAccessStream^ stream, bool isBackground) {
+    if (stream == nullptr) {
+        if (!isBackground) return;
+        Utils::Logf("[AppPage] BlurAppImage: background stream null for app id=%d\n", selApp->Id);
+        // Erase so the next selection can retry rather than being blocked forever.
+        this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+            ref new DispatchedHandler([weakThis, selApp]() {
+                auto ui = weakThis.Resolve<AppPage>();
+                if (ui) ui->m_blurInProgressIds.erase(selApp->Id);
+            }));
+        return;
+    }
+
+    this->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
+        ref new DispatchedHandler([selApp, stream, weakThis, isBackground]() {
+        try {
+            auto thatInner = weakThis.Resolve<AppPage>();
+            if (thatInner == nullptr || selApp == nullptr) return;
+            auto img = ref new BitmapImage();
+            create_task(img->SetSourceAsync(stream))
+                .then([weakThis, selApp, img, isBackground]() {
+                try {
+                    auto thatCont = weakThis.Resolve<AppPage>();
+                    if (thatCont == nullptr) return;
+                    if (isBackground) {
+                        thatCont->m_blurInProgressIds.erase(selApp->Id);
+                        selApp->BlurredImage = img;
+                        // Mirror to the live binding target if SetAt swapped the reference.
+                        if (thatCont->m_selectedApp != nullptr &&
+                            thatCont->m_selectedApp != selApp &&
+                            thatCont->m_selectedApp->Id == selApp->Id)
+                            thatCont->m_selectedApp->BlurredImage = img;
+                        try { thatCont->FadeInBlurIfSelected(selApp, img); } catch(...) {}
+                    } else {
+                        selApp->GlowImage = img;
+                        // Mirror to the live binding target if SetAt swapped the reference.
+                        if (thatCont->m_selectedApp != nullptr &&
+                            thatCont->m_selectedApp != selApp &&
+                            thatCont->m_selectedApp->Id == selApp->Id)
+                            thatCont->m_selectedApp->GlowImage = img;
+                    }
+                } catch(...) {
+                    if (isBackground)
+                        Utils::Logf("[AppPage] BlurAppImage: assign-BlurredImage step failed for app id=%d, m_blurInProgressIds entry stuck\n", selApp->Id);
+                    else
+                        Utils::Logf("[AppPage] BlurAppImage: assign-GlowImage step failed for app id=%d, GlowImage permanently null (BlurredImage gate blocks retry)\n", selApp->Id);
+                }
+            }, concurrency::task_continuation_context::use_current());
+        } catch(...) {
+            if (isBackground)
+                Utils::Logf("[AppPage] BlurAppImage: SetSourceAsync setup failed for app id=%d, m_blurInProgressIds entry stuck\n", selApp->Id);
+            else
+                Utils::Logf("[AppPage] BlurAppImage: glow SetSourceAsync setup failed for app id=%d, GlowImage permanently null\n", selApp->Id);
+        }
+    }));
 }
 
 // ── AppPage::BlurAppImage ─────────────────────────────────────────────────────
@@ -668,7 +654,8 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
             return ApplyBlur(selApp, blurDip, padDip)
                 .then([cachePath](IRandomAccessStream^ stream) -> IRandomAccessStream^ {
                     if (stream != nullptr && cachePath != nullptr) {
-                        try { SaveBlurStreamSync(stream, cachePath); } catch(...) {}
+                        try { SaveBlurStreamSync(stream, cachePath); }
+                        catch(...) { Utils::Logf("[AppPage] BlurAppImage: cache write failed, blur will be recomputed every launch\n"); }
                         stream->Seek(0);
                     }
                     return stream;
@@ -681,49 +668,16 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
             getOrComputeStream(kBlurAmountBackground, 0.0f, bgCachePath)
                 .then([selApp, weakThis](IRandomAccessStream^ stream) {
                 try {
-                    if (stream == nullptr) {
-                        Utils::Logf("[AppPage] BlurAppImage: background stream null for app id=%d\n", selApp->Id);
-                        // Erase so the next selection can retry rather than being blocked forever.
-                        auto thatErr = weakThis.Resolve<AppPage>();
-                        if (thatErr != nullptr) {
-                            thatErr->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                                ref new DispatchedHandler([weakThis, selApp]() {
-                                    auto ui = weakThis.Resolve<AppPage>();
-                                    if (ui) ui->m_blurInProgressIds.erase(selApp->Id);
-                                }));
-                        }
-                        return;
-                    }
                     auto that = weakThis.Resolve<AppPage>();
                     if (that == nullptr) return;
-
-                    that->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                        ref new DispatchedHandler([selApp, stream, weakThis]() {
-                        try {
-                            auto thatInner = weakThis.Resolve<AppPage>();
-                            if (thatInner == nullptr || selApp == nullptr) return;
-                            auto img = ref new BitmapImage();
-                            create_task(img->SetSourceAsync(stream))
-                                .then([weakThis, selApp, img]() {
-                                try {
-                                    auto thatCont = weakThis.Resolve<AppPage>();
-                                    if (thatCont == nullptr) return;
-                                    thatCont->m_blurInProgressIds.erase(selApp->Id);
-                                    selApp->BlurredImage = img;
-                                    // Mirror to the live binding target if SetAt swapped the reference.
-                                    if (thatCont->m_selectedApp != nullptr &&
-                                        thatCont->m_selectedApp != selApp &&
-                                        thatCont->m_selectedApp->Id == selApp->Id)
-                                        thatCont->m_selectedApp->BlurredImage = img;
-                                    Utils::Logf("[AppPage] BlurAppImage: assigned BlurredImage for app id=%d\n", selApp->Id);
-                                    try { thatCont->FadeInBlurIfSelected(selApp, img); } catch(...) {}
-                                } catch(...) {}
-                            }, concurrency::task_continuation_context::use_current());
-                        } catch(...) {}
-                    }));
-                } catch(...) {}
+                    that->HandleBlurStreamReady(selApp, weakThis, stream, /*isBackground*/ true);
+                } catch(...) {
+                    Utils::Logf("[AppPage] BlurAppImage: background RunAsync dispatch failed for app id=%d, m_blurInProgressIds entry stuck\n", selApp->Id);
+                }
             }, concurrency::task_continuation_context::use_current());
-        } catch(...) {}
+        } catch(...) {
+            Utils::Logf("[AppPage] BlurAppImage: background getOrComputeStream setup failed for app id=%d, m_blurInProgressIds entry stuck\n", selApp->Id);
+        }
 
         // Glow blur — only in list mode, used for the per-item glow rect
         if (!isGrid) {
@@ -732,36 +686,20 @@ void AppPage::BlurAppImage(MoonlightApp^ selApp) {
                 getOrComputeStream(glowBlurAmount, kBlurGlowPaddingDip, glowCachePath)
                     .then([selApp, weakThis](IRandomAccessStream^ stream) {
                     try {
-                        if (stream == nullptr) return;
                         auto that = weakThis.Resolve<AppPage>();
                         if (that == nullptr) return;
-
-                        that->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,
-                            ref new DispatchedHandler([selApp, stream, weakThis]() {
-                            try {
-                                auto thatInner = weakThis.Resolve<AppPage>();
-                                if (thatInner == nullptr || selApp == nullptr) return;
-                                auto img = ref new BitmapImage();
-                                create_task(img->SetSourceAsync(stream))
-                                    .then([selApp, img, weakThis]() {
-                                    try {
-                                        Utils::Logf("[AppPage] BlurAppImage: assigned GlowImage for app id=%d\n", selApp->Id);
-                                        selApp->GlowImage = img;
-                                        // Mirror to the live binding target if SetAt swapped the reference.
-                                        auto thatGlow = weakThis.Resolve<AppPage>();
-                                        if (thatGlow != nullptr && thatGlow->m_selectedApp != nullptr &&
-                                            thatGlow->m_selectedApp != selApp &&
-                                            thatGlow->m_selectedApp->Id == selApp->Id)
-                                            thatGlow->m_selectedApp->GlowImage = img;
-                                    } catch(...) {}
-                                }, concurrency::task_continuation_context::use_current());
-                            } catch(...) {}
-                        }));
-                    } catch(...) {}
+                        that->HandleBlurStreamReady(selApp, weakThis, stream, /*isBackground*/ false);
+                    } catch(...) {
+                        Utils::Logf("[AppPage] BlurAppImage: glow RunAsync dispatch failed for app id=%d, GlowImage permanently null\n", selApp->Id);
+                    }
                 }, concurrency::task_continuation_context::use_current());
-            } catch(...) {}
+            } catch(...) {
+                Utils::Logf("[AppPage] BlurAppImage: glow getOrComputeStream setup failed for app id=%d, GlowImage permanently null\n", selApp->Id);
+            }
         }
-    } catch(...) {}
+    } catch(...) {
+        Utils::Logf("[AppPage] BlurAppImage: unhandled failure for app id=%d, m_blurInProgressIds entry may be stuck\n", selApp->Id);
+    }
 }
 
 // ── AppPage::FadeInBlurIfSelected ────────────────────────────────────────────
@@ -790,7 +728,9 @@ void AppPage::FadeInBlurIfSelected(MoonlightApp^ app, BitmapImage^ img) {
         try {
             auto vm = this->ViewModel;
             if (vm != nullptr) vm->TransitionToBlurredImage(img);
-        } catch(...) {}
+        } catch(...) {
+            Utils::Logf("[AppPage] FadeInBlurIfSelected: TransitionToBlurredImage failed for app id=%d\n", app->Id);
+        }
     } catch(...) {}
 }
 

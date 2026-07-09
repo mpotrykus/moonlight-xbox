@@ -20,16 +20,9 @@ public:
 
     // Attempt to run blur on GPU and return a new SoftwareBitmap containing the blurred result.
     // Returns nullptr on failure (caller should fall back to CPU).
-    // If enableDiagnostics is true, diagnostic PNGs may be emitted to LocalFolder.
     // If returnPadded is true the returned SoftwareBitmap will be the padded blurred canvas
     // (padded by radius*2 on each side) instead of the cropped center region.
-    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics = false, bool returnPadded = false);
-
-    // GPU horizontal blur wrapper (uses GPU path when available, CPU fallback otherwise).
-    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurHorizontalSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool enableDiagnostics = false);
-
-    // CPU-only horizontal blur producing a new SoftwareBitmap (single-pass horizontal box blur).
-    static Windows::Graphics::Imaging::SoftwareBitmap^ BoxBlurHorizontalSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius);
+    static Windows::Graphics::Imaging::SoftwareBitmap^ GpuBoxBlurSoftwareBitmap(Windows::Graphics::Imaging::SoftwareBitmap^ bitmap, int radius, bool returnPadded = false);
 
     static ID3D11ShaderResourceView* Glow(ID3D11ShaderResourceView* src, float radius) {
 
@@ -57,10 +50,6 @@ private:
 
     static ID3D11PixelShader* m_blurPS;
 
-    static ID3D11InputLayout* m_inputLayout;
-
-    static ID3D11Buffer* m_quadVB;
-
     static ID3D11Buffer* m_cb;
 
     static ID3D11SamplerState* m_sampler;
@@ -80,5 +69,8 @@ private:
 
     // Ensure D3D device/context are available (lazy init fallback)
     static bool EnsureDeviceInitialized();
+
+    // Compile the blur vertex/pixel shaders and create the sampler/constant buffer on first use.
+    static bool EnsureBlurShadersCompiled();
 
 };

@@ -1,5 +1,3 @@
-// AppPage.Xaml.h - single clean header
-
 #pragma once
 
 #include "UI\Pages\AppPage\AppPage.g.h"
@@ -16,7 +14,6 @@ namespace moonlight_xbox_dx
 // ── Constants ────────────────────────────────────────────────────────────────
 
 static constexpr float  kBackgroundSaturation         = 1.25f;
-static constexpr int    kAnimationDurationMs          =   500;
 static constexpr int    kBgPanDurationSec             =    10;
 static constexpr float  kBlurAmountBackground         =  2.0f;
 static constexpr float  kBlurGlowPaddingDip           = 60.0f;
@@ -67,6 +64,8 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
     private:
         void AppsGrid_ItemClick(Platform::Object^ sender, Windows::UI::Xaml::Controls::ItemClickEventArgs^ e);
 	    void BlurAppImage(MoonlightApp ^ selApp);
+        void HandleBlurStreamReady(MoonlightApp^ selApp, Platform::WeakReference weakThis,
+            Windows::Storage::Streams::IRandomAccessStream^ stream, bool isBackground);
         void AppsGrid_Loaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void AppsGrid_LayoutUpdated(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void SearchBox_TextChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::TextChangedEventArgs^ e);
@@ -90,7 +89,13 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         bool m_isGridLayout = false;
 
         void LayoutToggleButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+        void ApplyImmediateListModeEdgePadding();
+        void HandleLayoutTogglePostSwap(int savedIndex);
+        void HandleLayoutToggleRelayout(bool isGrid);
         void OnGamepadKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
+        void HandleYButtonPress();
+        void HandleXButtonPress();
+        void FocusSelectedContainerOrGrid();
         void CenterSelectedItem(int attempts, bool immediate = false);
 
         Windows::Foundation::EventRegistrationToken m_keydown_cookie;
@@ -116,5 +121,7 @@ static constexpr float  kBlurGlowPaddingDip           = 60.0f;
         void FadeInBlurIfSelected(MoonlightApp^ app, Windows::UI::Xaml::Media::Imaging::BitmapImage^ img);
         void FadeInPollingIndicator();
         void FadeOutPollingIndicator();
+        void PollAppRunningAndConnectivity();
+        void ShowDisconnectedDialogAndNavigateBack();
     };
 }

@@ -876,7 +876,6 @@
     <Page Include="UI\Styles\Controls.xaml">
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="UI\Styles\Globals.xaml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="libgamestream\build\gamestream.vcxproj">

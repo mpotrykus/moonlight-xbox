@@ -41,7 +41,6 @@ namespace moonlight_xbox_dx
 		void HostsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^ e);
 		void CenterSelectedHost(int attempts = 4, bool immediate = false);
 		void EnsureCenteringPadding(int attempts = 3);
-		Windows::UI::Xaml::Controls::ScrollViewer^ FindScrollViewer(Windows::UI::Xaml::DependencyObject^ root);
 		void StartPairing(MoonlightHost^ host);
 		void HostsGrid_RightTapped(Platform::Object^ sender, Windows::UI::Xaml::Input::RightTappedRoutedEventArgs^ e);
 		MoonlightHost^ currentHost;
@@ -61,6 +60,9 @@ namespace moonlight_xbox_dx
 		void UpdateAllMoonPhases(bool animated, int attempts = 0);
 		void FocusFirstHostItem(int attempts = 4);
 		LunarPhaseControl^ FindLunarControl(Windows::UI::Xaml::DependencyObject^ root);
+		void SubscribeMoonPhaseRefreshOnNextLayout(bool alsoFocusFirst);
+		void PollTick(Windows::System::Threading::ThreadPoolTimer^ timer);
+		void PollHostAfterWake(MoonlightHost^ host);
 		unsigned int m_hostTextAnimVersion = 0;
 		Windows::Foundation::EventRegistrationToken m_hostsGrid_ccc_token;
 	};

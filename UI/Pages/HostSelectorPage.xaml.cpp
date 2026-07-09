@@ -48,28 +48,11 @@ HostSelectorPage::HostSelectorPage()
 	m_hostsScrollViewer = nullptr;
 }
 
-Windows::UI::Xaml::Controls::ScrollViewer^ HostSelectorPage::FindScrollViewer(Windows::UI::Xaml::DependencyObject^ root)
-{
-	if (root == nullptr) return nullptr;
-	if (auto sv = dynamic_cast<ScrollViewer^>(root)) return sv;
-
-	try {
-		int count = VisualTreeHelper::GetChildrenCount(root);
-		for (int i = 0; i < count; ++i) {
-			auto child = VisualTreeHelper::GetChild(root, i);
-			auto found = FindScrollViewer(child);
-			if (found != nullptr) return found;
-		}
-	} catch (...) {}
-
-	return nullptr;
-}
-
 // Layout widths once LunarPhaseControl reaches its final state:
 //   selected:     LunarPhaseControl.Width(160) + LunarPhase margins(24+24) + ItemRoot margins(8+8)
 //   non-selected: LunarPhaseControl.Width(96)  + LunarPhase margins(24+24) + ItemRoot margins(8+8)
-static const double kSelectedHostContainerWidth =    230; // 224.0;
-static const double kNonSelectedHostContainerWidth = 166; // 160.0;
+static const double kSelectedHostContainerWidth =    230;
+static const double kNonSelectedHostContainerWidth = 166;
 
 void HostSelectorPage::EnsureCenteringPadding(int attempts)
 {
@@ -215,42 +198,49 @@ void HostSelectorPage::HostsGrid_Loaded(Platform::Object^ sender, Windows::UI::X
 						if (that != nullptr) that->FocusFirstHostItem(4);
 					}));
 			}
-		} catch (...) {}
+		} catch (...) {
+			Utils::Log("HostSelectorPage: HostsGrid_Loaded initial-selection/focus dispatch failed");
+		}
 
 		// Subscribe to LayoutUpdated so we update moon phases after the layout pass
 		// that creates containers — more reliable than fixed-count Normal-priority retries,
 		// which can all fire before the first layout pass on cold launch when SavedHosts
 		// is populated from a background thread after the page is first shown.
-		if (m_hostsGrid_ccc_token.Value == 0) {
-			Platform::WeakReference weakThis(this);
-			m_hostsGrid_ccc_token = grid->LayoutUpdated +=
-				ref new EventHandler<Platform::Object^>([weakThis](Platform::Object^, Platform::Object^) {
-					auto that = weakThis.Resolve<HostSelectorPage>();
-					if (that == nullptr) return;
-					if (that->HostsGrid == nullptr ||
-						that->HostsGrid->Items == nullptr ||
-						that->HostsGrid->Items->Size == 0) return;
-					// Unregister before calling so a stray re-fire can't double-run.
-					try { that->HostsGrid->LayoutUpdated -= that->m_hostsGrid_ccc_token; } catch(...) {}
-					that->m_hostsGrid_ccc_token.Value = 0;
-					that->UpdateAllMoonPhases(false, 0);
-					that->FocusFirstHostItem(4);
-				});
-		}
+		SubscribeMoonPhaseRefreshOnNextLayout(true);
 
 		EnsureCenteringPadding(3);
 		CenterSelectedHost(4, true);
 		UpdateAllMoonPhases(false, 4);
-	} catch (...) {}
+	} catch (...) {
+		Utils::Log("HostSelectorPage: HostsGrid_Loaded setup failed");
+	}
+}
+
+void HostSelectorPage::SubscribeMoonPhaseRefreshOnNextLayout(bool alsoFocusFirst)
+{
+	if (HostsGrid == nullptr || m_hostsGrid_ccc_token.Value != 0) return;
+	Platform::WeakReference weakThis(this);
+	m_hostsGrid_ccc_token = HostsGrid->LayoutUpdated +=
+		ref new EventHandler<Platform::Object^>([weakThis, alsoFocusFirst](Platform::Object^, Platform::Object^) {
+			auto that = weakThis.Resolve<HostSelectorPage>();
+			if (that == nullptr) return;
+			if (that->HostsGrid == nullptr ||
+				that->HostsGrid->Items == nullptr ||
+				that->HostsGrid->Items->Size == 0) return;
+			// Unregister before calling so a stray re-fire can't double-run.
+			try { that->HostsGrid->LayoutUpdated -= that->m_hostsGrid_ccc_token; }
+			catch (...) { Utils::Log("HostSelectorPage: failed to unsubscribe HostsGrid.LayoutUpdated"); }
+			that->m_hostsGrid_ccc_token.Value = 0;
+			that->UpdateAllMoonPhases(false, 0);
+			if (alsoFocusFirst) that->FocusFirstHostItem(4);
+		});
 }
 
 void HostSelectorPage::HostsGrid_SizeChanged(Platform::Object^, Windows::UI::Xaml::SizeChangedEventArgs^)
 {
-	try {
-		if (m_adjustingCenterPadding) return;
-		EnsureCenteringPadding(2);
-		CenterSelectedHost(2, true);
-	} catch (...) {}
+	if (m_adjustingCenterPadding) return;
+	EnsureCenteringPadding(2);
+	CenterSelectedHost(2, true);
 }
 
 void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Windows::UI::Xaml::Controls::SelectionChangedEventArgs^)
@@ -291,7 +281,6 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 		ApplyAccentColor(accentColor);
 	} catch (...) {}
 
-	// Fade host name banner: fade out → update text → fade in
 	try {
 		auto grid = dynamic_cast<Windows::UI::Xaml::Controls::ListViewBase^>(sender);
 		auto selectedHost = (grid != nullptr && grid->SelectedItem != nullptr)
@@ -313,7 +302,6 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 
 			bool alreadyVisible = this->SelectedHostBanner->Opacity > 0.01;
 			if (selectedHost == nullptr) {
-				// No valid selection — hide if visible, don't show again
 				if (alreadyVisible && hideSb != nullptr) hideSb->Begin();
 				this->SelectedHostText->Text = ref new Platform::String(L"");
 			} else if (alreadyVisible && hideSb != nullptr && showSb != nullptr) {
@@ -324,13 +312,16 @@ void HostSelectorPage::HostsGrid_SelectionChanged(Platform::Object^ sender, Wind
 				auto token = std::make_shared<Windows::Foundation::EventRegistrationToken>();
 				*token = hideSb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
 					[weakThis, capturedName, hideSb, capturedShow, token, animVer](Platform::Object^, Platform::Object^) mutable {
-						try { hideSb->Completed -= *token; } catch (...) {}
+						try { hideSb->Completed -= *token; }
+						catch (...) { Utils::Log("HostSelectorPage: failed to unsubscribe HideSelectedHostStoryboard.Completed"); }
 						auto that = weakThis.Resolve<HostSelectorPage>();
 						if (that == nullptr || that->m_hostTextAnimVersion != animVer) return;
 						try {
 							if (that->SelectedHostText != nullptr) that->SelectedHostText->Text = capturedName;
 							if (capturedShow != nullptr) capturedShow->Begin();
-						} catch (...) {}
+						} catch (...) {
+							Utils::Logf("HostSelectorPage: failed to show host name '%ls'", capturedName->Data());
+						}
 					});
 				hideSb->Begin();
 			} else {
@@ -363,7 +354,8 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 							dialog->ShowError("Failed to connect to " + hostname);
 							dialog->SetAddButtonEnabled(true);
 						} else {
-							try { dialog->Hide(); } catch (...) {}
+							try { dialog->Hide(); }
+							catch (...) { Utils::Log("HostSelectorPage: failed to hide AddHostDialog after successful add"); }
 							auto page = weakPage.Resolve<HostSelectorPage>();
 							if (page != nullptr) {
 								try {
@@ -371,20 +363,14 @@ void HostSelectorPage::NewHostButton_Click(Platform::Object^ sender, Windows::UI
 										page->HostsGrid->Items != nullptr && page->HostsGrid->Items->Size > 0) {
 										page->HostsGrid->SelectedIndex = 0;
 									}
-								} catch (...) {}
+								} catch (...) {
+									Utils::Log("HostSelectorPage: failed to select newly added host");
+								}
 								try {
-									if (page->HostsGrid != nullptr && page->m_hostsGrid_ccc_token.Value == 0) {
-										Platform::WeakReference weakPage2(page);
-										page->m_hostsGrid_ccc_token = page->HostsGrid->LayoutUpdated +=
-											ref new EventHandler<Platform::Object^>([weakPage2](Platform::Object^, Platform::Object^) {
-												auto p = weakPage2.Resolve<HostSelectorPage>();
-												if (p == nullptr) return;
-												try { p->HostsGrid->LayoutUpdated -= p->m_hostsGrid_ccc_token; } catch (...) {}
-												p->m_hostsGrid_ccc_token.Value = 0;
-												p->UpdateAllMoonPhases(false, 0);
-											});
-									}
-								} catch (...) {}
+									page->SubscribeMoonPhaseRefreshOnNextLayout(false);
+								} catch (...) {
+									Utils::Log("HostSelectorPage: failed to subscribe HostsGrid.LayoutUpdated for new host");
+								}
 							}
 						}
 					}));
@@ -470,9 +456,8 @@ void HostSelectorPage::ShowHostActions(MoonlightHost^ host)
                     int newSize = (int)that->State->SavedHosts->Size;
                     if (newSize > 0) {
                         that->HostsGrid->SelectedIndex = removedIdx < newSize ? removedIdx : newSize - 1;
-                    } else {
-                        if (that->BackgroundHost != nullptr)
-                            that->BackgroundHost->ResetBackground();
+                    } else if (that->BackgroundHost != nullptr) {
+                        that->BackgroundHost->ResetBackground();
                     }
                 })
             );
@@ -513,11 +498,10 @@ void HostSelectorPage::StartPairing(MoonlightHost^ host) {
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([a, dialog, host]()
 			{
 				if (a == 0) {
-						try { dialog->Hide(); } catch (...) {}
+					try { dialog->Hide(); }
+					catch (...) { Utils::Log("HostSelectorPage: failed to hide PairDialog after successful pairing"); }
 				}
-				else {
-				}
-					host->UpdateHostInfo(true);
+				host->UpdateHostInfo(true);
 			}
 			));
 		}) .then([](concurrency::task<void> t) {
@@ -624,6 +608,35 @@ void HostSelectorPage::OnStateLoaded() {
 	});
 }
 
+// Quick 1s reachability check on the GameStream port, used to fail fast before navigating
+// rather than waiting on a full UpdateHostInfo handshake.
+static bool TryQuickTcpConnect(const std::string& hostOnly)
+{
+	bool reachable = false;
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0) {
+		struct addrinfo hints = {}, *res = nullptr;
+		hints.ai_family   = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+		if (getaddrinfo(hostOnly.c_str(), "47989", &hints, &res) == 0) {
+			SOCKET s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+			if (s != INVALID_SOCKET) {
+				u_long mode = 1;
+				ioctlsocket(s, FIONBIO, &mode);
+				connect(s, res->ai_addr, (int)res->ai_addrlen);
+				fd_set writeSet; FD_ZERO(&writeSet); FD_SET(s, &writeSet);
+				timeval tv; tv.tv_sec = 1; tv.tv_usec = 0;
+				reachable = (select(0, NULL, &writeSet, NULL, &tv) > 0 && FD_ISSET(s, &writeSet));
+				closesocket(s);
+			}
+			freeaddrinfo(res);
+		}
+		WSACleanup();
+	}
+	return reachable;
+}
+
 void HostSelectorPage::Connect(MoonlightHost^ host) {
 	if (!host->Connected)return;
 	if (!host->Paired) {
@@ -641,28 +654,7 @@ void HostSelectorPage::Connect(MoonlightHost^ host) {
 	if (colonPos != std::string::npos) hostOnly = hostOnly.substr(0, colonPos);
 
 	Concurrency::create_task([weakThis, host, hostOnly]() {
-		bool reachable = false;
-		WSADATA wsaData;
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) == 0) {
-			struct addrinfo hints = {}, *res = nullptr;
-			hints.ai_family   = AF_UNSPEC;
-			hints.ai_socktype = SOCK_STREAM;
-			hints.ai_protocol = IPPROTO_TCP;
-			if (getaddrinfo(hostOnly.c_str(), "47989", &hints, &res) == 0) {
-				SOCKET s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-				if (s != INVALID_SOCKET) {
-					u_long mode = 1;
-					ioctlsocket(s, FIONBIO, &mode);
-					connect(s, res->ai_addr, (int)res->ai_addrlen);
-					fd_set writeSet; FD_ZERO(&writeSet); FD_SET(s, &writeSet);
-					timeval tv; tv.tv_sec = 1; tv.tv_usec = 0;
-					reachable = (select(0, NULL, &writeSet, NULL, &tv) > 0 && FD_ISSET(s, &writeSet));
-					closesocket(s);
-				}
-				freeaddrinfo(res);
-			}
-			WSACleanup();
-		}
+		bool reachable = TryQuickTcpConnect(hostOnly);
 
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(
 			Windows::UI::Core::CoreDispatcherPriority::High,
@@ -713,52 +705,58 @@ void HostSelectorPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 				}
 				return;
 			}
-			if (that->m_isNavigatedAway.load()) {
-				try {
-					if (timer != nullptr) timer->Cancel();
-				} catch (...) {
-				}
-				return;
-			}
-
-			that->m_pollActiveCount.fetch_add(1);
-			if (!that->continueFetch.load()) return;
-			try {
-				try {
-					mdns_send_query();
-				} catch (...) {
-				}
-				query_mdns();
-				// Snapshot to avoid out-of-bounds if a host is deleted mid-iteration
-				std::vector<MoonlightHost^> hostsSnapshot;
-				{
-					auto savedHosts = GetApplicationState()->SavedHosts;
-					for (unsigned int i = 0; i < savedHosts->Size; i++) {
-						try {
-							hostsSnapshot.push_back(savedHosts->GetAt(i));
-						} catch (...) {
-							break;
-						}
-					}
-				}
-				for (auto a : hostsSnapshot) {
-					try {
-						a->UpdateHostInfo(true);
-					} catch (...) {
-					}
-				}
-			} catch (const std::exception &ex) {
-				Utils::Logf("HostSelectorPage poll exception: %s", ex.what());
-			} catch (...) {
-				Utils::Log("HostSelectorPage poll unknown exception");
-			}
-			that->m_pollActiveCount.fetch_sub(1);
+			that->PollTick(timer);
 		});
 
 		m_pollTimer = ThreadPoolTimer::CreatePeriodicTimer(callback, period);
 	} catch (...) {
 		Utils::Log("HostSelectorPage failed to start poll timer");
 	}
+}
+
+void HostSelectorPage::PollTick(Windows::System::Threading::ThreadPoolTimer^ timer)
+{
+	if (m_isNavigatedAway.load()) {
+		try {
+			if (timer != nullptr) timer->Cancel();
+		} catch (...) {
+		}
+		return;
+	}
+
+	m_pollActiveCount.fetch_add(1);
+	if (continueFetch.load()) {
+		try {
+			try {
+				mdns_send_query();
+			} catch (...) {
+			}
+			query_mdns();
+			// Snapshot to avoid out-of-bounds if a host is deleted mid-iteration
+			std::vector<MoonlightHost^> hostsSnapshot;
+			{
+				auto savedHosts = GetApplicationState()->SavedHosts;
+				for (unsigned int i = 0; i < savedHosts->Size; i++) {
+					try {
+						hostsSnapshot.push_back(savedHosts->GetAt(i));
+					} catch (...) {
+						break;
+					}
+				}
+			}
+			for (auto a : hostsSnapshot) {
+				try {
+					a->UpdateHostInfo(true);
+				} catch (...) {
+				}
+			}
+		} catch (const std::exception &ex) {
+			Utils::Logf("HostSelectorPage poll exception: %s", ex.what());
+		} catch (...) {
+			Utils::Log("HostSelectorPage poll unknown exception");
+		}
+	}
+	m_pollActiveCount.fetch_sub(1);
 }
 
 void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs ^ e) {
@@ -771,7 +769,9 @@ void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::Navigation
 			HostsGrid->LayoutUpdated -= m_hostsGrid_ccc_token;
 			m_hostsGrid_ccc_token.Value = 0;
 		}
-	} catch (...) {}
+	} catch (...) {
+		Utils::Log("HostSelectorPage: failed to unsubscribe HostsGrid.LayoutUpdated on navigate-away");
+	}
 
 	m_isNavigatedAway.store(true);
 	continueFetch.store(false);
@@ -781,6 +781,7 @@ void HostSelectorPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::Navigation
 			m_pollTimer = nullptr;
 		}
 	} catch (...) {
+		Utils::Log("HostSelectorPage: failed to cancel poll timer on navigate-away");
 	}
 
 	for (int i = 0; i < 50 && m_pollActiveCount.load() > 0; ++i) {
@@ -817,34 +818,7 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 			ShowToast(L"Wake on LAN sent");
 			auto host = currentHost;
 			host->WolPolling = true;
-			concurrency::create_task(concurrency::create_async([host]() {
-				int consecutiveSuccess = 0;
-				for (int i = 0; i < 240; ++i) {
-					try {
-						host->UpdateHostInfo(false);
-						if (host->Connected) {
-							consecutiveSuccess++;
-							if (consecutiveSuccess >= 2) {
-								host->WolPolling = false;
-								break;
-							}
-						} else {
-							consecutiveSuccess = 0;
-						}
-					} catch (...) {
-						consecutiveSuccess = 0;
-					}
-					Sleep(250);
-				}
-			})).then([host](concurrency::task<void> t) {
-				try {
-					t.get();
-				} catch (...) {
-				}
-				Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([host]() {
-					                                                                                             host->WolPolling = false;
-				                                                                                             }));
-			});
+			PollHostAfterWake(host);
 		}
 	} catch (std::exception ex) {
 		auto errDlg = ref new ::moonlight_xbox_dx::AlertDialog();
@@ -852,6 +826,38 @@ void moonlight_xbox_dx::HostSelectorPage::wakeHostButton_Click(Platform::Object 
 		try { errDlg->XamlRoot = this->XamlRoot; } catch (...) {}
 		concurrency::create_task(errDlg->ShowAsync());
 	}
+}
+
+void HostSelectorPage::PollHostAfterWake(MoonlightHost^ host)
+{
+	concurrency::create_task(concurrency::create_async([host]() {
+		int consecutiveSuccess = 0;
+		for (int i = 0; i < 240; ++i) {
+			try {
+				host->UpdateHostInfo(false);
+				if (host->Connected) {
+					consecutiveSuccess++;
+					if (consecutiveSuccess >= 2) {
+						host->WolPolling = false;
+						break;
+					}
+				} else {
+					consecutiveSuccess = 0;
+				}
+			} catch (...) {
+				consecutiveSuccess = 0;
+			}
+			Sleep(250);
+		}
+	})).then([host](concurrency::task<void> t) {
+		try {
+			t.get();
+		} catch (...) {
+		}
+		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, ref new Windows::UI::Core::DispatchedHandler([host]() {
+			host->WolPolling = false;
+		}));
+	});
 }
 
 LunarPhaseControl^ HostSelectorPage::FindLunarControl(Windows::UI::Xaml::DependencyObject^ root)
@@ -915,7 +921,9 @@ void HostSelectorPage::UpdateAllMoonPhases(bool animated, int attempts)
 				int side = dist < 0 ? 1 : dist > 0 ? -1 : 0;
 				ctrl->UpdatePhase(fillAmount, side, animated);
 				ctrl->SetSelected(i == (unsigned int)selectedIdx, animated);
-			} catch (...) {}
+			} catch (...) {
+				Utils::Logf("HostSelectorPage: UpdateAllMoonPhases failed for item %u", i);
+			}
 		}
 		if (anyMissing && attempts > 0) {
 			Platform::WeakReference weakThis(this);
@@ -933,6 +941,70 @@ void HostSelectorPage::UpdateAllMoonPhases(bool animated, int attempts)
 	} catch (...) {}
 }
 
+// Full connectivity probe (3s per-address timeout, tries every resolved address, measures RTT)
+// for the "Test Connection" diagnostic dialog — distinct from TryQuickTcpConnect's fail-fast check.
+static std::string ProbeHostConnection(const std::string& hostOnly)
+{
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) return "WSAStartup failed";
+
+	struct addrinfo hints;
+	struct addrinfo *res = nullptr;
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
+	if (gai != 0) {
+		WSACleanup();
+		return std::string("DNS lookup failed: ") + std::to_string(gai);
+	}
+
+	bool ok = false;
+	double bestRttMs = -1.0;
+	for (struct addrinfo *p = res; p != nullptr; p = p->ai_next) {
+		SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+		if (s == INVALID_SOCKET) continue;
+		u_long mode = 1;
+		ioctlsocket(s, FIONBIO, &mode);
+
+		using namespace std::chrono;
+		auto start = high_resolution_clock::now();
+		int rc = connect(s, p->ai_addr, (int)p->ai_addrlen);
+		if (rc == 0) {
+			auto end = high_resolution_clock::now();
+			double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+			if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
+			ok = true;
+			closesocket(s);
+			break;
+		}
+		fd_set writeSet;
+		FD_ZERO(&writeSet);
+		FD_SET(s, &writeSet);
+		timeval tv; tv.tv_sec = 3; tv.tv_usec = 0;
+		int sel = select(0, NULL, &writeSet, NULL, &tv);
+		if (sel > 0 && FD_ISSET(s, &writeSet)) {
+			auto end = high_resolution_clock::now();
+			double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+			if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
+			ok = true;
+			closesocket(s);
+			break;
+		}
+		closesocket(s);
+	}
+	freeaddrinfo(res);
+	WSACleanup();
+
+	if (!ok) return "Connection failed";
+	if (bestRttMs < 0) return "Connection OK";
+	char buf[64];
+	snprintf(buf, sizeof(buf), "Connection OK (RTT: %.1f ms)", bestRttMs);
+	return buf;
+}
+
 void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Windows::UI::Xaml::RoutedEventArgs ^ e) {
 	if (currentHost == nullptr) return;
 
@@ -942,71 +1014,7 @@ void HostSelectorPage::testConnectionButton_Click(Platform::Object ^ sender, Win
 
 	Platform::WeakReference weakThis(this);
 	concurrency::create_task([hostOnly, weakThis]() {
-		WSADATA wsaData;
-		std::string resultMsg = "Unknown";
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-			resultMsg = "WSAStartup failed";
-		} else {
-			struct addrinfo hints;
-			struct addrinfo *res = nullptr;
-			ZeroMemory(&hints, sizeof(hints));
-			hints.ai_family = AF_UNSPEC;
-			hints.ai_socktype = SOCK_STREAM;
-			hints.ai_protocol = IPPROTO_TCP;
-
-			int gai = getaddrinfo(hostOnly.c_str(), "47989", &hints, &res);
-			if (gai != 0) {
-				resultMsg = std::string("DNS lookup failed: ") + std::to_string(gai);
-			} else {
-				bool ok = false;
-				double bestRttMs = -1.0;
-				for (struct addrinfo *p = res; p != nullptr; p = p->ai_next) {
-					SOCKET s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-					if (s == INVALID_SOCKET) continue;
-					u_long mode = 1;
-					ioctlsocket(s, FIONBIO, &mode);
-
-					using namespace std::chrono;
-					auto start = high_resolution_clock::now();
-					int rc = connect(s, p->ai_addr, (int)p->ai_addrlen);
-					if (rc == 0) {
-						auto end = high_resolution_clock::now();
-						double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
-						if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
-						ok = true;
-						closesocket(s);
-						break;
-					}
-					fd_set writeSet;
-					FD_ZERO(&writeSet);
-					FD_SET(s, &writeSet);
-                    timeval tv; tv.tv_sec = 3; tv.tv_usec = 0;
-					int sel = select(0, NULL, &writeSet, NULL, &tv);
-					if (sel > 0 && FD_ISSET(s, &writeSet)) {
-						auto end = high_resolution_clock::now();
-						double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
-						if (bestRttMs < 0 || ms < bestRttMs) bestRttMs = ms;
-						ok = true;
-						closesocket(s);
-						break;
-					}
-					closesocket(s);
-				}
-				freeaddrinfo(res);
-				if (ok) {
-					if (bestRttMs >= 0) {
-						char buf[64];
-						snprintf(buf, sizeof(buf), "Connection OK (RTT: %.1f ms)", bestRttMs);
-						resultMsg = buf;
-					} else {
-						resultMsg = "Connection OK";
-					}
-				} else {
-					resultMsg = "Connection failed";
-				}
-			}
-			WSACleanup();
-		}
+		std::string resultMsg = ProbeHostConnection(hostOnly);
 
 		Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([resultMsg, hostOnly, weakThis]() {
 			auto dialog = ref new TestConnectionResultDialog();

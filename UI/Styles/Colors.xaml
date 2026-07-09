@@ -2,7 +2,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Fallback theme resources used at compile time -->
     <SolidColorBrush x:Key="ButtonBackgroundColor" Color="Transparent"/>
     <SolidColorBrush x:Key="ButtonForegroundColor" Color="#777"/>
     <SolidColorBrush x:Key="ButtonBackgroundFocusColor" Color="#11FFFFFF"/>
