@@ -260,12 +260,14 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	}
 	config.colorRange = this->IsRGBFull() ? COLOR_RANGE_FULL : COLOR_RANGE_LIMITED;
 	config.colorSpace = COLORSPACE_REC_601;
-	config.encryptionFlags = 0;
+	config.encryptionFlags = ENCFLG_AUDIO;
 	config.packetSize = 1024;
 	config.supportedVideoFormats = VIDEO_FORMAT_H264;
 	if (!IsXboxOneVCR()) {
 		config.supportedVideoFormats |= VIDEO_FORMAT_H265;
-		config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+		if (sConfig->enableHDR) {
+			config.supportedVideoFormats |= VIDEO_FORMAT_H265_MAIN10;
+		}
 	}
 
 	config.audioConfiguration = AUDIO_CONFIGURATION_STEREO;
@@ -318,9 +320,14 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	DECODER_RENDERER_CALLBACKS rCallbacks = FFMpegDecoder::getDecoder();
 
 	AUDIO_RENDERER_CALLBACKS aCallbacks = AudioPlayer::getDecoder();
+	m_stageFailureReported.store(false);
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 	sprintf(message, "LiStartConnection %d\n", k);
 	MLOG(Utils::LogLevel::Debug, message);
+
+	if (k != 0 && !m_stageFailureReported.load() && this->OnFailed != nullptr) {
+		this->OnFailed(0, k, "Connection failed");
+	}
 
 	if (k == 0 && sConfig->enableAutoBitrate) {
 		m_abrSupportState = AbrSupportState::Unknown;
@@ -434,6 +441,7 @@ void stage_failed(int stage, int err) {
 	LiStringifyPortFlags(portFlags, ", ", failingPorts, sizeof(failingPorts));
 	sprintf(message, "%s failed with error %d.\n Check Firewall and Connections to port: %s\n", LiGetStageName(stage), err, failingPorts);
 	MLOG(Utils::LogLevel::Error, message);
+	connectedInstance->SetStageFailureReported();
 	if (connectedInstance->OnFailed != nullptr) {
 		connectedInstance->OnFailed(stage, err, message);
 	}
@@ -508,6 +516,10 @@ bool MoonlightClient::IsConnectionTerminated() {
 
 void MoonlightClient::SetConnectionTerminated() {
 	m_connectionTerminated.store(true);
+}
+
+void MoonlightClient::SetStageFailureReported() {
+	m_stageFailureReported.store(true);
 }
 
 bool MoonlightClient::IsPaired() {
