@@ -189,6 +189,9 @@
     <Page Include="UI\Modals\AppActionsDialog.xaml">
       <Filter>UI\Modals</Filter>
     </Page>
+    <Page Include="UI\Modals\PictureModal.xaml">
+      <Filter>UI\Modals</Filter>
+    </Page>
     <Page Include="UI\Pages\AppPage\AppPage.Resources.xaml">
       <Filter>UI\Pages\AppPage</Filter>
     </Page>
@@ -593,6 +596,9 @@
     <ClCompile Include="State\BandwidthTracker.cpp">
       <Filter>State</Filter>
     </ClCompile>
+    <ClCompile Include="State\AutoBitrateController.cpp">
+      <Filter>State</Filter>
+    </ClCompile>
     <ClCompile Include="State\MoonlightClient.cpp">
       <Filter>State</Filter>
     </ClCompile>
@@ -651,6 +657,9 @@
       <Filter>UI\Pages\AppPage</Filter>
     </ClCompile>
     <ClCompile Include="UI\Modals\AppActionsDialog.xaml.cpp">
+      <Filter>UI\Modals</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Modals\PictureModal.xaml.cpp">
       <Filter>UI\Modals</Filter>
     </ClCompile>
     <ClCompile Include="UI\Pages\AppPage\AppPage.Selection.cpp">
@@ -802,6 +811,9 @@
     <ClInclude Include="State\BandwidthTracker.h">
       <Filter>State</Filter>
     </ClInclude>
+    <ClInclude Include="State\AutoBitrateController.h">
+      <Filter>State</Filter>
+    </ClInclude>
     <ClInclude Include="State\GamepadState.h">
       <Filter>State</Filter>
     </ClInclude>
@@ -872,6 +884,9 @@
       <Filter>UI\Pages\AppPage</Filter>
     </ClInclude>
     <ClInclude Include="UI\Modals\AppActionsDialog.xaml.h">
+      <Filter>UI\Modals</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Modals\PictureModal.xaml.h">
       <Filter>UI\Modals</Filter>
     </ClInclude>
     <ClInclude Include="UI\Pages\HostSelectorPage.xaml.h">

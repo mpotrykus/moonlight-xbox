@@ -48,6 +48,15 @@ typedef struct _VIDEO_STATS {
 	double measurementStartTimestamp;
 } VIDEO_STATS, *PVIDEO_STATS;
 
+typedef struct _NETWORK_CONDITION_SNAPSHOT {
+	double lossPercent;    // frames dropped by the network connection, % over the last completed ~1s window
+	double jitterPercent;  // frames dropped due to pacer/jitter, % over the same window
+	uint32_t rttMs;
+	uint32_t rttVarianceMs;
+	double avgMbps;
+	double measurementTimestamp; // StepTimer seconds at the start of the window this snapshot reflects
+} NETWORK_CONDITION_SNAPSHOT;
+
 namespace moonlight_xbox_dx
 {
 	class Stats
@@ -64,6 +73,10 @@ namespace moonlight_xbox_dx
 		void SubmitPacerTime(int64_t pacerTimeQpc);
 		void SubmitPresentPacing(double presentDisplayMs);
 		void SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double presentTimeMs, bool hitDeadline);
+
+		// Thread-safe snapshot of the last completed measurement window, for consumers
+		// (e.g. AutoBitrateController) that need network conditions without touching the OSD text path.
+		NETWORK_CONDITION_SNAPSHOT GetLastWindowSnapshot();
 
 	private:
 		void addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst);

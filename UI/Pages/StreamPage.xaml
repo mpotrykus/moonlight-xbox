@@ -145,31 +145,35 @@
             </DoubleAnimation>
         </Storyboard>
 
-        <!-- Sub-menu: animate bottom-up (Pacing first, Guides last) on show -->
+        <!-- Sub-menu: animate bottom-up (Pacing+Reset first, Guides last) on show -->
         <Storyboard x:Name="SubMenuShowStoryboard">
             <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0"/>
-            <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.04">
+            <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.04"/>
-            <DoubleAnimation Storyboard.TargetName="ToggleHDRMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.08">
+            <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0"/>
+            <DoubleAnimation Storyboard.TargetName="ToggleHDRMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.04">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="ToggleHDRMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.08"/>
-            <DoubleAnimation Storyboard.TargetName="GuideShortMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.12">
+            <DoubleAnimation Storyboard.TargetName="ToggleHDRMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.04"/>
+            <DoubleAnimation Storyboard.TargetName="pictureActionsButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.04">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="GuideShortMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.12"/>
-            <DoubleAnimation Storyboard.TargetName="GuideLongMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.12">
+            <DoubleAnimation Storyboard.TargetName="pictureActionsButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.04"/>
+            <DoubleAnimation Storyboard.TargetName="GuideShortMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.08">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="GuideLongMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.12"/>
+            <DoubleAnimation Storyboard.TargetName="GuideShortMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.08"/>
+            <DoubleAnimation Storyboard.TargetName="GuideLongMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="80" To="0" Duration="0:0:0.26" BeginTime="0:0:0.08">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="GuideLongMenuButton" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.18" BeginTime="0:0:0.08"/>
         </Storyboard>
 
-        <!-- Sub-menu: animate top-down (Guides first, Pacing last) on hide -->
+        <!-- Sub-menu: animate top-down (Guides first, Pacing+Reset last) on hide -->
         <Storyboard x:Name="SubMenuHideStoryboard" Completed="SubMenuHideStoryboard_Completed">
             <DoubleAnimation Storyboard.TargetName="GuideShortMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
@@ -183,15 +187,20 @@
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="ToggleHDRMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.04"/>
+            <DoubleAnimation Storyboard.TargetName="pictureActionsButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.04">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="pictureActionsButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.04"/>
             <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.08">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="ResetDecoderMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.08"/>
-            <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.12">
+            <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="0" To="80" Duration="0:0:0.22" BeginTime="0:0:0.08">
                 <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn"/></DoubleAnimation.EasingFunction>
             </DoubleAnimation>
-            <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.12"/>
+            <DoubleAnimation Storyboard.TargetName="FramePacingMenuButton" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.16" BeginTime="0:0:0.08"/>
         </Storyboard>
+
     </Page.Resources>
 
     <Grid>
@@ -237,7 +246,6 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <!-- Row 0: Guide Short + Guide Long side by side (col 4 and 5) -->
@@ -261,7 +269,7 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Row 1: Toggle HDR -->
+                    <!-- Row 1: Toggle HDR + Picture side by side (col 4 and 5) -->
                     <Button x:Name="ToggleHDRMenuButton" Grid.Row="1" Grid.Column="4"
                             Style="{StaticResource StreamActionButtonStyle}" Click="toggleHDR_WinAltB_Click" Opacity="0"
                             GotFocus="SubMenuButton_GotFocus" LostFocus="SubMenuButton_LostFocus" Margin="0,0,0,8">
@@ -272,25 +280,35 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Row 2: Reset Decoder -->
-                    <Button x:Name="ResetDecoderMenuButton" Grid.Row="2" Grid.Column="4"
-                            Style="{StaticResource StreamActionButtonStyle}" Click="resetDecoder_Click" Opacity="0"
+                    <!-- Picture button: click to reveal picture-adjustment sub-menu above (focus alone does not open it) -->
+                    <Button x:Name="pictureActionsButton" Grid.Row="1" Grid.Column="5"
+                            Style="{StaticResource StreamActionButtonStyle}" Click="pictureButton_Click" Opacity="0"
                             GotFocus="SubMenuButton_GotFocus" LostFocus="SubMenuButton_LostFocus" Margin="0,0,0,8">
                         <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                         <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <FontIcon Glyph="&#xE72C;" FontSize="24" HorizontalAlignment="Center" />
-                            <TextBlock Text="Reset Decoder" TextAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+                            <FontIcon Glyph="&#xE793;" FontSize="24" HorizontalAlignment="Center" />
+                            <TextBlock Text="Picture" TextAlignment="Center" FontSize="12" />
                         </StackPanel>
                     </Button>
 
-                    <!-- Row 3: Frame Pacing (closest to Other button, animates first) -->
-                    <Button x:Name="FramePacingMenuButton" Grid.Row="3" Grid.Column="4"
+                    <!-- Row 2: Frame Pacing + Reset Decoder side by side (closest to Other button, animates first) -->
+                    <Button x:Name="FramePacingMenuButton" Grid.Row="2" Grid.Column="4"
                             Style="{StaticResource StreamActionButtonStyle}" Click="toggleFramePacing_Click" Opacity="0"
                             GotFocus="SubMenuButton_GotFocus" LostFocus="SubMenuButton_LostFocus">
                         <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
                         <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <FontIcon Glyph="&#xE8B9;" FontSize="24" HorizontalAlignment="Center" />
                             <TextBlock Text="Switch frame pacing mode" TextAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button x:Name="ResetDecoderMenuButton" Grid.Row="2" Grid.Column="5"
+                            Style="{StaticResource StreamActionButtonStyle}" Click="resetDecoder_Click" Opacity="0"
+                            GotFocus="SubMenuButton_GotFocus" LostFocus="SubMenuButton_LostFocus">
+                        <Button.RenderTransform><TranslateTransform/></Button.RenderTransform>
+                        <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <FontIcon Glyph="&#xE72C;" FontSize="24" HorizontalAlignment="Center" />
+                            <TextBlock Text="Reset Decoder" TextAlignment="Center" FontSize="12" TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
                 </Grid>
@@ -355,6 +373,10 @@
                 </Button>
             </Grid>
         </SwapChainPanel>
+
+        <!-- Picture modal: standalone overlay, opened by clicking Picture in the Other sub-menu. -->
+        <local:PictureModal x:Name="PictureModalControl" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
         <Grid x:Name="ProgressView" Background="{ThemeResource ThemeBackgroundColor}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
             <Border x:Name="PageBackgroundImage"
                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch"

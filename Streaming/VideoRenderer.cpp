@@ -39,14 +39,21 @@ typedef struct _CSC_CONST_BUF
 	// YUV offset values
 	float offsets[OFFSETS_ELEMENT_COUNT];
 
-	// Padding float to end 16-byte boundary
-	float padding;
+	// Contrast multiplier (1.0 = neutral); occupies the padding float needed
+	// to end the offsets vector on a 16-byte boundary
+	float contrast;
 
 	// Chroma offset values
 	float chromaOffset[2];
 
 	// Max UV coordinates to avoid sampling alignment padding
 	float chromaUVMax[2];
+
+	// Remaining picture adjustment settings, packed into their own 16-byte register
+	float blackLevel;
+	float whiteLevel;
+	float gamma;
+	float saturation;
 } CSC_CONST_BUF, * PCSC_CONST_BUF;
 static_assert(sizeof(CSC_CONST_BUF) % 16 == 0, "Constant buffer sizes must be a multiple of 16");
 
@@ -60,6 +67,11 @@ VideoRenderer::VideoRenderer(const std::shared_ptr<DX::DeviceResources>& deviceR
 	configuration(sConfig)
 {
 	ZeroMemory(&m_lastHdr10, sizeof(DXGI_HDR_METADATA_HDR10));
+	m_Contrast.store(configuration->contrast / 100.0f, std::memory_order_relaxed);
+	m_BlackLevel.store(configuration->blackLevel / 100.0f, std::memory_order_relaxed);
+	m_WhiteLevel.store(configuration->whiteLevel / 100.0f, std::memory_order_relaxed);
+	m_Gamma.store(configuration->gamma / 100.0f, std::memory_order_relaxed);
+	m_Saturation.store(configuration->saturation / 100.0f, std::memory_order_relaxed);
 
 	m_DecoderParams.width = configuration->width;
 	m_DecoderParams.height = configuration->height;
@@ -136,8 +148,11 @@ bool VideoRenderer::Render(AVFrame *frame) {
 	ctx->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 	ctx->PSSetShader(m_pixelShaderYUV420.Get(), nullptr, 0);
 
+	bool pictureSettingsDirty = m_PictureSettingsDirty.exchange(false, std::memory_order_acq_rel);
 	if (hasChanged) {
 		setupVertexBuffer(ffmpegDesc);
+	}
+	if (hasChanged || pictureSettingsDirty) {
 		bindColorConversion(frame, ffmpegDesc);
 	}
 
@@ -291,6 +306,28 @@ void VideoRenderer::CreateDeviceDependentResources()
         m_loadingComplete.store(true, std::memory_order_release);
         MLOG(Utils::LogLevel::Info, "Loading Complete!\n");
     }));
+}
+
+void VideoRenderer::ReconnectWithBitrate(int bitrateKbps) {
+	configuration->bitrate = bitrateKbps;
+	m_loadingSuccessful.store(false, std::memory_order_release);
+	m_loadingComplete.store(false, std::memory_order_release);
+
+	DISPATCH_THREADPOOL(([this, devRes = m_deviceResources, cfg = configuration] {
+		this->client->StopStreaming();
+
+		int status = this->client->StartStreaming(devRes, cfg);
+		if (status != 0) {
+			MLOGF(Utils::LogLevel::Error, "Bitrate reconnect StartStreaming failed with status %d\n", status);
+			m_loadingSuccessful.store(false, std::memory_order_release);
+			m_loadingComplete.store(true, std::memory_order_release);
+			return;
+		}
+
+		m_loadingSuccessful.store(true, std::memory_order_release);
+		m_loadingComplete.store(true, std::memory_order_release);
+		MLOG(Utils::LogLevel::Info, "Bitrate reconnect complete!\n");
+	}));
 }
 
 void VideoRenderer::ReleaseDeviceDependentResources()
@@ -629,6 +666,11 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 	getFramePremultipliedCscConstants(frame, cscMatrix, yuvOffsets);
 
 	std::copy(yuvOffsets.cbegin(), yuvOffsets.cend(), constBuf.offsets);
+	constBuf.contrast = m_Contrast.load(std::memory_order_acquire);
+	constBuf.blackLevel = m_BlackLevel.load(std::memory_order_acquire);
+	constBuf.whiteLevel = m_WhiteLevel.load(std::memory_order_acquire);
+	constBuf.gamma = m_Gamma.load(std::memory_order_acquire);
+	constBuf.saturation = m_Saturation.load(std::memory_order_acquire);
 
 	// We need to adjust our CSC matrix to be column-major and with float3 vectors
 	// padded with a float in between each of them to adhere to HLSL requirements.
@@ -661,6 +703,36 @@ void VideoRenderer::bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC fra
 				constBuf.chromaUVMax[0], constBuf.chromaUVMax[1]);
 
 	DX::ThrowIfFailed(m_deviceResources->GetD3DDevice()->CreateBuffer(&constDesc, &constData, &m_cscConstantBuffer));
+}
+
+void VideoRenderer::SetContrast(float value)
+{
+	m_Contrast.store(value, std::memory_order_release);
+	m_PictureSettingsDirty.store(true, std::memory_order_release);
+}
+
+void VideoRenderer::SetBlackLevel(float value)
+{
+	m_BlackLevel.store(value, std::memory_order_release);
+	m_PictureSettingsDirty.store(true, std::memory_order_release);
+}
+
+void VideoRenderer::SetWhiteLevel(float value)
+{
+	m_WhiteLevel.store(value, std::memory_order_release);
+	m_PictureSettingsDirty.store(true, std::memory_order_release);
+}
+
+void VideoRenderer::SetGamma(float value)
+{
+	m_Gamma.store(value, std::memory_order_release);
+	m_PictureSettingsDirty.store(true, std::memory_order_release);
+}
+
+void VideoRenderer::SetSaturation(float value)
+{
+	m_Saturation.store(value, std::memory_order_release);
+	m_PictureSettingsDirty.store(true, std::memory_order_release);
 }
 
 void VideoRenderer::SetHDR(bool enabled)

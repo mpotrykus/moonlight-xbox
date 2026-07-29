@@ -52,3 +52,15 @@ int gs_unpair(PSERVER_DATA server);
 int gs_pair(PSERVER_DATA server, char* pin);
 int gs_quit_app(PSERVER_DATA server);
 int gs_appasset(PSERVER_DATA server, const char *keyDirectory, int appId);
+
+// Probes for a vibeshine-class host's live bitrate renegotiation support.
+// On GS_OK, *json_out is a heap-allocated, null-terminated copy of the raw
+// JSON response body (caller must free()); hosts without the endpoint (stock
+// Sunshine/GFE/Apollo) simply fail this call (404), which callers should treat
+// as "live renegotiation unsupported".
+int gs_get_abr_capabilities(PSERVER_DATA server, char** json_out);
+
+// Applies a new encoder bitrate to the caller's active session in place, with
+// no RTSP renegotiation or decoder rebuild. Only supported by hosts that expose
+// gs_get_abr_capabilities' "runtime_bitrate" feature.
+int gs_set_bitrate(PSERVER_DATA server, int bitrateKbps);

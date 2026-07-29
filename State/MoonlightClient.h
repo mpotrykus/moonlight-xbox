@@ -15,6 +15,13 @@ extern "C" {
 typedef void(*MoonlightErrorCallback)(const char *msg);
 
 namespace moonlight_xbox_dx {
+
+    enum class AbrSupportState {
+        Unknown,
+        LiveSupported,
+        LiveUnsupported
+    };
+
     class MoonlightClient
     {
     public:
@@ -50,6 +57,14 @@ namespace moonlight_xbox_dx {
         Platform::String^ GetComputerName();
         Platform::String^ GetServerAddress();
         Platform::String^ GetServerMacAddress();
+        AbrSupportState GetAbrSupportState();
+        bool TrySetBitrateLive(int bitrateKbps);
+
+        // Blocking probe for live bitrate renegotiation support; safe to call any time
+        // serverData is connected (not just mid-stream). Updates GetAbrSupportState().
+        // Callers off the UI thread should dispatch this on a background task.
+        void CheckAbrLiveSupport();
+
         std::function<void(int)> OnStatusUpdate;
         std::function<void()> OnCompleted;
         std::function<void(bool)> SetHDR;
@@ -58,6 +73,7 @@ namespace moonlight_xbox_dx {
         std::function<void(unsigned short, unsigned short, unsigned short)> OnRumble;
         std::function<void(unsigned short, unsigned short, unsigned short)> OnTriggerRumble;
     private:
+        std::atomic<AbrSupportState> m_abrSupportState{ AbrSupportState::Unknown };
         SERVER_DATA serverData;
         char* connectionPin = NULL;
         char* hostname = NULL;

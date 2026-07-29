@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "StreamPage.xaml.h"
 #include "../Streaming/FFMpegDecoder.h"
+#include "State\MoonlightHost.h"
 #define MLOG_TAG_OVERRIDE "StreamPage"
 #include <Utils.hpp>
 #include <KeyboardControl.xaml.h>
@@ -45,6 +46,12 @@ StreamPage::StreamPage():
 	m_subMenuCloseTimer = ref new Windows::UI::Xaml::DispatcherTimer();
 	m_subMenuCloseTimer->Interval = Windows::Foundation::TimeSpan{ 1000000LL };
 	m_subMenuCloseTimer->Tick += ref new Windows::Foundation::EventHandler<Platform::Object^>(this, &StreamPage::OnSubMenuCloseTimer_Tick);
+
+	PictureModalControl->ContrastChanged += ref new PictureValueChangedHandler(this, &StreamPage::OnPictureContrastChanged);
+	PictureModalControl->BlackLevelChanged += ref new PictureValueChangedHandler(this, &StreamPage::OnPictureBlackLevelChanged);
+	PictureModalControl->WhiteLevelChanged += ref new PictureValueChangedHandler(this, &StreamPage::OnPictureWhiteLevelChanged);
+	PictureModalControl->GammaChanged += ref new PictureValueChangedHandler(this, &StreamPage::OnPictureGammaChanged);
+	PictureModalControl->SaturationChanged += ref new PictureValueChangedHandler(this, &StreamPage::OnPictureSaturationChanged);
 }
 
 void StreamPage::OnBackRequested(Platform::Object^ e,Windows::UI::Core::BackRequestedEventArgs^ args)
@@ -62,6 +69,10 @@ void StreamPage::Page_Loaded(Platform::Object ^ sender, Windows::UI::Xaml::Route
 	this->MenuHideStoryboard->Stop();
 	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 	InstantHideSubMenu();
+	InstantHidePictureModal();
+	if (configuration != nullptr && configuration->host != nullptr) {
+		this->PictureModalControl->SetValues(configuration->host->Contrast, configuration->host->BlackLevel, configuration->host->WhiteLevel, configuration->host->Gamma, configuration->host->Saturation);
+	}
 
 	if (m_backgroundImage != nullptr) {
 		StartBgPanAnimation();
@@ -161,11 +172,35 @@ void StreamPage::SetStreamMenuVisible(bool visible) {
 		this->FirstMenuButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
 	} else {
 		InstantHideSubMenu();
+		InstantHidePictureModal();
 		this->MenuShowStoryboard->Stop();
 		this->MenuHideStoryboard->Begin();
 
 	}
 	if (m_main) m_main->SetMenuVisible(visible);
+}
+
+bool StreamPage::HasOpenSubMenu() {
+	return m_subMenuVisible;
+}
+
+bool StreamPage::CloseOpenSubMenu() {
+	if (m_subMenuVisible) {
+		HideSubMenu();
+		this->otherActionsButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+		return true;
+	}
+	return false;
+}
+
+bool StreamPage::IsPictureModalVisible() {
+	return this->PictureModalControl->IsVisible;
+}
+
+bool StreamPage::ClosePictureModal() {
+	if (!this->PictureModalControl->IsVisible) return false;
+	HidePictureModal();
+	return true;
 }
 
 void StreamPage::MenuHideStoryboard_Completed(Platform::Object^ sender, Platform::Object^ e) {
@@ -219,6 +254,64 @@ void StreamPage::SubMenuButton_LostFocus(Platform::Object^ sender, Windows::UI::
 void StreamPage::OnSubMenuCloseTimer_Tick(Platform::Object^ sender, Platform::Object^ e) {
 	m_subMenuCloseTimer->Stop();
 	HideSubMenu();
+}
+
+void StreamPage::ShowPictureModal() {
+	if (this->PictureModalControl->IsVisible) return;
+	// Other's panel would otherwise be left open underneath the modal.
+	InstantHideSubMenu();
+	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	this->PictureModalControl->Show();
+}
+
+void StreamPage::HidePictureModal() {
+	if (!this->PictureModalControl->IsVisible) return;
+	this->PictureModalControl->Hide();
+	this->StreamMenuGrid->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	this->otherActionsButton->Focus(Windows::UI::Xaml::FocusState::Programmatic);
+}
+
+void StreamPage::InstantHidePictureModal() {
+	this->PictureModalControl->InstantHide();
+}
+
+void StreamPage::pictureButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	ShowPictureModal();
+}
+
+void StreamPage::OnPictureContrastChanged(PictureModal^ sender, int value) {
+	if (configuration == nullptr || configuration->host == nullptr) return;
+	configuration->host->Contrast = value;
+	GetApplicationState()->UpdateFile();
+	if (m_main) m_main->SetPictureContrast(value / 100.0f);
+}
+
+void StreamPage::OnPictureBlackLevelChanged(PictureModal^ sender, int value) {
+	if (configuration == nullptr || configuration->host == nullptr) return;
+	configuration->host->BlackLevel = value;
+	GetApplicationState()->UpdateFile();
+	if (m_main) m_main->SetPictureBlackLevel(value / 100.0f);
+}
+
+void StreamPage::OnPictureWhiteLevelChanged(PictureModal^ sender, int value) {
+	if (configuration == nullptr || configuration->host == nullptr) return;
+	configuration->host->WhiteLevel = value;
+	GetApplicationState()->UpdateFile();
+	if (m_main) m_main->SetPictureWhiteLevel(value / 100.0f);
+}
+
+void StreamPage::OnPictureGammaChanged(PictureModal^ sender, int value) {
+	if (configuration == nullptr || configuration->host == nullptr) return;
+	configuration->host->Gamma = value;
+	GetApplicationState()->UpdateFile();
+	if (m_main) m_main->SetPictureGamma(value / 100.0f);
+}
+
+void StreamPage::OnPictureSaturationChanged(PictureModal^ sender, int value) {
+	if (configuration == nullptr || configuration->host == nullptr) return;
+	configuration->host->Saturation = value;
+	GetApplicationState()->UpdateFile();
+	if (m_main) m_main->SetPictureSaturation(value / 100.0f);
 }
 
 void StreamPage::toggleMouseButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e)

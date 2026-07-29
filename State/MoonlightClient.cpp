@@ -17,6 +17,8 @@ extern "C" {
 #include <unordered_set>
 #include <gamingdeviceinformation.h>
 #include "Streaming\FFMpegDecoder.h"
+#include <nlohmann/json.hpp>
+#include <ppltasks.h>
 
 using namespace moonlight_xbox_dx;
 using namespace Windows::Gaming::Input;
@@ -319,11 +321,62 @@ int MoonlightClient::StartStreaming(std::shared_ptr<DX::DeviceResources> res, St
 	int k = LiStartConnection(&serverData.serverInfo, &config, &callbacks, &rCallbacks, &aCallbacks, NULL, 0, NULL, 0);
 	sprintf(message, "LiStartConnection %d\n", k);
 	MLOG(Utils::LogLevel::Debug, message);
+
+	if (k == 0 && sConfig->enableAutoBitrate) {
+		m_abrSupportState = AbrSupportState::Unknown;
+		concurrency::create_task([this]() {
+			this->CheckAbrLiveSupport();
+		});
+	}
+
 	return k;
 }
 
 void MoonlightClient::StopStreaming() {
 	LiStopConnection();
+}
+
+// Probes the connected host for vibeshine-class live bitrate renegotiation
+// support. Runs on a background task (blocking HTTPS call) kicked off from
+// StartStreaming; AutoBitrateController polls GetAbrSupportState() rather than
+// blocking on this directly.
+void MoonlightClient::CheckAbrLiveSupport() {
+	char* json = nullptr;
+	int ret = gs_get_abr_capabilities(&serverData, &json);
+	if (ret != GS_OK || json == nullptr) {
+		if (json) free(json);
+		MLOGF(Utils::LogLevel::Info, "CheckAbrLiveSupport: /api/abr/capabilities request failed (ret=%d), assuming unsupported\n", ret);
+		m_abrSupportState = AbrSupportState::LiveUnsupported;
+		return;
+	}
+
+	bool supported = false;
+	try {
+		nlohmann::json parsed = nlohmann::json::parse(json);
+		if (parsed.contains("features") && parsed["features"].is_array()) {
+			for (auto& feature : parsed["features"]) {
+				if (feature.is_string() && feature.get<std::string>() == "runtime_bitrate") {
+					supported = true;
+					break;
+				}
+			}
+		}
+	} catch (...) {
+		supported = false;
+	}
+
+	MLOGF(Utils::LogLevel::Info, "CheckAbrLiveSupport: response=%s -> %s\n", json, supported ? "LiveSupported" : "LiveUnsupported");
+
+	free(json);
+	m_abrSupportState = supported ? AbrSupportState::LiveSupported : AbrSupportState::LiveUnsupported;
+}
+
+AbrSupportState MoonlightClient::GetAbrSupportState() {
+	return m_abrSupportState.load();
+}
+
+bool MoonlightClient::TrySetBitrateLive(int bitrateKbps) {
+	return gs_set_bitrate(&serverData, bitrateKbps) == GS_OK;
 }
 
 void log_message(const char *fmt, ...) {

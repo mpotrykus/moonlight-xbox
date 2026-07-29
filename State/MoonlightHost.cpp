@@ -43,6 +43,14 @@ namespace moonlight_xbox_dx {
 		return client->Connect(ipAddressStr);
 	}
 
+	bool MoonlightHost::CheckAbrSupport() {
+		if (this->Connect() != 0) {
+			return false;
+		}
+		client->CheckAbrLiveSupport();
+		return client->GetAbrSupportState() == AbrSupportState::LiveSupported;
+	}
+
 	void MoonlightHost::UpdateApps() {
 	    auto apps = client->GetApplications();
 	    Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::High, ref new Windows::UI::Core::DispatchedHandler([this, apps]() {

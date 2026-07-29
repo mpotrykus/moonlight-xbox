@@ -5,6 +5,7 @@
 #include "Streaming\VideoRenderer.h"
 #include "Streaming\LogRenderer.h"
 #include "Streaming\StatsRenderer.h"
+#include "State\AutoBitrateController.h"
 #include "UI\Pages\StreamPage.xaml.h"
 
 // Xbox supports 8 controllers, this ought to be enough for anyone.
@@ -38,6 +39,12 @@ namespace moonlight_xbox_dx
 		void SendWinAltB();
 		bool ToggleLogs();
 		bool ToggleStats();
+		void SetPictureContrast(float value);
+		void SetPictureBlackLevel(float value);
+		void SetPictureWhiteLevel(float value);
+		void SetPictureGamma(float value);
+		void SetPictureSaturation(float value);
+		void ReconnectWithBitrate(int bitrateKbps);
 
 		bool mouseMode = false;
 
@@ -56,6 +63,7 @@ namespace moonlight_xbox_dx
 		std::unique_ptr<StatsRenderer> m_statsTextRenderer;
 
 		std::shared_ptr<Stats>         m_stats;
+		std::unique_ptr<AutoBitrateController> m_autoBitrate;
 
 		Windows::Foundation::IAsyncAction^ m_renderLoopWorker;
 		Windows::Foundation::IAsyncAction^ m_inputLoopWorker;

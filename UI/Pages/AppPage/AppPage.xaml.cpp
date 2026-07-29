@@ -950,11 +950,13 @@ void AppPage::AppsGrid_ItemClick(Platform::Object ^ sender, ItemClickEventArgs ^
 
 void AppPage::Connect(int appId) {
 	StreamConfiguration ^ config = ref new StreamConfiguration();
+	config->host = host;
 	config->hostname = host->LastHostname;
 	config->appID = appId;
 	config->width = host->Resolution->Width;
 	config->height = host->Resolution->Height;
 	config->bitrate = host->Bitrate;
+	config->enableAutoBitrate = host->AutoBitrate;
 	config->FPS = host->FPS;
 	config->audioConfig = host->AudioConfig;
 	config->videoCodec = host->VideoCodec;
@@ -963,6 +965,11 @@ void AppPage::Connect(int appId) {
 	config->enableSOPS = host->EnableSOPS;
 	config->enableStats = host->EnableStats;
 	config->enableGraphs = host->EnableGraphs;
+	config->contrast = host->Contrast;
+	config->blackLevel = host->BlackLevel;
+	config->whiteLevel = host->WhiteLevel;
+	config->gamma = host->Gamma;
+	config->saturation = host->Saturation;
 	if (config->enableHDR) host->VideoCodec = "HEVC (H.265)";
 	config->backgroundImage = (this->currentApp != nullptr) ? this->currentApp->BlurredImage : nullptr;
 	config->appName = (this->currentApp != nullptr) ? this->currentApp->Name : nullptr;

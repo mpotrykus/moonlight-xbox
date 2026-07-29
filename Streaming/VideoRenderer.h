@@ -45,8 +45,20 @@ namespace moonlight_xbox_dx
 		bool Render(AVFrame* frame);
 		void bindColorConversion(AVFrame* frame, D3D11_TEXTURE2D_DESC frameDesc);
 		void SetHDR(bool enabled);
+		void SetContrast(float value);
+		void SetBlackLevel(float value);
+		void SetWhiteLevel(float value);
+		void SetGamma(float value);
+		void SetSaturation(float value);
 		void Stop();
 		ID3D11Texture2D* GenerateTexture();
+
+		// Reconnects at a new bitrate: stops the current connection and re-runs
+		// MoonlightClient::StartStreaming (which internally redoes Connect()->gs_init->gs_start_app,
+		// hitting /resume since the host session is still alive) without recreating D3D
+		// device-dependent resources. Updates the same loading flags as the initial connect,
+		// so callers can reuse the existing IsLoadingComplete()/IsLoadingSuccessful() poll.
+		void ReconnectWithBitrate(int bitrateKbps);
 
 
 	private:
@@ -77,6 +89,14 @@ namespace moonlight_xbox_dx
 		DXGI_HDR_METADATA_HDR10 m_lastHdr10;
 		std::atomic<bool> m_loadingComplete;
 	    std::atomic<bool> m_loadingSuccessful;
+
+		// Picture adjustment settings, written from the UI thread and picked up by the render thread
+		std::atomic<float> m_Contrast{ 1.0f };
+		std::atomic<float> m_BlackLevel{ 0.0f };
+		std::atomic<float> m_WhiteLevel{ 1.0f };
+		std::atomic<float> m_Gamma{ 1.0f };
+		std::atomic<float> m_Saturation{ 1.0f };
+		std::atomic<bool> m_PictureSettingsDirty{ true };
 		MoonlightClient *client;
 		StreamConfiguration^ configuration;
 

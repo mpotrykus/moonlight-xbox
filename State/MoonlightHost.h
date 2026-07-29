@@ -35,7 +35,13 @@ namespace moonlight_xbox_dx {
         Platform::String^ videoCodec = "H.265";
         Platform::String^ audioConfig = "Stereo";
         Platform::String^ framePacing = "";
+        int contrast = 100;
+        int blackLevel = 0;
+        int whiteLevel = 100;
+        int gamma = 100;
+        int saturation = 100;
         bool enableHDR = false;
+        bool autoBitrate = false;
         bool enableSOPS = false;
         bool enableStats = false;
         bool enableGraphs = true;
@@ -51,6 +57,9 @@ namespace moonlight_xbox_dx {
 
         void UpdateHostInfo(bool showLoading);
         int Connect();
+        // true if the host supports live bitrate renegotiation (vibeshine-class hosts);
+        // false if unsupported OR the connection/probe failed.
+        bool CheckAbrSupport();
         void Unpair();
         void UpdateApps();
     void UpdateAppRunningStates();
@@ -291,12 +300,66 @@ namespace moonlight_xbox_dx {
             }
         }
 
+        property int Contrast
+        {
+            int get() { return this->contrast; }
+            void set(int value) {
+                this->contrast = value;
+                OnPropertyChanged("Contrast");
+            }
+        }
+
+        property int BlackLevel
+        {
+            int get() { return this->blackLevel; }
+            void set(int value) {
+                this->blackLevel = value;
+                OnPropertyChanged("BlackLevel");
+            }
+        }
+
+        property int WhiteLevel
+        {
+            int get() { return this->whiteLevel; }
+            void set(int value) {
+                this->whiteLevel = value;
+                OnPropertyChanged("WhiteLevel");
+            }
+        }
+
+        property int Gamma
+        {
+            int get() { return this->gamma; }
+            void set(int value) {
+                this->gamma = value;
+                OnPropertyChanged("Gamma");
+            }
+        }
+
+        property int Saturation
+        {
+            int get() { return this->saturation; }
+            void set(int value) {
+                this->saturation = value;
+                OnPropertyChanged("Saturation");
+            }
+        }
+
         property bool EnableHDR
         {
             bool get() { return this->enableHDR; }
             void set(bool value) {
                 this->enableHDR = value;
                 OnPropertyChanged("EnableHDR");
+            }
+        }
+
+        property bool AutoBitrate
+        {
+            bool get() { return this->autoBitrate; }
+            void set(bool value) {
+                this->autoBitrate = value;
+                OnPropertyChanged("AutoBitrate");
             }
         }
 

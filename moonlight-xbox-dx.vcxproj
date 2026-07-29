@@ -375,6 +375,9 @@
     <ClInclude Include="UI\Modals\HostActionsDialog.xaml.h">
       <DependentUpon>UI\Modals\HostActionsDialog.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="UI\Modals\PictureModal.xaml.h">
+      <DependentUpon>UI\Modals\PictureModal.xaml</DependentUpon>
+    </ClInclude>
     <ClInclude Include="UI\Modals\TestConnectionResultDialog.xaml.h">
       <DependentUpon>UI\Modals\TestConnectionResultDialog.xaml</DependentUpon>
     </ClInclude>
@@ -397,6 +400,7 @@
     <ClInclude Include="State\MoonlightClient.h" />
     <ClInclude Include="State\MoonlightHostView.h" />
     <ClInclude Include="State\Stats.h" />
+    <ClInclude Include="State\AutoBitrateController.h" />
     <ClInclude Include="State\StreamConfiguration.h" />
     <ClInclude Include="Common\DeviceResources.h" />
     <ClInclude Include="Common\DirectXHelper.h" />
@@ -638,6 +642,9 @@
     <ClCompile Include="UI\Modals\HostActionsDialog.xaml.cpp">
       <DependentUpon>UI\Modals\HostActionsDialog.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="UI\Modals\PictureModal.xaml.cpp">
+      <DependentUpon>UI\Modals\PictureModal.xaml</DependentUpon>
+    </ClCompile>
     <ClCompile Include="UI\Modals\TestConnectionResultDialog.xaml.cpp">
       <DependentUpon>UI\Modals\TestConnectionResultDialog.xaml</DependentUpon>
     </ClCompile>
@@ -657,6 +664,7 @@
     <ClCompile Include="State\BandwidthTracker.cpp" />
     <ClCompile Include="State\MoonlightClient.cpp" />
     <ClCompile Include="State\Stats.cpp" />
+    <ClCompile Include="State\AutoBitrateController.cpp" />
     <ClCompile Include="State\StreamConfiguration.cpp" />
     <ClCompile Include="Common\DeviceResources.cpp" />
     <ClCompile Include="UI\Utilities\EffectsLibrary.cpp" />
@@ -853,6 +861,7 @@
     </Page>
     <Page Include="UI\Modals\AddHostDialog.xaml" />
     <Page Include="UI\Modals\HostActionsDialog.xaml" />
+    <Page Include="UI\Modals\PictureModal.xaml" />
     <Page Include="UI\Modals\TestConnectionResultDialog.xaml" />
     <Page Include="UI\Modals\AlertDialog.xaml" />
     <Page Include="UI\Modals\PairDialog.xaml" />

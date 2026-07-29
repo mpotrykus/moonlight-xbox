@@ -167,6 +167,11 @@ void HostSettingsPage::OnNavigatedTo(Windows::UI::Xaml::Navigation::NavigationEv
 			HDR4KNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
 		}
 	}
+
+	UpdateAutoBitrateUI();
+	if (host->AutoBitrate) {
+		CheckAbrSupportAndUpdateWarning();
+	}
 }
 
 void HostSettingsPage::OnNavigatedFrom(Windows::UI::Xaml::Navigation::NavigationEventArgs^ e) {
@@ -293,6 +298,43 @@ void HostSettingsPage::BitrateInput_KeyDown(Platform::Object^ sender, Windows::U
 {
 	if (e->Key == Windows::System::VirtualKey::Enter) {
 		CoreInputView::GetForCurrentView()->TryHide();
+	}
+}
+
+// The Bitrate slider stays interactive with Auto Bitrate on -- it becomes the
+// auto-adjuster's ceiling rather than a fixed target, so we just note that instead
+// of disabling it.
+void HostSettingsPage::UpdateAutoBitrateUI() {
+	bool autoEnabled = host->AutoBitrate;
+	BitrateCeilingNote->Visibility = autoEnabled ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed;
+	if (!autoEnabled) {
+		AutoBitrateWarningNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+	}
+}
+
+// Pings the host for live bitrate renegotiation support (vibeshine-class hosts only);
+// shows a warning if it's absent, since Auto Bitrate will fall back to a ~1-2s reconnect
+// on every adjustment instead of a seamless live change.
+void HostSettingsPage::CheckAbrSupportAndUpdateWarning() {
+	MoonlightHost^ hostRef = host;
+	concurrency::create_task([hostRef]() {
+		return hostRef->CheckAbrSupport();
+	}).then([this, hostRef](bool liveSupported) {
+		DISPATCH_UI(([this, hostRef, liveSupported]() {
+			// Re-check AutoBitrate: the user may have toggled it off while the ping was in flight.
+			if (hostRef->AutoBitrate && !liveSupported) {
+				AutoBitrateWarningNote->Visibility = Windows::UI::Xaml::Visibility::Visible;
+			} else {
+				AutoBitrateWarningNote->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+			}
+		}));
+	});
+}
+
+void HostSettingsPage::AutoBitrateCheckbox_Toggled(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e) {
+	UpdateAutoBitrateUI();
+	if (host->AutoBitrate) {
+		CheckAbrSupportAndUpdateWarning();
 	}
 }
 

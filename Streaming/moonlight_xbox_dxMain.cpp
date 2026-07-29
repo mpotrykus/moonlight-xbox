@@ -162,6 +162,11 @@ moonlight_xbox_dxMain::moonlight_xbox_dxMain(const std::shared_ptr<DX::DeviceRes
 	m_statsTextRenderer = std::make_unique<StatsRenderer>(m_deviceResources, m_stats);
 	m_statsTextRenderer->SetVisible(configuration->enableStats);
 
+	m_autoBitrate = std::make_unique<AutoBitrateController>(m_stats, moonlightClient, configuration->bitrate, configuration->enableAutoBitrate);
+	m_autoBitrate->RequestReconnectWithBitrate = ([this](int kbps) {
+		this->ReconnectWithBitrate(kbps);
+	});
+
 	// We're now connected and can register for gamepad events
 	for (int i = 0; i < MAX_GAMEPADS; i++) {
 		GamepadState &state = m_GamepadState[i];
@@ -390,6 +395,7 @@ void moonlight_xbox_dxMain::Update() {
 		m_sceneRenderer->Update(m_timer);
 		m_LogRenderer->Update(m_timer);
 		m_statsTextRenderer->Update(m_timer);
+		m_autoBitrate->Tick(m_timer);
 	});
 }
 
@@ -439,16 +445,43 @@ void moonlight_xbox_dxMain::ProcessInput() {
 
 		if (insideMenu) {
 			if (PressedEdge(result.maskedReading, state.previousReading, GamepadButtons::B)) {
-				DISPATCH_UI(([this]() {
-					m_streamPage->SetStreamMenuVisible(false);
+				// B backs out one level: close the Picture modal if it's open, else close
+				// the Other sub-menu if that's open, else close the whole OSD overlay.
+				bool hadModal = m_streamPage->IsPictureModalVisible();
+				bool hadSubMenu = !hadModal && m_streamPage->HasOpenSubMenu();
+				DISPATCH_UI(([this, hadModal, hadSubMenu]() {
+					if (hadModal) {
+						// The picture modal's sliders use normal focus engagement (same as the
+						// Bitrate slider in HostSettings), which also uses B to disengage. If a
+						// slider is currently engaged, let that consume the B press instead of
+						// also closing the modal out from under it.
+						auto focusedControl = dynamic_cast<Windows::UI::Xaml::Controls::Control^>(
+						    Windows::UI::Xaml::Input::FocusManager::GetFocusedElement());
+						if (focusedControl != nullptr && focusedControl->IsFocusEngaged) {
+							return;
+						}
+						m_streamPage->ClosePictureModal();
+					} else if (hadSubMenu) {
+						m_streamPage->CloseOpenSubMenu();
+					} else {
+						m_streamPage->SetStreamMenuVisible(false);
+					}
 				}));
-				insideMenu = false;
+				if (!hadModal && !hadSubMenu) {
+					insideMenu = false;
+				}
 				state.buttonSuppressMask = static_cast<GamepadButtons>(
 				    static_cast<uint32_t>(state.buttonSuppressMask) | static_cast<uint32_t>(GamepadButtons::B));
 				SendGamepadReadingForState(state, EmptyReading());
 			}
 			state.reading = EmptyReading();
-			state.previousReading = EmptyReading();
+			// Carry the real reading forward (not EmptyReading()) so PressedEdge only fires once per
+			// physical press. Wiping this every iteration made B look "freshly pressed" on every poll
+			// for as long as it was held, which used to be harmless (the old code always set
+			// insideMenu = false on the first hit, so the block was never re-entered) but now that a
+			// single B can back out just one level while staying insideMenu, it caused one held press
+			// to cascade through every level (modal -> sub-menu -> whole OSD) in a single go.
+			state.previousReading = result.maskedReading;
 			continue;
 		}
 
@@ -881,6 +914,72 @@ bool moonlight_xbox_dxMain::ToggleStats() {
 	});
 
 	return visible ? false : true;
+}
+
+void moonlight_xbox_dxMain::SetPictureContrast(float value) {
+	if (m_sceneRenderer) m_sceneRenderer->SetContrast(value);
+}
+
+void moonlight_xbox_dxMain::SetPictureBlackLevel(float value) {
+	if (m_sceneRenderer) m_sceneRenderer->SetBlackLevel(value);
+}
+
+void moonlight_xbox_dxMain::SetPictureWhiteLevel(float value) {
+	if (m_sceneRenderer) m_sceneRenderer->SetWhiteLevel(value);
+}
+
+void moonlight_xbox_dxMain::SetPictureGamma(float value) {
+	if (m_sceneRenderer) m_sceneRenderer->SetGamma(value);
+}
+
+void moonlight_xbox_dxMain::SetPictureSaturation(float value) {
+	if (m_sceneRenderer) m_sceneRenderer->SetSaturation(value);
+}
+
+// Auto Bitrate fallback for hosts without live renegotiation support: reconnects the
+// stream at a new bitrate, showing the same progress overlay used on initial connect.
+// Called from AutoBitrateController::Tick() on the render loop thread; must stay cheap
+// (everything below is scheduling work onto the UI dispatcher or a background task).
+void moonlight_xbox_dxMain::ReconnectWithBitrate(int bitrateKbps) {
+	if (!m_sceneRenderer) {
+		return;
+	}
+
+	StreamPage^ streamPage = m_streamPage;
+	DISPATCH_UI(([streamPage]() {
+		streamPage->m_progressView->Opacity = 1.0;
+		streamPage->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Visible;
+	}));
+
+	m_sceneRenderer->ReconnectWithBitrate(bitrateKbps);
+
+	concurrency::create_task([this]() {
+		while (this->m_sceneRenderer && !this->m_sceneRenderer->IsLoadingComplete() && !this->moonlightClient->IsConnectionTerminated()) {
+			Sleep(50);
+		}
+	}).then([this](concurrency::task<void> t) {
+		StreamPage^ streamPage = m_streamPage;
+		DISPATCH_UI(([streamPage]() {
+			using namespace Windows::UI::Xaml::Media::Animation;
+			auto anim = ref new DoubleAnimation();
+			anim->From = ref new Platform::Box<double>(1.0);
+			anim->To   = ref new Platform::Box<double>(0.0);
+			anim->Duration = Windows::UI::Xaml::Duration(Windows::Foundation::TimeSpan{ 5000000LL });
+			auto sb = ref new Storyboard();
+			sb->Children->Append(anim);
+			Storyboard::SetTarget(anim, streamPage->m_progressView);
+			Storyboard::SetTargetProperty(anim, "(UIElement.Opacity)");
+			Platform::WeakReference weakPage(streamPage);
+			sb->Completed += ref new Windows::Foundation::EventHandler<Platform::Object^>(
+				[weakPage](Platform::Object^, Platform::Object^) {
+					auto page = weakPage.Resolve<StreamPage>();
+					if (page == nullptr) return;
+					page->m_progressView->Visibility = Windows::UI::Xaml::Visibility::Collapsed;
+					page->m_progressView->Opacity = 1.0;
+				});
+			sb->Begin();
+		}));
+	});
 }
 
 /// Gamepad Handling

@@ -835,6 +835,74 @@ int gs_quit_app(PSERVER_DATA server) {
   return ret;
 }
 
+int gs_get_abr_capabilities(PSERVER_DATA server, char** json_out) {
+  int ret = GS_OK;
+  char url[4096];
+  PHTTP_DATA data = http_create_data();
+  if (data == NULL)
+    return GS_OUT_OF_MEMORY;
+
+  snprintf(url, sizeof(url), "https://%s:%u/api/abr/capabilities", server->serverInfo.address, server->httpsPort);
+  CURL* curl = get_curl_handle();
+  if ((ret = http_request(curl, url, data)) != GS_OK)
+    goto cleanup;
+
+  size_t len = data->size + 1;
+  *json_out = malloc(len);
+  if (*json_out == NULL) {
+    ret = GS_OUT_OF_MEMORY;
+    goto cleanup;
+  }
+  memcpy(*json_out, data->memory, len);
+
+  cleanup:
+  http_free_data(data);
+  http_cleanup(curl);
+  return ret;
+}
+
+int gs_set_bitrate(PSERVER_DATA server, int bitrateKbps) {
+  int ret = GS_OK;
+  char url[4096];
+  uuid_t uuid;
+  char uuid_str[UUID_STRLEN];
+  char* result = NULL;
+  PHTTP_DATA data = http_create_data();
+  if (data == NULL)
+    return GS_OUT_OF_MEMORY;
+
+  uuid_generate_random(&uuid);
+  uuid_unparse(&uuid, uuid_str);
+  snprintf(url, sizeof(url), "https://%s:%u/bitrate?bitrate=%d&uniqueid=%s&uuid=%s", server->serverInfo.address, server->httpsPort, bitrateKbps, unique_id, uuid_str);
+  CURL* curl = get_curl_handle();
+  if ((ret = http_request(curl, url, data)) != GS_OK)
+    goto cleanup;
+
+  if ((ret = xml_status(data->memory, data->size)) != GS_OK)
+    goto cleanup;
+  else if ((ret = xml_search(data->memory, data->size, "bitrate", &result)) != GS_OK)
+    goto cleanup;
+
+  if (strcmp(result, "0") == 0) {
+    ret = GS_FAILED;
+    goto cleanup;
+  }
+
+  cleanup:
+  if (result != NULL)
+    free(result);
+
+  http_free_data(data);
+  http_cleanup(curl);
+  return ret;
+}
+
+// gs_init() may be called concurrently for different hosts (e.g. HostSelectorPage
+// checking several saved hosts in parallel). load_unique_id/load_cert/http_init
+// mutate process-global state (unique_id, cert, cert_hex, privateKey, and the
+// certBlob/keyBlob buffers freed+realloced inside http_init), so they must only
+// ever run once, serialized. SRWLOCK_INIT is a static zero-initializer, so this
+// needs no separate one-time-init step of its own.
 static bool identityLoaded = false;
 static SRWLOCK identityLock = SRWLOCK_INIT;
 

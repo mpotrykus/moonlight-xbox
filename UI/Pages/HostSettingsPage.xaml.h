@@ -111,6 +111,9 @@ namespace moonlight_xbox_dx
         void AudioTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
         void StreamTab_GotFocus(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void BitrateInput_KeyDown(Platform::Object^ sender, Windows::UI::Xaml::Input::KeyRoutedEventArgs^ e);
+		void AutoBitrateCheckbox_Toggled(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void UpdateAutoBitrateUI();
+		void CheckAbrSupportAndUpdateWarning();
 		void OnLoaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void OnUnloaded(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		int getDefaultBitrate(int width, int height, int fps);

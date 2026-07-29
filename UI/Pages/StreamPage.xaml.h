@@ -7,6 +7,7 @@
 #include "Streaming\moonlight_xbox_dxMain.h"
 #include "KeyboardControl.xaml.h"
 #include "UI\Converters\BoolToTextConverter.h"
+#include "UI\Modals\PictureModal.xaml.h"
 
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls;
@@ -70,6 +71,10 @@ namespace moonlight_xbox_dx
 		}
 
 		void SetStreamMenuVisible(bool visible);
+		bool HasOpenSubMenu();
+		bool CloseOpenSubMenu();
+		bool IsPictureModalVisible();
+		bool ClosePictureModal();
 
 		property Grid^ m_progressView {
 			Grid^ get() {
@@ -126,6 +131,15 @@ namespace moonlight_xbox_dx
 		void ShowSubMenu();
 		void HideSubMenu();
 		void InstantHideSubMenu();
+		void pictureButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
+		void ShowPictureModal();
+		void HidePictureModal();
+		void InstantHidePictureModal();
+		void OnPictureContrastChanged(PictureModal^ sender, int value);
+		void OnPictureBlackLevelChanged(PictureModal^ sender, int value);
+		void OnPictureWhiteLevelChanged(PictureModal^ sender, int value);
+		void OnPictureGammaChanged(PictureModal^ sender, int value);
+		void OnPictureSaturationChanged(PictureModal^ sender, int value);
 		void showKeyboardButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 		void toggleLogsButton_Click(Platform::Object^ sender, Windows::UI::Xaml::RoutedEventArgs^ e);
 	    void SetShowLogs(bool show);

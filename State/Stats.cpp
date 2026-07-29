@@ -150,6 +150,26 @@ void Stats::SubmitRenderStats(double preWaitTimeMs, double renderTimeMs, double 
 	m_ActiveWndVideoStats.totalPresentTimeUs += static_cast<uint64_t>(presentTimeMs * 1000);
 }
 
+NETWORK_CONDITION_SNAPSHOT Stats::GetLastWindowSnapshot() {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	NETWORK_CONDITION_SNAPSHOT snapshot = {};
+	const VIDEO_STATS& s = m_LastWndVideoStats;
+
+	snapshot.lossPercent = s.totalFrames ? (double)s.networkDroppedFrames / s.totalFrames * 100.0 : 0.0;
+	snapshot.jitterPercent = s.totalFrames ? (double)s.pacerDroppedFrames / s.totalFrames * 100.0 : 0.0;
+
+	if (!LiGetEstimatedRttInfo(&snapshot.rttMs, &snapshot.rttVarianceMs)) {
+		snapshot.rttMs = 0;
+		snapshot.rttVarianceMs = 0;
+	}
+
+	snapshot.avgMbps = m_bwTracker.GetAverageMbps();
+	snapshot.measurementTimestamp = s.measurementStartTimestamp;
+
+	return snapshot;
+}
+
 /// private methods
 
 void Stats::addVideoStats(DX::StepTimer const& timer, VIDEO_STATS& src, VIDEO_STATS& dst) {

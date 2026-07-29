@@ -94,12 +94,13 @@
                                     <ComboBox Grid.Column="1" Grid.Row="1" Height="30" x:Name="FPSSelector" SelectionChanged="FPSSelector_SelectionChanged" DropDownOpened="ComboBox_DropDownOpened" SelectedItem="{x:Bind Host.FPS,Mode=OneWay}" ItemsSource="{x:Bind AvailableFPS}" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind DisplayTab}" />
                                         
                                     <TextBlock Grid.Column="0" Grid.Row="2" Text="Bitrate" VerticalAlignment="Center" />
-                                    <Slider Grid.Column="1" Grid.Row="2"  Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
-                                    
+                                    <Slider Grid.Column="1" Grid.Row="2" x:Name="BitrateSlider" Value="{x:Bind Host.Bitrate}" x:DefaultBindMode="TwoWay" HorizontalAlignment="Stretch" Minimum="5000" Maximum="500000" SmallChange="10000" TickFrequency="50000" StepFrequency="50000" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
+
                                     <TextBlock Grid.Column="0" Grid.Row="3" Text="Video Codec" VerticalAlignment="Center" />
                                     <ComboBox Grid.Column="1" Grid.Row="3" Height="30" Name="CodecComboBox" ItemsSource="{x:Bind AvailableVideoCodecs}" SelectedItem="{x:Bind Host.VideoCodec,Mode=TwoWay}" DropDownOpened="ComboBox_DropDownOpened" VerticalAlignment="Center" HorizontalAlignment="Left" MinWidth="180" XYFocusLeft="{x:Bind DisplayTab}" />
                                 </Grid>
                             </Border>
+                            <TextBlock Name="BitrateCeilingNote" Visibility="Collapsed" Margin="4,4,0,0" Opacity="0.5" TextWrapping="Wrap">With Auto Bitrate enabled, this value is used as the maximum bitrate; the app will scale down from here based on network conditions.</TextBlock>
 
                             <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="OPTIONS" />
                             <Border Style="{StaticResource SettingsGroupStyle}">
@@ -112,16 +113,21 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition/>
                                         <RowDefinition/>
+                                        <RowDefinition/>
                                     </Grid.RowDefinitions>
 
                                     <TextBlock Grid.Column="0" Grid.Row="0" Text="Enable HDR" VerticalAlignment="Center" />
                                     <CheckBox Grid.Column="1" Grid.Row="0" Name="EnableHDRCheckbox" IsChecked="{x:Bind Host.EnableHDR,Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
-                                        
+
                                     <TextBlock Grid.Column="0" Grid.Row="1" Text="Optimize host resolution" VerticalAlignment="Center" />
                                     <CheckBox Grid.Column="1" Grid.Row="1" Name="EnableSOPSCheckbox" IsChecked="{x:Bind Host.EnableSOPS,Mode=TwoWay}" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
+
+                                    <TextBlock Grid.Column="0" Grid.Row="2" Text="Auto Bitrate" VerticalAlignment="Center" />
+                                    <CheckBox Grid.Column="1" Grid.Row="2" Name="AutoBitrateCheckbox" IsChecked="{x:Bind Host.AutoBitrate,Mode=TwoWay}" Checked="AutoBitrateCheckbox_Toggled" Unchecked="AutoBitrateCheckbox_Toggled" VerticalAlignment="Center" XYFocusLeft="{x:Bind DisplayTab}" />
                                 </Grid>
                             </Border>
                             <TextBlock Name="HDR4KNote" Visibility="Collapsed" Margin="4,4,0,0" Opacity="0.5">HDR requires Xbox system resolution set to 4K.</TextBlock>
+                            <TextBlock Name="AutoBitrateWarningNote" Visibility="Collapsed" Margin="4,4,0,0" Opacity="0.5" TextWrapping="Wrap">This host does not support live bitrate updates. Auto Bitrate adjustments will briefly reconnect the stream (about 1-2 seconds).</TextBlock>
                         </StackPanel>
 
                         <!-- Audio -->

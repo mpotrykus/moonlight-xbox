@@ -49,7 +49,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::Init()
 					if (a.contains("autoStartID"))h->AutostartID = a["autoStartID"];
 					if (a.contains("computername")) h->ComputerName = Utils::StringFromStdString(a["computername"].get<std::string>());
 					if (a.contains("playaudioonpc")) h->PlayAudioOnPC = a["playaudioonpc"].get<bool>();
+					if (a.contains("contrast")) h->Contrast = a["contrast"].get<int>();
+					if (a.contains("black_level")) h->BlackLevel = a["black_level"].get<int>();
+					if (a.contains("white_level")) h->WhiteLevel = a["white_level"].get<int>();
+					if (a.contains("gamma")) h->Gamma = a["gamma"].get<int>();
+					if (a.contains("saturation")) h->Saturation = a["saturation"].get<int>();
 					if (a.contains("enable_hdr")) h->EnableHDR = a["enable_hdr"].get<bool>();
+					if (a.contains("auto_bitrate")) h->AutoBitrate = a["auto_bitrate"].get<bool>();
 					if (a.contains("enable_sops")) h->EnableSOPS = a["enable_sops"].get<bool>();
 					if (a.contains("enable_stats")) h->EnableStats = a["enable_stats"].get<bool>();
 					if (a.contains("enable_graphs")) h->EnableGraphs = a["enable_graphs"].get<bool>();
@@ -169,7 +175,13 @@ Concurrency::task<void> moonlight_xbox_dx::ApplicationState::UpdateFile()
 			hostJson["videoCodec"] = Utils::PlatformStringToStdString(host->VideoCodec);
 			hostJson["autoStartID"] = host->AutostartID;
 			hostJson["playaudioonpc"] = host->PlayAudioOnPC;
+			hostJson["contrast"] = std::max(50, std::min(host->Contrast, 200));
+			hostJson["black_level"] = std::max(0, std::min(host->BlackLevel, 50));
+			hostJson["white_level"] = std::max(50, std::min(host->WhiteLevel, 100));
+			hostJson["gamma"] = std::max(50, std::min(host->Gamma, 200));
+			hostJson["saturation"] = std::max(0, std::min(host->Saturation, 200));
 			hostJson["enable_hdr"] = host->EnableHDR;
+			hostJson["auto_bitrate"] = host->AutoBitrate;
 			hostJson["enable_sops"] = host->EnableSOPS;
 			hostJson["enable_stats"] = host->EnableStats;
 			hostJson["enable_graphs"] = host->EnableGraphs;
