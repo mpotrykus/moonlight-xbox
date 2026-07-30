@@ -20,6 +20,9 @@ env:
 jobs:
   build:
     runs-on: windows-2022
+    # NIGHTLY ONLY
+    permissions:
+      contents: write
     steps:
     - uses: actions/checkout@v4
       with:
@@ -54,12 +57,14 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       id: cert
+      # NIGHTLY-ONLY
       if: >-
-        github.event_name == 'pull_request' &&
-        !startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/')
+        (github.event_name == 'pull_request' &&
+        !startsWith(github.event.pull_request.head.repo.full_name, 'TheElixZammuto/')) ||
+        github.event_name == 'workflow_dispatch'
       run: |
         # generate a self signed certificate in pfx format
-        
+
         # https://learn.microsoft.com/en-us/windows/msix/package/create-certificate-package-signing#use-new-selfsignedcertificate-to-create-a-certificate
         $cert = New-SelfSignedCertificate `
           -Type Custom `
@@ -81,6 +86,9 @@ jobs:
         # export the password for later use, decoded
         $github_output = "password=$hash"
         $github_output | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+        # NIGHTLY-ONLY
+        "thumbprint=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
         Export-PfxCertificate `
           -Cert Cert:\LocalMachine\My\$($cert.Thumbprint) `
@@ -122,6 +130,15 @@ jobs:
         else {
           $certPasswordArg = ""
         }
+        
+        # NIGHTLY-ONLY
+        $certThumbprint = "${{ steps.cert.outputs.thumbprint }}"
+        if ($certThumbprint -ne "") {
+          $certThumbprintArg = "/p:PackageCertificateThumbprint=$certThumbprint"
+        }
+        else {
+          $certThumbprintArg = ""
+        }
 
         msbuild /m `
           /p:Configuration=${{env.BUILD_CONFIGURATION}} `
@@ -130,6 +147,7 @@ jobs:
           /p:PackageCertificateKeyFile=cert.pfx `
           /p:UapAppxPackageBuildMode=SideLoadOnly `
           $certPasswordArg `
+          $certThumbprintArg `
           ${{env.SOLUTION_FILE_PATH}}
 
     - name: Clean Certificate
@@ -145,3 +163,16 @@ jobs:
         name: moonlight-uwp
         path: |
           output
+          
+    # NIGHTLY-ONLY
+    - name: Create Release
+      if: github.event_name == 'workflow_dispatch'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ui-vr2-${{ github.run_number }}
+        name: "${{ github.ref_name }} (Build ${{ github.run_number }})"
+        files: |
+          output/**/*.msixbundle
+          output/**/Dependencies/x64/**
+          output/**/*.cer
+          output/**/Install.ps1
